@@ -41,10 +41,12 @@ keep it in the map's fog instead of pre-slicing it.
 
 ## The map issue
 
-Create one tracker issue labelled as the map type documented by the tracker. Its body is
+Create one tracker issue using the map metadata documented by the tracker. Its body is
 low-resolution and contains:
 
 ```markdown
+Type: wayfinder-map
+
 ## Destination
 <one or two lines describing what reaching the end looks like>
 
@@ -69,20 +71,24 @@ human-facing text; keep tracker numbers and URLs inside the links.
 Each child issue has one question sized for a session:
 
 ```markdown
+Type: wayfinder-<research|prototype|grilling|task>
+Part of: #<map>
+
 ## Question
 <the precise decision or investigation this issue resolves>
 ```
 
 Create all currently specifiable children first, then wire parent/child and blocking
-relationships in a second pass using the tracker's native mechanisms. Use the label
-taxonomy documented by the tracker; when a type is not represented by a supported label,
-state `Type: decision` or `Type: evidence` in the issue body rather than inventing a
-skill dependency.
+relationships in a second pass using the tracker's native mechanisms. The `Type` line is
+stable Wayfinder metadata, while the native sub-issue relation is the canonical hierarchy
+when available. Do not create or require `wayfinder:*` labels. Labels remain repository
+triage metadata, and `ready-for-agent` is reserved for approved implementation issues.
 
 Before any work on a ticket, claim it by assigning the driving owner. The frontier is an
 open, unblocked, unclaimed child. Read only the map first; load related ticket details
-as needed. The user may work unblocked tickets in parallel, so expect tracker edits from
-other sessions.
+as needed. Identify children from the map's native sub-issues, or its documented fallback,
+and confirm their `Type` metadata from the body. The user may work unblocked tickets in
+parallel, so expect tracker edits from other sessions.
 
 ## Work through the map
 

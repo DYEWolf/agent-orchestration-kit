@@ -153,21 +153,22 @@ not implement corrections. Workers create no Runs, Tasks, worktrees, or agents.
 ## 8. GitHub tracker contract
 
 GitHub Issues is mandatory. Init fails early without a GitHub remote or valid
-`gh` authentication for that host, and never creates Issues. The required label
-vocabulary is:
+`gh` authentication for that host, and never creates Issues. The only label
+required by the installed workflow is:
 
 ```text
 ready-for-agent
-wontfix
-wayfinder:map
-wayfinder:research
-wayfinder:prototype
-wayfinder:grilling
-wayfinder:task
 ```
 
-Missing labels are a doctor `FAIL`. Native assignment, open/closed state,
-dependencies, and comments should be used instead of redundant status labels.
+It marks an approved, executable, unblocked implementation Issue whose contract,
+acceptance criteria, and verification are complete. Its absence is a doctor
+`FAIL`. Wayfinder uses `Type: wayfinder-map` on maps and
+`Type: wayfinder-<research|prototype|grilling|task>` plus `Part of: #<map>` on
+children; it does not create or depend on `wayfinder:*` labels. Native
+sub-Issues, dependencies, and assignees are canonical for hierarchy, blocking,
+and ownership. When unavailable, a map task list and `Blocked by: #<issue>` are
+the respective fallbacks. `Type: wayfinder-task` is planning metadata and never
+implies `ready-for-agent` or an Issue-owned execution Run.
 
 ## 9. Installed skill bundle
 

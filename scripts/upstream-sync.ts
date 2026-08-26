@@ -91,9 +91,15 @@ try {
       ? { kind: 'replacement', source: 'templates/patches/ask-matt-body.md', reason: 'Router must reference only installed skills.' }
       : {
           kind: 'mechanical',
-          replacements: ['adapter-specific slash invocations -> neutral skill names', 'setup skill fallback -> installed GitHub tracker documentation'],
+          replacements: [
+            'adapter-specific slash invocations -> neutral skill names',
+            'setup skill fallback -> installed GitHub tracker documentation',
+            ...(name === 'wayfinder'
+              ? ['Wayfinder label taxonomy -> body metadata and native tracker relationships']
+              : []),
+          ],
         };
-    const patchedBody = name === 'ask-matt' ? askMattReplacement : adaptBody(parsed.body);
+    const patchedBody = name === 'ask-matt' ? askMattReplacement : adaptBody(parsed.body, name);
     const frontmatter = stringifyYaml({
       name,
       description: parsed.frontmatter.description ?? `Orca-adapted ${name} procedure`,
@@ -201,7 +207,7 @@ function parseSkill(content: string): { frontmatter: UpstreamFrontmatter; body: 
   };
 }
 
-function adaptBody(body: string): string {
+function adaptBody(body: string, name: string): string {
   let adapted = body;
   for (const name of Object.keys(skills)) {
     adapted = adapted.replace(new RegExp(`/${escapeRegExp(name)}(?![A-Za-z0-9-])`, 'gu'), name);
@@ -210,7 +216,48 @@ function adaptBody(body: string): string {
   adapted = adapted.replaceAll('setup-matt-pocock-skills', 'docs/agents/issue-tracker.md');
   adapted = adapted.replaceAll('tell the user to run `docs/agents/issue-tracker.md`', 'follow `docs/agents/issue-tracker.md`; if it is missing, report an incomplete orca-kit installation');
   adapted = adapted.replaceAll('If no tracker has been provided, default to the local-markdown tracker.', 'If the tracker document is missing, stop and report an incomplete orca-kit installation.');
+  if (name === 'wayfinder') adapted = adaptWayfinderBody(adapted);
   return adapted;
+}
+
+function adaptWayfinderBody(body: string): string {
+  let adapted = body;
+  adapted = replaceRequired(
+    adapted,
+    'The map is a single issue on this repo\'s issue tracker, labelled `wayfinder:map`, the canonical artifact. Its tickets are child issues of the map.',
+    'The map is a single issue on this repo\'s issue tracker, identified by `Type: wayfinder-map` body metadata, and is the canonical artifact. Its tickets are child issues of the map. Do not create or require `wayfinder:*` labels.',
+  );
+  adapted = replaceRequired(
+    adapted,
+    '```markdown\n## Destination',
+    '```markdown\nType: wayfinder-map\n\n## Destination',
+  );
+  adapted = replaceRequired(
+    adapted,
+    '```markdown\n## Question',
+    '```markdown\nType: wayfinder-<research|prototype|grilling|task>\nPart of: #<map>\n\n## Question',
+  );
+  adapted = replaceRequired(
+    adapted,
+    'Each ticket carries a `wayfinder:<type>` label, one of `research`, `prototype`, `grilling`, `task` (see [Ticket Types](#ticket-types)).',
+    'Each ticket carries stable body metadata: `Type: wayfinder-<research|prototype|grilling|task>` and `Part of: #<map>`. The native sub-issue relation is the canonical hierarchy when available; otherwise use a task list in the map as the fallback. `Type: wayfinder-task` is planning metadata and does not imply `ready-for-agent` or authorize an issue-owned execution Run.',
+  );
+  adapted = replaceRequired(
+    adapted,
+    'Only a tracker that lacks native blocking falls back to a body convention.',
+    'Only a tracker that lacks native blocking falls back to a `Blocked by: #<issue>` body convention.',
+  );
+  adapted = replaceRequired(
+    adapted,
+    '3. **Create the map** (label `wayfinder:map`): Destination and Notes filled in, Decisions-so-far empty, the fog sketched into **Not yet specified**.',
+    '3. **Create the map** with `Type: wayfinder-map` body metadata: Destination and Notes filled in, Decisions-so-far empty, the fog sketched into **Not yet specified**.',
+  );
+  return adapted;
+}
+
+function replaceRequired(content: string, source: string, replacement: string): string {
+  if (!content.includes(source)) throw new Error(`Expected maintainer patch source was not found: ${source}`);
+  return content.replace(source, replacement);
 }
 
 function renderOpenAiMetadata(name: string, description: string, disableModelInvocation: boolean): string {

@@ -99,14 +99,15 @@ Orca Task does not close an Issue.
 
 ## Labels
 
-Use existing repository labels and preserve their meaning. The standard
-workflow labels are:
+Use existing repository labels and preserve their meaning. The only label
+required by this workflow is:
 
-- `ready-for-agent` — approved, executable, unblocked implementation Issue.
-- `wontfix` — intentionally closed without implementation.
-- `wayfinder:map` — a decision map Issue.
-- `wayfinder:research`, `wayfinder:prototype`, `wayfinder:grilling`,
-  `wayfinder:task` — map child types.
+- `ready-for-agent` — approved, executable, unblocked implementation Issue whose
+  contract, acceptance criteria, and verification are complete.
+
+`wontfix` may be used when the repository wants to distinguish intentional
+non-implementation, but it is not required by the workflow. Wayfinder types are
+body metadata, not labels.
 
 ```bash
 gh issue edit <number> --repo DYEWolf/orca-kit --add-label "ready-for-agent"
@@ -114,8 +115,9 @@ gh issue edit <number> --repo DYEWolf/orca-kit --remove-label "ready-for-agent"
 gh label list --repo DYEWolf/orca-kit
 ```
 
-Do not invent labels in a Task contract or use labels as a substitute for
-assignees, Issue state, dependencies, or Run state.
+Do not create or depend on `wayfinder:*` labels. Do not invent labels in a Task
+contract or use labels as a substitute for assignees, Issue state,
+dependencies, or Run state.
 
 ## Dependencies
 
@@ -136,14 +138,29 @@ Tasks inside one Issue's execution Run and never replace a GitHub dependency.
 
 ## Wayfinding operations
 
-`$wayfinder` uses one map Issue labelled `wayfinder:map` and child decision
-Issues labelled by type. Where GitHub sub-Issues are available, link children
-through the sub-Issue endpoint; otherwise put `Part of #<map>` at the top of the
-child body. Use native dependency edges for blockers. Claim a Wayfinder child
-for bounded planning work, but do not create an execution Run merely because it
-is labelled `wayfinder:task`; only an approved implementation Issue from the
-specification/ticket flow receives the one execution Run.
+Used by `$wayfinder`. The map is one Issue with child Issues as tickets.
 
-Resolve a map child with a `[resolution]` comment, close it, and append a concise
-context pointer to the map's Decisions-so-far. Keep Issue names readable in
-human-facing narration and preserve IDs and links inside the names.
+- **Metadata, not labels:** put `Type: wayfinder-map` at the top of the map body.
+  Put `Type: wayfinder-<research|prototype|grilling|task>` and
+  `Part of: #<map>` at the top of each child body. Do not create or depend on
+  `wayfinder:*` labels. `ready-for-agent` is reserved for approved implementation
+  Issues and is never implied by `Type: wayfinder-task`.
+- **Hierarchy:** use GitHub's native sub-Issue relation as the canonical
+  hierarchy. Keep `Part of: #<map>` as a portable context pointer. If sub-Issues
+  are unavailable, maintain a task list of children in the map body; the task
+  list plus `Part of` is the hierarchy fallback.
+- **Blocking:** use GitHub's native Issue dependencies as the canonical gate. If
+  dependencies are unavailable, put `Blocked by: #<issue>` at the top of the
+  child body. A ticket is unblocked only when every blocker is closed.
+- **Frontier:** list the map's open children from native sub-Issues or the
+  fallback task list, confirm their `Type` metadata, and exclude assigned or
+  blocked children. The first remaining child in map order wins.
+- **Ownership:** claim a child with its assignee. Keep Wayfinder work in planning
+  context by default. Bounded evidence Tasks may run in a planning Run, but a
+  child receives an Issue-owned execution Run only if the separate spec/ticket
+  flow approved it as implementation work and it carries `ready-for-agent`.
+- **Resolution:** comment with `[resolution]`, close the child, and append a
+  concise linked gist to the map's Decisions-so-far.
+
+Keep Issue names readable in human-facing narration and preserve IDs and links
+inside the names.

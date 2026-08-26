@@ -24,4 +24,20 @@ describe('desired artifact rendering', () => {
         .sort((a, b) => a.localeCompare(b)),
     );
   });
+
+  it('renders Wayfinder metadata without requiring a label taxonomy', () => {
+    const artifacts = renderDesiredArtifacts(resolveConfig('codex-only'));
+    const tracker = artifacts.find((artifact) => artifact.path === 'docs/agents/issue-tracker.md')?.content ?? '';
+    const wayfinder = artifacts.find((artifact) => artifact.path === '.agents/skills/wayfinder/SKILL.md')?.content ?? '';
+
+    for (const content of [tracker, wayfinder]) {
+      expect(content).toContain('Type: wayfinder-map');
+      expect(content).toContain('Type: wayfinder-<research|prototype|grilling|task>');
+      expect(content).toContain('Part of: #<map>');
+      expect(content).not.toMatch(/wayfinder:(?:map|research|prototype|grilling|task)/u);
+    }
+
+    expect(tracker).toContain('Blocked by: #<issue>');
+    expect(tracker).toContain('never implied by `Type: wayfinder-task`');
+  });
 });

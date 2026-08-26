@@ -170,19 +170,15 @@ GitHub Issues are the only durable work units in v1. Agents use the authenticate
 \`gh\` CLI at runtime. orca-kit itself does not create Issues, commits, branches,
 pushes, or pull requests.
 
-## Required labels
+## Required implementation label
 
-- \`ready-for-agent\`
-- \`wontfix\`
-- \`wayfinder:map\`
-- \`wayfinder:research\`
-- \`wayfinder:prototype\`
-- \`wayfinder:grilling\`
-- \`wayfinder:task\`
+- \`ready-for-agent\` — approved, executable, unblocked implementation Issue
+  whose contract, acceptance criteria, and verification are complete.
 
-Missing labels make the installed workflow incomplete. Phase 4 adds confirmed
-label creation and remote doctor checks; until then they must be created by the
-repository owner.
+This is the only label required by the workflow. Its absence makes the installed
+workflow incomplete. Phase 4 adds confirmed label creation and remote doctor
+checks; until then it must be created by the repository owner. Wayfinder types
+are body metadata, not labels.
 
 ## Issue contract
 
@@ -200,6 +196,32 @@ to-tickets may create Issues after the user approves the breakdown. wayfinder ma
 create and update its map and decision Issues. implement may comment, update the
 claim, and close its owned implementation Issue. Those are agent runtime actions,
 not CLI initialization actions.
+
+## Wayfinding operations
+
+Used by \`$wayfinder\`. The map is one Issue with child Issues as tickets.
+
+- **Metadata, not labels:** put \`Type: wayfinder-map\` at the top of the map
+  body. Put \`Type: wayfinder-<research|prototype|grilling|task>\` and
+  \`Part of: #<map>\` at the top of each child body. Do not create or depend on
+  \`wayfinder:*\` labels. \`ready-for-agent\` is reserved for approved
+  implementation Issues and is never implied by \`Type: wayfinder-task\`.
+- **Hierarchy:** use the tracker's native sub-Issue relation as the canonical
+  hierarchy. Keep \`Part of: #<map>\` as a portable context pointer. If
+  sub-Issues are unavailable, maintain a task list of children in the map body;
+  the task list plus \`Part of\` is the hierarchy fallback.
+- **Blocking:** use native Issue dependencies as the canonical gate. If they are
+  unavailable, put \`Blocked by: #<issue>\` at the top of the child body. A
+  ticket is unblocked only when every blocker is closed.
+- **Frontier:** list the map's open children from native sub-Issues or the
+  fallback task list, confirm their \`Type\` metadata, and exclude assigned or
+  blocked children. The first remaining child in map order wins.
+- **Ownership:** claim a child with its assignee. Keep Wayfinder work in planning
+  context by default. Bounded evidence Tasks may run in a planning Run, but a
+  child receives an Issue-owned execution Run only if the separate spec/ticket
+  flow approved it as implementation work and it carries \`ready-for-agent\`.
+- **Resolution:** close the child with a durable resolution comment and append a
+  concise linked gist to the map's Decisions-so-far.
 `;
 }
 

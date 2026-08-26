@@ -4,14 +4,15 @@
   "upstreamCommit": "6654f6b60cd9d5be8b54c6fafe44346dabeb3b76",
   "originalContentHash": "fee6e1d0c50f0e736b4ef8a599060c959afae904c9a97d82c97f049fcc3aa0f1",
   "overlayVersion": "1",
-  "renderedContentHash": "974e673a11ed0d83d764c7164ea4a3eb7a049e0c8f5c1bd5721dd81872620dad",
+  "renderedContentHash": "2a45dafad7bbf620483e1c0b0bc49ce82f6170e78039ce3fba4026f05c416a66",
   "supportFiles": [],
   "patch": {
     "kind": "manual",
     "changes": [
       "generic Orca ownership and lifecycle adaptation",
       "Codex $skill-name references",
-      "manual removal of product and alternate-adapter content"
+      "manual removal of product and alternate-adapter content",
+      "Wayfinder label taxonomy replaced with body metadata and native GitHub relationships"
     ]
   }
 }

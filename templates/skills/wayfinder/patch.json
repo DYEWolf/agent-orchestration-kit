@@ -2,6 +2,7 @@
   "kind": "mechanical",
   "replacements": [
     "adapter-specific slash invocations -> neutral skill names",
-    "setup skill fallback -> installed GitHub tracker documentation"
+    "setup skill fallback -> installed GitHub tracker documentation",
+    "Wayfinder label taxonomy -> body metadata and native tracker relationships"
   ]
 }
