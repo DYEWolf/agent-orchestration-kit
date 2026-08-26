@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { execa } from 'execa';
@@ -15,12 +15,22 @@ const temporary = await mkdtemp(path.join(tmpdir(), 'orca-kit-packed-smoke-'));
 try {
   const packageDirectory = path.join(temporary, 'package');
   const installDirectory = path.join(temporary, 'install');
+  const fakeBinDirectory = path.join(temporary, 'fake-bin');
   const profiles = ['codex-only', 'claude-coordinator', 'claude-only', 'codex-coordinator'] as const;
   await Promise.all([
     mkdir(packageDirectory),
     mkdir(installDirectory),
+    mkdir(fakeBinDirectory),
     ...profiles.map((profile) => mkdir(path.join(temporary, `repository-${profile}`))),
   ]);
+  const fakeClaude = path.join(fakeBinDirectory, 'claude');
+  await writeFile(fakeClaude, `#!/usr/bin/env node
+const args = process.argv.slice(2);
+if (args.length === 1 && args[0] === '--version') process.stdout.write('2.1.236\\n');
+else if (args.length === 3 && args[0] === 'auth' && args[1] === 'status' && args[2] === '--json') process.stdout.write('{"loggedIn":true}\\n');
+else process.exit(4);
+`, { encoding: 'utf8', mode: 0o755 });
+  await chmod(fakeClaude, 0o755);
 
   const packed = await execa('npm', [
     'pack',
@@ -47,7 +57,12 @@ try {
   const tarball = path.join(packageDirectory, packResult.filename);
   await execa('npm', ['install', '--ignore-scripts', '--prefix', installDirectory, tarball]);
   const cli = path.join(installDirectory, 'node_modules/@dyewolf/orca-kit/dist/cli.js');
-  const run = async (arguments_: readonly string[]) => execa('node', [cli, ...arguments_]);
+  const run = async (arguments_: readonly string[]) => execa('node', [cli, ...arguments_], {
+    env: {
+      ...process.env,
+      PATH: `${fakeBinDirectory}${path.delimiter}${process.env['PATH'] ?? ''}`,
+    },
+  });
 
   for (const profile of profiles) {
     const targetRepository = path.join(temporary, `repository-${profile}`);

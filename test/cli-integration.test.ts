@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { execa } from 'execa';
 import { describe, expect, it } from 'vitest';
@@ -77,8 +77,49 @@ describe('local CLI installation lifecycle', () => {
     },
     20_000,
   );
+
+  it('runs deterministic Claude Doctor checks through a fake executable', async () => {
+    const repository = await mkdtemp(path.join(tmpdir(), 'orca-kit-cli-claude-'));
+    const fakeBin = await mkdtemp(path.join(tmpdir(), 'orca-kit-fake-bin-'));
+    try {
+      await execa('git', ['-C', repository, 'init', '--quiet', '-b', 'main']);
+      await execa('git', ['-C', repository, 'remote', 'add', 'origin', 'git@github.com:DYEWolf/fake-claude.git']);
+      const fakeClaude = path.join(fakeBin, 'claude');
+      await writeFile(fakeClaude, `#!/usr/bin/env node
+const args = process.argv.slice(2);
+if (args.length === 1 && args[0] === '--version') process.stdout.write('2.1.236\\n');
+else if (args.length === 3 && args[0] === 'auth' && args[1] === 'status' && args[2] === '--json') process.stdout.write('{"loggedIn":true}\\n');
+else process.exit(4);
+`, { encoding: 'utf8', mode: 0o755 });
+      await chmod(fakeClaude, 0o755);
+      const environment = {
+        ...process.env,
+        PATH: `${fakeBin}${path.delimiter}${process.env['PATH'] ?? ''}`,
+      };
+
+      await runCli(['init', repository, '--profile', 'claude-only', '--yes', '--json'], true, environment);
+      const doctor = JSON.parse((await runCli(['doctor', repository, '--json'], true, environment)).stdout) as {
+        healthy: boolean;
+        checks: { id: string; status: string }[];
+      };
+      expect(doctor.healthy).toBe(true);
+      expect(doctor.checks).toContainEqual({ id: 'claude-cli', status: 'PASS', message: expect.any(String) });
+      expect(doctor.checks).toContainEqual({ id: 'claude-version', status: 'PASS', message: expect.any(String) });
+      expect(doctor.checks).toContainEqual({ id: 'claude-auth', status: 'PASS', message: expect.any(String) });
+      expect(doctor.checks).toContainEqual({ id: 'routing-local', status: 'WARN', message: expect.any(String) });
+    } finally {
+      await Promise.all([
+        rm(repository, { recursive: true, force: true }),
+        rm(fakeBin, { recursive: true, force: true }),
+      ]);
+    }
+  }, 20_000);
 });
 
-async function runCli(arguments_: string[], reject = true) {
-  return execa('node', [...cliArguments, ...arguments_], { cwd: path.resolve('.'), reject });
+async function runCli(arguments_: string[], reject = true, env?: NodeJS.ProcessEnv) {
+  return execa('node', [...cliArguments, ...arguments_], {
+    cwd: path.resolve('.'),
+    reject,
+    ...(env === undefined ? {} : { env }),
+  });
 }

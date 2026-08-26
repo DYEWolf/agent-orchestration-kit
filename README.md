@@ -18,6 +18,12 @@ node dist/cli.js doctor /path/to/repository
 node dist/cli.js diff /path/to/repository
 ```
 
+For an explicitly credentialed Claude wrapper check, run `npm run smoke:claude`.
+It creates a disposable Claude-profile fixture, runs three fresh read-only
+non-persistent sessions, and removes the fixture afterward. This opt-in smoke
+is intentionally excluded from `npm test`, `npm run check`, `prepack`, and the
+packed smoke.
+
 The CLI does not install or authenticate Orca, Codex, Claude, GitHub CLI, models,
 accounts, subscriptions, or credentials. Phases 2 and 3 perform local repository
 writes only; global Orca and remote GitHub integration arrive in Phase 4.
@@ -30,7 +36,7 @@ writes only; global Orca and remote GitHub integration arrive in Phase 4.
 - Phase 2: atomic local application and rollback, managed instructions, pinned
   17-skill bundle, provenance, local doctor/diff, and drift refusal
 - Phase 3: all four profiles, Claude Code compatibility wrappers, and
-  profile-aware local Doctor checks
+  profile-aware local Doctor checks, including deterministic CLI/auth probes
 - Later phases: Orca/GitHub integration and release automation
 
 See [the approved specification](docs/approved-specification.md) and

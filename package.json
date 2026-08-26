@@ -24,6 +24,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "smoke:packed": "tsx scripts/smoke-packed.ts",
+    "smoke:claude": "tsx scripts/smoke-claude-wrapper.ts --live",
     "typecheck": "tsc --noEmit",
     "upstream:sync": "tsx scripts/upstream-sync.ts",
     "prepack": "npm run check"

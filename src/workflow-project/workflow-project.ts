@@ -1,6 +1,8 @@
 import path from 'node:path';
 import type { FileSystemAdapter } from '../adapters/filesystem/filesystem.js';
 import { NodeFileSystem } from '../adapters/filesystem/node-filesystem.js';
+import { NodeHarnessAdapter } from '../adapters/harness/node-harness.js';
+import type { HarnessAdapter, HarnessCheckStatus } from '../adapters/harness/harness.js';
 import { insertOrReplaceManagedBlock, inspectManagedBlock } from '../artifacts/managed-block.js';
 import { renderDesiredArtifacts, type DesiredArtifact } from '../artifacts/render.js';
 import { profiles, resolveConfig } from '../config/profiles.js';
@@ -61,15 +63,18 @@ export interface WorkflowProjectContract {
 export interface WorkflowProjectDependencies {
   readonly filesystem?: FileSystemAdapter;
   readonly inspect?: (path: string) => Promise<RepositoryInspection>;
+  readonly harness?: HarnessAdapter;
 }
 
 export class WorkflowProject implements WorkflowProjectContract {
   readonly #filesystem: FileSystemAdapter;
   readonly #inspect: (path: string) => Promise<RepositoryInspection>;
+  readonly #harness: HarnessAdapter;
 
   public constructor(dependencies: WorkflowProjectDependencies = {}) {
     this.#filesystem = dependencies.filesystem ?? new NodeFileSystem();
     this.#inspect = dependencies.inspect ?? inspectRepository;
+    this.#harness = dependencies.harness ?? new NodeHarnessAdapter();
   }
 
   public async plan(command: WorkflowCommand): Promise<ChangePlan> {
@@ -300,9 +305,40 @@ export class WorkflowProject implements WorkflowProjectContract {
       checks.push({ id: 'drift', status: 'FAIL', message: 'Drift cannot be checked without a valid manifest.' });
     }
 
-    const usesClaude = parsedConfig !== undefined
-      && Object.values(parsedConfig.routing).some((route) => route.harness === 'claude');
-    if (usesClaude && canonicalConfig !== undefined) {
+    const requiresClaude = parsedConfig !== undefined
+      && profiles[parsedConfig.profile].requires.includes('claude');
+    if (requiresClaude && canonicalConfig !== undefined) {
+      const harness = await this.#harness.checkClaude();
+      checks.push(
+        {
+          id: 'claude-cli',
+          status: toDoctorStatus(harness.cli.status),
+          message: harness.cli.message,
+        },
+        {
+          id: 'claude-version',
+          status: toDoctorStatus(harness.version.status),
+          message: harness.version.message,
+        },
+        {
+          id: 'claude-auth',
+          status: toDoctorStatus(harness.authentication.status),
+          message: harness.authentication.message,
+        },
+        {
+          id: 'claude-compatibility',
+          status: harness.cli.status === 'pass'
+            && harness.version.status === 'pass'
+            && harness.authentication.status === 'pass'
+            ? 'PASS'
+            : 'FAIL',
+          message: harness.cli.status === 'pass'
+            && harness.version.status === 'pass'
+            && harness.authentication.status === 'pass'
+            ? 'Claude Code CLI, minimum version, and authentication checks passed.'
+            : 'Claude Code compatibility checks failed; resolve the individual Claude checks above before using this profile.',
+        },
+      );
       const expectedClaudeArtifacts = renderDesiredArtifacts(canonicalConfig).filter((artifact) =>
         artifact.path === 'CLAUDE.md' || artifact.path.startsWith('.claude/skills/'));
       const claudeIssues: string[] = [];
@@ -334,6 +370,11 @@ export class WorkflowProject implements WorkflowProjectContract {
         id: 'claude-discovery',
         status: 'SKIP',
         message: 'No Claude compatibility artifacts are required for this profile.',
+      });
+      checks.push({
+        id: 'claude-compatibility',
+        status: 'SKIP',
+        message: 'Claude compatibility is not applicable to the codex-only profile; no Claude checks were executed.',
       });
     }
     checks.push(
@@ -595,4 +636,10 @@ function isClaudeWrapperPath(relativePath: string): boolean {
 
 function isClaudeCompatibilityPath(relativePath: string): boolean {
   return relativePath === 'CLAUDE.md' || isClaudeWrapperPath(relativePath);
+}
+
+function toDoctorStatus(status: HarnessCheckStatus): DoctorStatus {
+  if (status === 'pass') return 'PASS';
+  if (status === 'fail') return 'FAIL';
+  return 'SKIP';
 }

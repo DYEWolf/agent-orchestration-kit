@@ -4,6 +4,8 @@ import { tmpdir } from 'node:os';
 import { describe, expect, it } from 'vitest';
 import { InMemoryFileSystem } from '../src/adapters/filesystem/in-memory-filesystem.js';
 import { NodeFileSystem } from '../src/adapters/filesystem/node-filesystem.js';
+import { FakeHarnessAdapter } from '../src/adapters/harness/fake-harness.js';
+import type { ClaudeHarnessReport } from '../src/adapters/harness/harness.js';
 import { renderDesiredArtifacts } from '../src/artifacts/render.js';
 import { inspectManagedBlock } from '../src/artifacts/managed-block.js';
 import { resolveConfig } from '../src/config/profiles.js';
@@ -24,11 +26,15 @@ const inspection: RepositoryInspection = {
   },
 };
 
-function createWorkflow(files: Readonly<Record<string, string>> = {}) {
+function createWorkflow(
+  files: Readonly<Record<string, string>> = {},
+  harness = new FakeHarnessAdapter(),
+) {
   const filesystem = new InMemoryFileSystem(root, files);
   const workflow = new WorkflowProject({
     filesystem,
     inspect: async () => inspection,
+    harness,
   });
   return { filesystem, workflow };
 }
@@ -84,6 +90,64 @@ describe('WorkflowProject planning', () => {
       expect(claudeArtifacts).toHaveLength(profile === 'codex-only' ? 0 : 18);
     },
   );
+
+  it('probes Claude only when the installed profile requires it', async () => {
+    const codexHarness = new FakeHarnessAdapter();
+    const codexWorkflow = new WorkflowProject({
+      filesystem: createWorkflow().filesystem,
+      inspect: async () => inspection,
+      harness: codexHarness,
+    });
+    await codexWorkflow.apply(await codexWorkflow.plan({ type: 'init', path: root, profile: 'codex-only' }));
+    const codexReport = await codexWorkflow.doctor(root);
+    expect(codexHarness.calls).toEqual([]);
+    expect(codexReport.checks).toContainEqual(expect.objectContaining({
+      id: 'claude-compatibility',
+      status: 'SKIP',
+    }));
+
+    const claudeHarness = new FakeHarnessAdapter();
+    const claudeWorkflow = new WorkflowProject({
+      filesystem: createWorkflow().filesystem,
+      inspect: async () => inspection,
+      harness: claudeHarness,
+    });
+    await claudeWorkflow.apply(await claudeWorkflow.plan({ type: 'init', path: root, profile: 'claude-coordinator' }));
+    const claudeReport = await claudeWorkflow.doctor(root);
+    expect(claudeHarness.calls).toEqual(['claude']);
+    expect(claudeReport.checks).toContainEqual(expect.objectContaining({ id: 'claude-cli', status: 'PASS' }));
+    expect(claudeReport.checks).toContainEqual(expect.objectContaining({ id: 'claude-version', status: 'PASS' }));
+    expect(claudeReport.checks).toContainEqual(expect.objectContaining({ id: 'claude-auth', status: 'PASS' }));
+  });
+
+  it.each([
+    ['missing', 'missing'],
+    ['outdated', 'outdated'],
+    ['unauthenticated', 'unauthenticated'],
+    ['malformed', 'malformed'],
+    ['command failure', 'command-failure'],
+  ] as const)('Doctor preserves actionable Claude failure reason: %s', async (_label, reason) => {
+    const cli: ClaudeHarnessReport['cli'] = reason === 'missing'
+      ? { status: 'fail', reason: 'missing', message: 'safe CLI result' }
+      : { status: 'pass', message: 'safe CLI result' };
+    const report: ClaudeHarnessReport = {
+      harness: 'claude',
+      cli,
+      version: { status: 'fail', reason, message: 'safe version result' },
+      authentication: { status: 'skip', reason: 'not-checked', message: 'safe auth result' },
+    };
+    const harness = new FakeHarnessAdapter({ report });
+    const { filesystem } = createWorkflow();
+    const workflow = new WorkflowProject({ filesystem, inspect: async () => inspection, harness });
+    await workflow.apply(await workflow.plan({ type: 'init', path: root, profile: 'claude-only' }));
+    const doctor = await workflow.doctor(root);
+    expect(doctor.healthy).toBe(false);
+    expect(doctor.checks).toContainEqual(expect.objectContaining({
+      id: 'claude-version',
+      status: 'FAIL',
+      message: 'safe version result',
+    }));
+  });
 
   it.each(['codex-only', 'claude-coordinator', 'claude-only', 'codex-coordinator'] as const)(
     'Doctor validates the installed %s profile and its local artifacts',
