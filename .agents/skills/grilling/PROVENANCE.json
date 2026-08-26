@@ -1,0 +1,17 @@
+{
+  "upstreamRepository": "https://github.com/mattpocock/skills",
+  "upstreamPath": "skills/productivity/grilling/SKILL.md",
+  "upstreamCommit": "6654f6b60cd9d5be8b54c6fafe44346dabeb3b76",
+  "originalContentHash": "10ff989e7498b23b5acb49d5048f11dcd906757d2f79c5cdf8a00001381296f2",
+  "overlayVersion": "1",
+  "renderedContentHash": "44331dda57f461db4fec3f2efb6ddabe7aaaa0a57ae0f88a883bc61aed8a0587",
+  "supportFiles": [],
+  "patch": {
+    "kind": "manual",
+    "changes": [
+      "generic Orca ownership and lifecycle adaptation",
+      "Codex $skill-name references",
+      "manual removal of product and alternate-adapter content"
+    ]
+  }
+}

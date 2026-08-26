@@ -1,0 +1,17 @@
+{
+  "upstreamRepository": "https://github.com/mattpocock/skills",
+  "upstreamPath": "skills/engineering/resolving-merge-conflicts/SKILL.md",
+  "upstreamCommit": "6654f6b60cd9d5be8b54c6fafe44346dabeb3b76",
+  "originalContentHash": "9d8114f8ef0b31f535a265fc05c364bd8cf2e2895a830040e06c22acb11f54b0",
+  "overlayVersion": "1",
+  "renderedContentHash": "90b9064afefcc9c088d958aa6b4a4eac586a860b37bbb8102031e503703ac63b",
+  "supportFiles": [],
+  "patch": {
+    "kind": "manual",
+    "changes": [
+      "generic Orca ownership and lifecycle adaptation",
+      "Codex $skill-name references",
+      "manual removal of product and alternate-adapter content"
+    ]
+  }
+}

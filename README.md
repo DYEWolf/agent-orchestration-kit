@@ -31,6 +31,43 @@ writes only; global Orca and remote GitHub integration arrive in Phase 4.
 See [the approved specification](docs/approved-specification.md) and
 [contributing guide](CONTRIBUTING.md).
 
+## Practical agent workflow
+
+The installed workflow is Codex-only and uses Orca for supervised execution.
+Invoke skills with `$skill-name` syntax; the coordinator owns the conversation,
+GitHub Issues, Runs, Tasks, gates, worktrees, and integration.
+
+For a clear destination, use `$ask-matt` or start with `$grill-with-docs`, then
+pause for the understanding gate. After explicit approval, `$to-spec` produces
+one non-executable specification Issue; after the full specification is
+approved, `$to-tickets` produces executable implementation Issues. Each claimed,
+approved, unblocked implementation Issue maps to exactly one Orca execution Run,
+which owns its bounded Tasks and Dispatches; `$implement` starts work only after
+that transition.
+
+The durable sequence is `Issue → Run → Tasks → Dispatches → verification →
+review → acceptance`. A worker sends one `worker_done` report; the coordinator
+decides whether the evidence satisfies the Issue and closes it.
+
+For foggy or multi-session work, use `$wayfinder` to create a GitHub decision
+map and resolve its frontier one decision at a time. Return to grilling or
+specification explicitly when the route is clear. Use `$diagnosing-bugs`,
+`$research`, `$prototype`, `$domain-modeling`, `$codebase-design`, `$tdd`,
+`$improve-codebase-architecture`, `$resolving-merge-conflicts`, `$handoff`, and
+`$code-review` for focused on-ramps; none silently advances another phase.
+
+The coordinator routes by uncertainty and blast radius: Luna explores or
+implements clear work, Terra handles local judgment, and Sol handles
+architecture or independent high-risk review. Workers receive bounded Task
+contracts, do not create nested work, and escalate requirement, API, data,
+security, or architecture decisions through Orca. Parallel Tasks require
+non-overlapping ownership; use the current worktree for shared state and an
+Orca child or top-level worktree when isolation is needed.
+
+Verification is deterministic and evidence-based. Review verdicts are `SHIP`,
+`FIX_FIRST`, or `RETHINK`; integration waits for the required checks and review,
+and the Issue closes only after the final acceptance gate.
+
 ## Non-affiliation
 
 This project is not affiliated with, endorsed by, or an official product of

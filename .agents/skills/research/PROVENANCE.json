@@ -1,0 +1,17 @@
+{
+  "upstreamRepository": "https://github.com/mattpocock/skills",
+  "upstreamPath": "skills/engineering/research/SKILL.md",
+  "upstreamCommit": "6654f6b60cd9d5be8b54c6fafe44346dabeb3b76",
+  "originalContentHash": "985569f15739c713d6784887c3d186d4ef9ac85bec5ad9c068d25bf0739928e4",
+  "overlayVersion": "1",
+  "renderedContentHash": "9db3214aaf3170557b09dccc44b5290dd498fe1b60ac0907e8f95d17f2166bd5",
+  "supportFiles": [],
+  "patch": {
+    "kind": "manual",
+    "changes": [
+      "generic Orca ownership and lifecycle adaptation",
+      "Codex $skill-name references",
+      "manual removal of product and alternate-adapter content"
+    ]
+  }
+}

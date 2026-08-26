@@ -1,0 +1,26 @@
+{
+  "upstreamRepository": "https://github.com/mattpocock/skills",
+  "upstreamPath": "skills/engineering/codebase-design/SKILL.md",
+  "upstreamCommit": "6654f6b60cd9d5be8b54c6fafe44346dabeb3b76",
+  "originalContentHash": "2c20617f87ec8af6a434859f381b2f061a69b530444e74eb39e78bb016a6d1e2",
+  "overlayVersion": "1",
+  "renderedContentHash": "a3efcfa6b4a57db862b4ecd96f858dfdbb6ffc6bf3c4b7c7c6d244c3c6a04c02",
+  "supportFiles": [
+    {
+      "path": "skills/engineering/codebase-design/DEEPENING.md",
+      "hash": "f3dd099ce99289bd213914d8ee3e2429b78309c3957ca4583f7659551b1d53c1"
+    },
+    {
+      "path": "skills/engineering/codebase-design/DESIGN-IT-TWICE.md",
+      "hash": "8e740bf98446dbd4dfdc132ac4346d9a7eedaf93de6a495889171cf7f99f16bd"
+    }
+  ],
+  "patch": {
+    "kind": "manual",
+    "changes": [
+      "generic Orca ownership and lifecycle adaptation",
+      "Codex $skill-name references",
+      "manual removal of product and alternate-adapter content"
+    ]
+  }
+}

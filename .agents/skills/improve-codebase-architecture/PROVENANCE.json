@@ -1,0 +1,22 @@
+{
+  "upstreamRepository": "https://github.com/mattpocock/skills",
+  "upstreamPath": "skills/engineering/improve-codebase-architecture/SKILL.md",
+  "upstreamCommit": "6654f6b60cd9d5be8b54c6fafe44346dabeb3b76",
+  "originalContentHash": "d1ac25511a936ff4250a48dbcefda363837d6bb9321b3cba73df99fa37270a75",
+  "overlayVersion": "1",
+  "renderedContentHash": "c534b5865526e66c5cf430afa4942639a8e8f73601f686e9220e94bf83e75fa3",
+  "supportFiles": [
+    {
+      "path": "skills/engineering/improve-codebase-architecture/HTML-REPORT.md",
+      "hash": "581e8bb5a521e46bbda8ca7e19b15948bed882187108092ebb90c62513b77528"
+    }
+  ],
+  "patch": {
+    "kind": "manual",
+    "changes": [
+      "generic Orca ownership and lifecycle adaptation",
+      "Codex $skill-name references",
+      "manual removal of product and alternate-adapter content"
+    ]
+  }
+}
