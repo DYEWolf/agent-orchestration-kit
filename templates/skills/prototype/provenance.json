@@ -1,0 +1,18 @@
+{
+  "upstreamRepository": "https://github.com/mattpocock/skills",
+  "upstreamPath": "skills/engineering/prototype/SKILL.md",
+  "upstreamCommit": "6654f6b60cd9d5be8b54c6fafe44346dabeb3b76",
+  "originalContentHash": "714de632d116bb73f65cdb5a882db15b9369a6713b9a47c0fad827848f0bfbe3",
+  "overlayVersion": "1",
+  "renderedContentHash": "1cec4be8d6a4bc3b00b638d4896f71333db2c3ca21d3f80b73f62a2b6b5b9b7c",
+  "supportFiles": [
+    {
+      "path": "skills/engineering/prototype/LOGIC.md",
+      "hash": "f61c7d249e786a79ef289018901c348271e1798dd0b0bc5607b5c6f4d4a01ab9"
+    },
+    {
+      "path": "skills/engineering/prototype/UI.md",
+      "hash": "723211e878acbc7b6ff09755263f3295cde724ba902ff0064da41eed51d45ad3"
+    }
+  ]
+}

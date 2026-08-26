@@ -18,11 +18,14 @@
   },
   "scripts": {
     "build": "tsup",
-    "check": "npm run typecheck && npm test && npm run build",
+    "bundle:validate": "tsx scripts/validate-bundle.ts",
+    "check": "npm run typecheck && npm run bundle:validate && npm test && npm run build && npm run smoke:packed",
     "dev": "tsx src/cli.ts",
     "test": "vitest run",
     "test:watch": "vitest",
+    "smoke:packed": "tsx scripts/smoke-packed.ts",
     "typecheck": "tsc --noEmit",
+    "upstream:sync": "tsx scripts/upstream-sync.ts",
     "prepack": "npm run check"
   },
   "keywords": [

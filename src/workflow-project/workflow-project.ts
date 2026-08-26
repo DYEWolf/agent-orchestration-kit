@@ -1,6 +1,7 @@
+import path from 'node:path';
 import type { FileSystemAdapter } from '../adapters/filesystem/filesystem.js';
 import { NodeFileSystem } from '../adapters/filesystem/node-filesystem.js';
-import { inspectManagedBlock } from '../artifacts/managed-block.js';
+import { insertOrReplaceManagedBlock, inspectManagedBlock } from '../artifacts/managed-block.js';
 import { renderDesiredArtifacts, type DesiredArtifact } from '../artifacts/render.js';
 import { profiles, resolveConfig } from '../config/profiles.js';
 import type { ProfileName } from '../config/schema.js';
@@ -14,6 +15,10 @@ import { CLI_VERSION } from '../version.js';
 import type { ChangePlan, PlanBlocker, PlannedFileChange } from './change-plan.js';
 import { computeDrift, type DriftReport } from './drift.js';
 import { manifestSchema, type Manifest } from './manifest.js';
+import { FileTransaction } from './transactions.js';
+import { parse as parseYaml } from 'yaml';
+import { workflowConfigSchema } from '../config/schema.js';
+import { skillBundleCatalog } from '../artifacts/skill-bundle.js';
 
 export interface InitWorkflowCommand {
   readonly type: 'init';
@@ -26,17 +31,30 @@ export type WorkflowCommand = InitWorkflowCommand;
 export interface ApplyReceipt {
   readonly applied: boolean;
   readonly reason: string;
+  readonly written: readonly string[];
+  readonly cleanupWarnings: readonly string[];
+  readonly verified: boolean;
+}
+
+export type DoctorStatus = 'PASS' | 'WARN' | 'FAIL' | 'SKIP';
+
+export interface DoctorCheck {
+  readonly id: string;
+  readonly status: DoctorStatus;
+  readonly message: string;
 }
 
 export interface DoctorReport {
-  readonly checks: readonly [];
-  readonly phase: 'not-implemented';
+  readonly repositoryRoot: string;
+  readonly checks: readonly DoctorCheck[];
+  readonly summary: Readonly<Record<DoctorStatus, number>>;
+  readonly healthy: boolean;
 }
 
 export interface WorkflowProjectContract {
   plan(command: WorkflowCommand): Promise<ChangePlan>;
   apply(plan: ChangePlan): Promise<ApplyReceipt>;
-  doctor(): Promise<DoctorReport>;
+  doctor(path: string): Promise<DoctorReport>;
   diff(path: string): Promise<DriftReport>;
 }
 
@@ -115,24 +133,184 @@ export class WorkflowProject implements WorkflowProjectContract {
         'Git worktree and GitHub remote recognized',
         'Configuration validates against schema version 1',
         'All target paths remain inside the repository',
-        'No filesystem writes are permitted in Phase 1',
+        'Atomic local transaction and post-apply verification',
       ],
-      rollbackActions: [],
+      rollbackActions: [
+        'Restore every replaced file from its same-directory backup',
+        'Remove every file created by the failed operation',
+        'Remove empty directories created by the failed operation',
+      ],
       summary,
-      canApply: false,
-      phase: 'phase-1-read-only',
+      canApply: uniqueBlockers.length === 0,
+      phase: 'phase-2-local-application',
     };
   }
 
-  public async apply(_plan: ChangePlan): Promise<ApplyReceipt> {
+  public async apply(plan: ChangePlan): Promise<ApplyReceipt> {
+    if (!plan.canApply || plan.blockers.length > 0) throw new Error('ChangePlan has blockers and cannot be applied.');
+    const freshPlan = await this.plan({ type: 'init', path: plan.repository.root, profile: plan.profile.name });
+    if (JSON.stringify(freshPlan) !== JSON.stringify(plan)) {
+      throw new Error('ChangePlan is stale; repository state changed after planning.');
+    }
+
+    const artifacts = new Map(
+      renderDesiredArtifacts(resolveConfig(plan.profile.name)).map((artifact) => [artifact.path, artifact]),
+    );
+    const writes: { path: string; content: string }[] = [];
+    for (const file of plan.files) {
+      if (file.action === 'unchanged') continue;
+      const artifact = artifacts.get(file.path);
+      if (artifact === undefined || sha256(artifact.content) !== file.desiredHash) {
+        throw new Error(`Desired artifact no longer matches ChangePlan: ${file.path}`);
+      }
+      const absolutePath = await resolveSafeTarget(this.#filesystem, plan.repository.root, file.path);
+      const content = artifact.ownership === 'managed-block'
+        ? insertOrReplaceManagedBlock(
+            await this.#filesystem.exists(absolutePath) ? await this.#filesystem.readFile(absolutePath) : '',
+            artifact.content,
+          )
+        : artifact.content;
+      writes.push({ path: absolutePath, content });
+    }
+
+    if (writes.length === 0) {
+      return { applied: false, reason: 'Installation already matches the desired state.', written: [], cleanupWarnings: [], verified: true };
+    }
+
+    let verified = false;
+    const receipt = await new FileTransaction(this.#filesystem).apply(writes, async () => {
+      const verification = await this.plan({ type: 'init', path: plan.repository.root, profile: plan.profile.name });
+      verified = verification.blockers.length === 0 && verification.files.every((file) => file.action === 'unchanged');
+      if (!verified) throw new Error('Post-apply verification failed.');
+    });
     return {
-      applied: false,
-      reason: 'Local application is intentionally unavailable until Phase 2.',
+      applied: true,
+      reason: `Applied ${receipt.written.length} local file changes atomically.`,
+      written: receipt.written.map((filePath) => path.relative(plan.repository.root, filePath).split(path.sep).join('/')),
+      cleanupWarnings: receipt.cleanupWarnings,
+      verified,
     };
   }
 
-  public async doctor(): Promise<DoctorReport> {
-    return { checks: [], phase: 'not-implemented' };
+  public async doctor(candidatePath: string): Promise<DoctorReport> {
+    const repository = await this.#inspect(candidatePath);
+    const checks: DoctorCheck[] = [{
+      id: 'repository',
+      status: 'PASS',
+      message: `GitHub repository recognized as ${repository.github.display}.`,
+    }];
+    const resolveDoctorPath = async (id: string, relativePath: string): Promise<string | undefined> => {
+      try {
+        return await resolveSafeTarget(this.#filesystem, repository.root, relativePath);
+      } catch (error) {
+        if (!(error instanceof UnsafePathError) && !(error instanceof PathShapeError)) throw error;
+        checks.push({
+          id,
+          status: 'FAIL',
+          message: error instanceof UnsafePathError
+            ? `${relativePath} resolves outside the repository.`
+            : `${relativePath} has an incompatible file/directory shape.`,
+        });
+        return undefined;
+      }
+    };
+    const { manifest, manifestBlockers } = await this.readManifest(repository.root);
+    if (manifest === undefined || manifestBlockers.length > 0) {
+      checks.push({ id: 'manifest', status: 'FAIL', message: manifestBlockers[0]?.message ?? 'No orca-kit installation manifest exists.' });
+    } else {
+      checks.push({ id: 'manifest', status: 'PASS', message: `Manifest schema 1 from CLI ${manifest.cliVersion} is valid.` });
+    }
+
+    let parsedConfig: ReturnType<typeof workflowConfigSchema.parse> | undefined;
+    let canonicalConfig: ReturnType<typeof workflowConfigSchema.parse> | undefined;
+    const configPath = await resolveDoctorPath('config', '.orca-kit/config.yaml');
+    if (configPath === undefined) {
+      // resolveDoctorPath already recorded the failure.
+    } else if (!(await this.#filesystem.exists(configPath))) {
+      checks.push({ id: 'config', status: 'FAIL', message: 'Missing .orca-kit/config.yaml.' });
+    } else {
+      try {
+        parsedConfig = workflowConfigSchema.parse(parseYaml(await this.#filesystem.readFile(configPath)));
+        checks.push({ id: 'config', status: 'PASS', message: `Configuration is valid for profile ${parsedConfig.profile}.` });
+        // Phase 2 can install only codex-only. The installed config is untrusted
+        // input, so it cannot select the contract doctor uses as its authority.
+        canonicalConfig = resolveConfig('codex-only');
+        const configMatches = JSON.stringify(parsedConfig) === JSON.stringify(canonicalConfig);
+        checks.push({
+          id: 'config-contract',
+          status: configMatches ? 'PASS' : 'FAIL',
+          message: configMatches
+            ? 'Configuration exactly matches the canonical installed profile.'
+            : 'Configuration is structurally valid but differs from the canonical installed profile; v1 does not support reconfiguration.',
+        });
+      } catch {
+        checks.push({ id: 'config', status: 'FAIL', message: 'Configuration is not valid schema version 1 YAML.' });
+      }
+    }
+
+    if (manifest !== undefined && canonicalConfig !== undefined) {
+      const desiredManifest = renderDesiredArtifacts(canonicalConfig).find((artifact) => artifact.path === '.orca-kit/manifest.json');
+      const expectedManifest = desiredManifest === undefined ? undefined : manifestSchema.parse(JSON.parse(desiredManifest.content));
+      const contractMatches = expectedManifest !== undefined && JSON.stringify(manifest) === JSON.stringify(expectedManifest);
+      checks.push({
+        id: 'manifest-contract',
+        status: contractMatches ? 'PASS' : 'FAIL',
+        message: contractMatches ? 'Manifest exactly matches the expected installed contract.' : 'Manifest file list or hashes differ from the expected installed contract.',
+      });
+    }
+
+    const agentsPath = await resolveDoctorPath('agents-managed-block', 'AGENTS.md');
+    const agentsBlock = agentsPath !== undefined && await this.#filesystem.exists(agentsPath)
+      ? inspectManagedBlock(await this.#filesystem.readFile(agentsPath))
+      : { status: 'absent' as const };
+    if (agentsPath !== undefined) {
+      checks.push({
+        id: 'agents-managed-block',
+        status: agentsBlock.status === 'valid' ? 'PASS' : 'FAIL',
+        message: agentsBlock.status === 'valid' ? 'AGENTS.md managed block is well formed.' : 'AGENTS.md managed block is missing or malformed.',
+      });
+    }
+
+    const missingSkills: string[] = [];
+    for (const skill of skillBundleCatalog.skills) {
+      for (const relativePath of ['SKILL.md', 'agents/openai.yaml', 'PROVENANCE.json']) {
+        const displayPath = `.agents/skills/${skill.name}/${relativePath}`;
+        const skillPath = await resolveDoctorPath('skills-path', displayPath);
+        if (skillPath === undefined || !(await this.#filesystem.exists(skillPath))) missingSkills.push(`${skill.name}/${relativePath}`);
+      }
+    }
+    checks.push({
+      id: 'skills',
+      status: missingSkills.length === 0 ? 'PASS' : 'FAIL',
+      message: missingSkills.length === 0 ? `All ${skillBundleCatalog.skills.length} skills are installed with metadata and provenance.` : `Missing skill artifacts: ${missingSkills.join(', ')}`,
+    });
+
+    const noticesPath = await resolveDoctorPath('attribution', '.agents/THIRD_PARTY_NOTICES.md');
+    if (noticesPath !== undefined) {
+      const noticeContent = await this.#filesystem.exists(noticesPath) ? await this.#filesystem.readFile(noticesPath) : '';
+      const noticesValid = noticeContent.includes(skillBundleCatalog.upstreamCommit) && noticeContent.includes('MIT License');
+      checks.push({ id: 'attribution', status: noticesValid ? 'PASS' : 'FAIL', message: noticesValid ? 'Pinned upstream attribution and MIT license are present.' : 'Third-party attribution is missing or incomplete.' });
+    }
+
+    if (manifest !== undefined) {
+      const drift = await computeDrift(this.#filesystem, repository.root, manifest);
+      checks.push({ id: 'drift', status: drift.clean ? 'PASS' : 'FAIL', message: drift.clean ? 'No local drift detected.' : `${drift.items.length} generated artifact(s) are missing or modified.` });
+    } else {
+      checks.push({ id: 'drift', status: 'FAIL', message: 'Drift cannot be checked without a valid manifest.' });
+    }
+    checks.push(
+      {
+        id: 'routing-local',
+        status: parsedConfig?.profile === 'codex-only' ? 'PASS' : 'SKIP',
+        message: parsedConfig?.profile === 'codex-only' ? 'codex-only local routing configuration is structurally complete.' : 'Live harness compatibility is validated in a later phase.',
+      },
+      { id: 'external-orca', status: 'SKIP', message: 'Orca runtime and repository registration checks arrive in Phase 4.' },
+      { id: 'external-github', status: 'SKIP', message: 'GitHub CLI authentication and label checks arrive in Phase 4.' },
+      { id: 'claude-discovery', status: 'SKIP', message: 'Claude wrapper discovery arrives in Phase 3.' },
+    );
+    const summary = { PASS: 0, WARN: 0, FAIL: 0, SKIP: 0 } satisfies Record<DoctorStatus, number>;
+    for (const check of checks) summary[check.status] += 1;
+    return { repositoryRoot: repository.root, checks, summary, healthy: summary.FAIL === 0 };
   }
 
   public async diff(candidatePath: string): Promise<DriftReport> {
@@ -140,6 +318,7 @@ export class WorkflowProject implements WorkflowProjectContract {
     const { manifest, manifestBlockers } = await this.readManifest(repository.root);
     if (manifestBlockers.length > 0) {
       return {
+        installation: 'invalid',
         items: [{
           path: '.orca-kit/manifest.json',
           status: 'invalid-manifest',
@@ -148,7 +327,11 @@ export class WorkflowProject implements WorkflowProjectContract {
         clean: false,
       };
     }
-    if (manifest === undefined) return { items: [], clean: true };
+    if (manifest === undefined) return {
+      installation: 'missing',
+      items: [{ path: '.orca-kit/manifest.json', status: 'missing', expectedHash: '' }],
+      clean: false,
+    };
     return computeDrift(this.#filesystem, repository.root, manifest);
   }
 

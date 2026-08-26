@@ -24,7 +24,9 @@ export function formatPlan(plan: ChangePlan): string {
   lines.push(
     '',
     `Summary: ${plan.summary.create} create, ${plan.summary.update} update, ${plan.summary.unchanged} unchanged, ${plan.summary.blocked} blocked`,
-    'Dry-run only: no files, global configuration, or GitHub resources were changed.',
+    plan.canApply
+      ? 'This plan is eligible for local application. Global configuration and GitHub resources remain unchanged in Phase 2.'
+      : 'This plan cannot be applied until every blocker is resolved.',
   );
   return `${lines.join('\n')}\n`;
 }

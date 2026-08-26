@@ -1,4 +1,4 @@
-import { access, lstat, readFile, realpath } from 'node:fs/promises';
+import { access, lstat, mkdir, readFile, realpath, rename, rm, rmdir, writeFile } from 'node:fs/promises';
 import type { FileSystemAdapter } from './filesystem.js';
 
 export class NodeFileSystem implements FileSystemAdapter {
@@ -13,6 +13,10 @@ export class NodeFileSystem implements FileSystemAdapter {
 
   public readFile(path: string): Promise<string> {
     return readFile(path, 'utf8');
+  }
+
+  public async makeDirectory(path: string): Promise<void> {
+    await mkdir(path);
   }
 
   public async entryKind(path: string): Promise<'file' | 'directory' | 'symlink' | 'other' | undefined> {
@@ -30,6 +34,22 @@ export class NodeFileSystem implements FileSystemAdapter {
 
   public realpath(path: string): Promise<string> {
     return realpath(path);
+  }
+
+  public async removeDirectory(path: string): Promise<void> {
+    await rmdir(path);
+  }
+
+  public async removeFile(path: string): Promise<void> {
+    await rm(path, { force: true });
+  }
+
+  public rename(source: string, destination: string): Promise<void> {
+    return rename(source, destination);
+  }
+
+  public writeFile(path: string, content: string): Promise<void> {
+    return writeFile(path, content, { encoding: 'utf8', flag: 'wx' });
   }
 }
 

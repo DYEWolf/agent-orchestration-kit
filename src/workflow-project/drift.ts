@@ -12,6 +12,7 @@ export interface DriftItem {
 }
 
 export interface DriftReport {
+  readonly installation: 'valid' | 'missing' | 'invalid';
   readonly items: readonly DriftItem[];
   readonly clean: boolean;
 }
@@ -65,5 +66,5 @@ export async function computeDrift(
     }
   }
 
-  return { items, clean: items.length === 0 };
+  return { installation: 'valid', items, clean: items.length === 0 };
 }

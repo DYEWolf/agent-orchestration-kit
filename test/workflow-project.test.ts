@@ -5,8 +5,10 @@ import { describe, expect, it } from 'vitest';
 import { InMemoryFileSystem } from '../src/adapters/filesystem/in-memory-filesystem.js';
 import { NodeFileSystem } from '../src/adapters/filesystem/node-filesystem.js';
 import { renderDesiredArtifacts } from '../src/artifacts/render.js';
+import { inspectManagedBlock } from '../src/artifacts/managed-block.js';
 import { resolveConfig } from '../src/config/profiles.js';
 import type { RepositoryInspection } from '../src/repository/inspection.js';
+import { sha256 } from '../src/shared/hash.js';
 import { WorkflowProject } from '../src/workflow-project/workflow-project.js';
 
 const root = path.resolve('/fixture/repository');
@@ -37,10 +39,11 @@ describe('WorkflowProject planning', () => {
     const before = filesystem.snapshot();
     const first = await workflow.plan({ type: 'init', path: root, profile: 'codex-only' });
     const second = await workflow.plan({ type: 'init', path: root, profile: 'codex-only' });
+    const artifactCount = renderDesiredArtifacts(resolveConfig('codex-only')).length;
     expect(second).toEqual(first);
     expect(filesystem.snapshot()).toEqual(before);
-    expect(first.summary).toEqual({ create: 8, update: 0, unchanged: 0, blocked: 0 });
-    expect(first.canApply).toBe(false);
+    expect(first.summary).toEqual({ create: artifactCount, update: 0, unchanged: 0, blocked: 0 });
+    expect(first.canApply).toBe(true);
   });
 
   it('plans a managed-block update without treating an existing AGENTS.md as a collision', async () => {
@@ -56,8 +59,9 @@ describe('WorkflowProject planning', () => {
     );
     const { workflow } = createWorkflow(files);
     const plan = await workflow.plan({ type: 'init', path: root, profile: 'codex-only' });
+    const artifactCount = renderDesiredArtifacts(resolveConfig('codex-only')).length;
     expect(plan.blockers).toEqual([]);
-    expect(plan.summary).toEqual({ create: 0, update: 0, unchanged: 8, blocked: 0 });
+    expect(plan.summary).toEqual({ create: 0, update: 0, unchanged: artifactCount, blocked: 0 });
   });
 
   it('reports local drift and never plans to overwrite it', async () => {
@@ -160,5 +164,75 @@ describe('WorkflowProject planning', () => {
       code: 'collision',
       path: 'docs/agents/domain.md',
     }));
+  });
+
+  it('applies once, preserves user AGENTS.md bytes, and is idempotent', async () => {
+    const userInstructions = '# User instructions\r\nKeep this exact.\r\n';
+    const { filesystem, workflow } = createWorkflow({ 'AGENTS.md': userInstructions });
+    const firstPlan = await workflow.plan({ type: 'init', path: root, profile: 'codex-only' });
+    const receipt = await workflow.apply(firstPlan);
+    expect(receipt.applied).toBe(true);
+    expect(receipt.verified).toBe(true);
+    expect((await filesystem.readFile(path.join(root, 'AGENTS.md'))).startsWith(userInstructions)).toBe(true);
+
+    const secondPlan = await workflow.plan({ type: 'init', path: root, profile: 'codex-only' });
+    expect(secondPlan.files.every((file) => file.action === 'unchanged')).toBe(true);
+    const secondReceipt = await workflow.apply(secondPlan);
+    expect(secondReceipt.applied).toBe(false);
+    expect(secondReceipt.written).toEqual([]);
+  });
+
+  it('detects a config and managed block forged together with matching manifest hashes', async () => {
+    const { filesystem, workflow } = createWorkflow();
+    await workflow.apply(await workflow.plan({ type: 'init', path: root, profile: 'codex-only' }));
+
+    const configPath = path.join(root, '.orca-kit/config.yaml');
+    const agentsPath = path.join(root, 'AGENTS.md');
+    const manifestPath = path.join(root, '.orca-kit/manifest.json');
+    const forgedConfig = (await filesystem.readFile(configPath)).replace(
+      'maxImplementationWorkers: 3',
+      'maxImplementationWorkers: 4',
+    );
+    const forgedAgents = (await filesystem.readFile(agentsPath)).replace(
+      'Maximum active implementation workers: 3.',
+      'Maximum active implementation workers: 4.',
+    );
+    const manifest = JSON.parse(await filesystem.readFile(manifestPath)) as {
+      files: { path: string; hash: string }[];
+    };
+    const configEntry = manifest.files.find((entry) => entry.path === '.orca-kit/config.yaml');
+    const agentsEntry = manifest.files.find((entry) => entry.path === 'AGENTS.md');
+    const forgedBlock = inspectManagedBlock(forgedAgents);
+    expect(configEntry).toBeDefined();
+    expect(agentsEntry).toBeDefined();
+    expect(forgedBlock.status).toBe('valid');
+    configEntry!.hash = sha256(forgedConfig);
+    agentsEntry!.hash = sha256(forgedBlock.content!);
+    filesystem.seed(configPath, forgedConfig);
+    filesystem.seed(agentsPath, forgedAgents);
+    filesystem.seed(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+
+    expect((await workflow.diff(root)).clean).toBe(true);
+    const report = await workflow.doctor(root);
+    expect(report.healthy).toBe(false);
+    expect(report.checks).toContainEqual(expect.objectContaining({ id: 'config-contract', status: 'FAIL' }));
+    expect(report.checks).toContainEqual(expect.objectContaining({ id: 'manifest-contract', status: 'FAIL' }));
+  });
+
+  it('detects a self-consistent swap to a profile Phase 2 cannot install', async () => {
+    const { filesystem, workflow } = createWorkflow();
+    await workflow.apply(await workflow.plan({ type: 'init', path: root, profile: 'codex-only' }));
+    const claudeArtifacts = new Map(
+      renderDesiredArtifacts(resolveConfig('claude-only')).map((artifact) => [artifact.path, artifact.content]),
+    );
+    for (const artifactPath of ['.orca-kit/config.yaml', '.orca-kit/manifest.json', 'AGENTS.md']) {
+      filesystem.seed(path.join(root, artifactPath), claudeArtifacts.get(artifactPath)!);
+    }
+
+    expect((await workflow.diff(root)).clean).toBe(true);
+    const report = await workflow.doctor(root);
+    expect(report.healthy).toBe(false);
+    expect(report.checks).toContainEqual(expect.objectContaining({ id: 'config-contract', status: 'FAIL' }));
+    expect(report.checks).toContainEqual(expect.objectContaining({ id: 'manifest-contract', status: 'FAIL' }));
   });
 });

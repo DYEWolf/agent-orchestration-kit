@@ -1,0 +1,18 @@
+{
+  "upstreamRepository": "https://github.com/mattpocock/skills",
+  "upstreamPath": "skills/engineering/domain-modeling/SKILL.md",
+  "upstreamCommit": "6654f6b60cd9d5be8b54c6fafe44346dabeb3b76",
+  "originalContentHash": "327a2b50620e2fd70abc6893cd6965e76b20f8d0adb0dc2c8d5eb3845efb643e",
+  "overlayVersion": "1",
+  "renderedContentHash": "bc01a776bbf75f23ad4490da1faf34d21728a3c71de808ebaff668b45aae27d8",
+  "supportFiles": [
+    {
+      "path": "skills/engineering/domain-modeling/ADR-FORMAT.md",
+      "hash": "944c92aa790e8fbdc9199640b170979abb8a34ba8d0fe18c2a01a63bce140ca0"
+    },
+    {
+      "path": "skills/engineering/domain-modeling/CONTEXT-FORMAT.md",
+      "hash": "17ab16ce783e4d2801ee52fd9acdf550cbf44de65ae76797a93943bbedf22a13"
+    }
+  ]
+}

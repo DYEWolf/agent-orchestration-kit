@@ -1,0 +1,14 @@
+{
+  "upstreamRepository": "https://github.com/mattpocock/skills",
+  "upstreamPath": "skills/engineering/diagnosing-bugs/SKILL.md",
+  "upstreamCommit": "6654f6b60cd9d5be8b54c6fafe44346dabeb3b76",
+  "originalContentHash": "77f3cf31bc99b2f49af943222526531fcc9fc41d047626d3640e875e85af3e84",
+  "overlayVersion": "1",
+  "renderedContentHash": "d32a00e7c3c640908af326fd7e4ba192767165de147d1ba79309cfe56de657ad",
+  "supportFiles": [
+    {
+      "path": "skills/engineering/diagnosing-bugs/scripts/hitl-loop.template.sh",
+      "hash": "35103539fc36873eea36074769ad454f9379d6fc8b2dc0e26ce987fd3bfe5503"
+    }
+  ]
+}

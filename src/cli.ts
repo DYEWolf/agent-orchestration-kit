@@ -1,5 +1,7 @@
 import { Command, CommanderError } from 'commander';
 import { registerInitCommand } from './cli/commands/init.js';
+import { registerDoctorCommand } from './cli/commands/doctor.js';
+import { registerDiffCommand } from './cli/commands/diff.js';
 import { CLI_VERSION } from './version.js';
 
 export function createProgram(): Command {
@@ -10,6 +12,8 @@ export function createProgram(): Command {
     .version(CLI_VERSION)
     .showHelpAfterError();
   registerInitCommand(program);
+  registerDoctorCommand(program);
+  registerDiffCommand(program);
   return program;
 }
 

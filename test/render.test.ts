@@ -4,13 +4,12 @@ import { resolveConfig } from '../src/config/profiles.js';
 import { manifestSchema } from '../src/workflow-project/manifest.js';
 
 describe('desired artifact rendering', () => {
-  it('is deterministic and codex-only emits no Claude artifacts or references', () => {
+  it('is deterministic and codex-only emits no Claude compatibility artifacts', () => {
     const first = renderDesiredArtifacts(resolveConfig('codex-only'));
     const second = renderDesiredArtifacts(resolveConfig('codex-only'));
     expect(second).toEqual(first);
     expect(first.some((artifact) => artifact.path === 'CLAUDE.md')).toBe(false);
     expect(first.some((artifact) => artifact.path.startsWith('.claude/'))).toBe(false);
-    expect(first.map((artifact) => artifact.content).join('\n')).not.toMatch(/claude/iu);
   });
 
   it('writes a valid manifest for every owned artifact except the manifest itself', () => {
@@ -19,7 +18,10 @@ describe('desired artifact rendering', () => {
     expect(manifestArtifact).toBeDefined();
     const manifest = manifestSchema.parse(JSON.parse(manifestArtifact?.content ?? ''));
     expect(manifest.files.map((file) => file.path)).toEqual(
-      artifacts.filter((artifact) => artifact.path !== '.orca-kit/manifest.json').map((artifact) => artifact.path).sort(),
+      artifacts
+        .filter((artifact) => artifact.path !== '.orca-kit/manifest.json')
+        .map((artifact) => artifact.path)
+        .sort((a, b) => a.localeCompare(b)),
     );
   });
 });

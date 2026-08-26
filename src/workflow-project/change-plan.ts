@@ -47,5 +47,5 @@ export interface ChangePlan {
     readonly blocked: number;
   };
   readonly canApply: boolean;
-  readonly phase: 'phase-1-read-only';
+  readonly phase: 'phase-2-local-application';
 }
