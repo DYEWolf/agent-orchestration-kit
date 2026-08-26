@@ -223,6 +223,7 @@ export class WorkflowProject implements WorkflowProjectContract {
 
     let parsedConfig: ReturnType<typeof workflowConfigSchema.parse> | undefined;
     let canonicalConfig: ReturnType<typeof workflowConfigSchema.parse> | undefined;
+    let configMatches = false;
     const configPath = await resolveDoctorPath('config', '.orca-kit/config.yaml');
     if (configPath === undefined) {
       // resolveDoctorPath already recorded the failure.
@@ -232,10 +233,10 @@ export class WorkflowProject implements WorkflowProjectContract {
       try {
         parsedConfig = workflowConfigSchema.parse(parseYaml(await this.#filesystem.readFile(configPath)));
         checks.push({ id: 'config', status: 'PASS', message: `Configuration is valid for profile ${parsedConfig.profile}.` });
-        // Phase 2 can install only codex-only. The installed config is untrusted
-        // input, so it cannot select the contract doctor uses as its authority.
-        canonicalConfig = resolveConfig('codex-only');
-        const configMatches = JSON.stringify(parsedConfig) === JSON.stringify(canonicalConfig);
+        // The profile name is schema-validated, so each approved profile can
+        // select its own canonical routing contract for local integrity checks.
+        canonicalConfig = resolveConfig(parsedConfig.profile);
+        configMatches = JSON.stringify(parsedConfig) === JSON.stringify(canonicalConfig);
         checks.push({
           id: 'config-contract',
           status: configMatches ? 'PASS' : 'FAIL',
@@ -298,15 +299,57 @@ export class WorkflowProject implements WorkflowProjectContract {
     } else {
       checks.push({ id: 'drift', status: 'FAIL', message: 'Drift cannot be checked without a valid manifest.' });
     }
+
+    const usesClaude = parsedConfig !== undefined
+      && Object.values(parsedConfig.routing).some((route) => route.harness === 'claude');
+    if (usesClaude && canonicalConfig !== undefined) {
+      const expectedClaudeArtifacts = renderDesiredArtifacts(canonicalConfig).filter((artifact) =>
+        artifact.path === 'CLAUDE.md' || artifact.path.startsWith('.claude/skills/'));
+      const claudeIssues: string[] = [];
+      for (const artifact of expectedClaudeArtifacts) {
+        try {
+          const artifactPath = await resolveSafeTarget(this.#filesystem, repository.root, artifact.path);
+          if (!(await this.#filesystem.exists(artifactPath))) {
+            claudeIssues.push(`${artifact.path} is missing`);
+          } else if (await this.#filesystem.readFile(artifactPath) !== artifact.content) {
+            claudeIssues.push(`${artifact.path} is modified`);
+          }
+        } catch (error) {
+          if (error instanceof UnsafePathError || error instanceof PathShapeError) {
+            claudeIssues.push(`${artifact.path} has an unsafe or incompatible path`);
+          } else {
+            throw error;
+          }
+        }
+      }
+      checks.push({
+        id: 'claude-discovery',
+        status: claudeIssues.length === 0 ? 'PASS' : 'FAIL',
+        message: claudeIssues.length === 0
+          ? 'CLAUDE.md and all 17 canonical-body Claude skill wrappers are intact.'
+          : `Claude compatibility artifacts are incomplete: ${claudeIssues.join(', ')}.`,
+      });
+    } else {
+      checks.push({
+        id: 'claude-discovery',
+        status: 'SKIP',
+        message: 'No Claude compatibility artifacts are required for this profile.',
+      });
+    }
     checks.push(
       {
         id: 'routing-local',
-        status: parsedConfig?.profile === 'codex-only' ? 'PASS' : 'SKIP',
-        message: parsedConfig?.profile === 'codex-only' ? 'codex-only local routing configuration is structurally complete.' : 'Live harness compatibility is validated in a later phase.',
+        status: parsedConfig === undefined ? 'SKIP' : !configMatches ? 'FAIL' : profiles[parsedConfig.profile].stability === 'stable' ? 'PASS' : 'WARN',
+        message: parsedConfig === undefined
+          ? 'Routing compatibility cannot be checked without valid configuration.'
+          : !configMatches
+            ? 'Routing configuration differs from the canonical approved profile contract.'
+            : profiles[parsedConfig.profile].stability === 'stable'
+              ? `Local routing configuration for ${parsedConfig.profile} is structurally complete.`
+              : `Local routing configuration for ${parsedConfig.profile} is complete; live Claude-worker validation is still pending.`,
       },
       { id: 'external-orca', status: 'SKIP', message: 'Orca runtime and repository registration checks arrive in Phase 4.' },
       { id: 'external-github', status: 'SKIP', message: 'GitHub CLI authentication and label checks arrive in Phase 4.' },
-      { id: 'claude-discovery', status: 'SKIP', message: 'Claude wrapper discovery arrives in Phase 3.' },
     );
     const summary = { PASS: 0, WARN: 0, FAIL: 0, SKIP: 0 } satisfies Record<DoctorStatus, number>;
     for (const check of checks) summary[check.status] += 1;
@@ -395,6 +438,52 @@ export class WorkflowProject implements WorkflowProjectContract {
             : `${artifact.path} has an incompatible file/directory shape.`,
         },
       };
+    }
+
+    // Claude compatibility files are user-owned unless the exact artifact is
+    // recorded in the manifest, even when its bytes already match our output.
+    // This prevents a first install from silently adopting an existing file.
+    if (isClaudeCompatibilityPath(artifact.path)) {
+      const ownsArtifact = manifest?.files.some((entry) => entry.path === artifact.path) === true;
+      if (!ownsArtifact && await this.#filesystem.exists(absolutePath)) {
+        return {
+          file: {
+            path: artifact.path,
+            action: 'unchanged',
+            ownership: artifact.ownership,
+            desiredHash,
+            reason: 'Existing content is preserved.',
+          },
+          blocker: {
+            code: 'collision',
+            path: artifact.path,
+            message: `${artifact.path} already exists and is not managed by orca-kit.`,
+          },
+        };
+      }
+    }
+
+    // Claude discovers skills by directory. A pre-existing skill directory is
+    // user-owned unless this exact wrapper is recorded in the manifest, even
+    // when the wrapper file itself has not been created yet.
+    if (isClaudeWrapperPath(artifact.path)) {
+      const ownsWrapper = manifest?.files.some((entry) => entry.path === artifact.path) === true;
+      if (!ownsWrapper && await this.#filesystem.entryKind(path.dirname(absolutePath)) === 'directory') {
+        return {
+          file: {
+            path: artifact.path,
+            action: 'unchanged',
+            ownership: artifact.ownership,
+            desiredHash,
+            reason: 'An unmanaged Claude skill directory already exists.',
+          },
+          blocker: {
+            code: 'collision',
+            path: artifact.path,
+            message: `The Claude skill directory for ${artifact.path} already exists and is not managed by orca-kit.`,
+          },
+        };
+      }
     }
     if (!(await this.#filesystem.exists(absolutePath))) {
       return {
@@ -498,4 +587,12 @@ export class WorkflowProject implements WorkflowProjectContract {
       },
     };
   }
+}
+
+function isClaudeWrapperPath(relativePath: string): boolean {
+  return relativePath.startsWith('.claude/skills/') && relativePath.endsWith('/SKILL.md');
+}
+
+function isClaudeCompatibilityPath(relativePath: string): boolean {
+  return relativePath === 'CLAUDE.md' || isClaudeWrapperPath(relativePath);
 }

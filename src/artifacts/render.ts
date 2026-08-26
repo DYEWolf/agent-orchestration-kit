@@ -1,10 +1,11 @@
 import { stringify as stringifyYaml } from 'yaml';
+import { profiles } from '../config/profiles.js';
 import type { WorkflowConfig } from '../config/schema.js';
 import { BUNDLE_VERSION, CLI_VERSION } from '../version.js';
 import { sha256 } from '../shared/hash.js';
 import type { Manifest, ManifestEntry } from '../workflow-project/manifest.js';
 import { MANAGED_BLOCK_END, MANAGED_BLOCK_START } from './managed-block.js';
-import { renderSkillArtifacts, renderSkillNotices } from './skill-bundle.js';
+import { renderSkillArtifacts, renderSkillNotices, skillBundleCatalog } from './skill-bundle.js';
 
 export interface DesiredArtifact {
   readonly path: string;
@@ -55,6 +56,8 @@ export function renderDesiredArtifacts(config: WorkflowConfig): DesiredArtifact[
 
   artifacts.push(...renderSkillArtifacts());
 
+  if (usesClaude(config)) artifacts.push(...renderClaudeArtifacts(config));
+
   const manifestEntries = artifacts
     .map<ManifestEntry>((artifact) => ({
       path: artifact.path,
@@ -77,6 +80,54 @@ export function renderDesiredArtifacts(config: WorkflowConfig): DesiredArtifact[
   });
 
   return artifacts.sort((a, b) => a.path.localeCompare(b.path));
+}
+
+function usesClaude(config: WorkflowConfig): boolean {
+  return Object.values(config.routing).some((route) => route.harness === 'claude');
+}
+
+function renderClaudeArtifacts(config: WorkflowConfig): DesiredArtifact[] {
+  const artifacts: DesiredArtifact[] = [{
+    path: 'CLAUDE.md',
+    ownership: 'full',
+    content: [
+      generatedHeader,
+      '',
+      '@AGENTS.md',
+      '',
+      '# Claude Code compatibility',
+      '',
+      'The root `AGENTS.md` contains the canonical Orca workflow constitution, including routing, gates, and worker/coordinator instructions. Canonical skill bodies live under `.agents/skills/`; Claude profiles expose lightweight project skill wrappers under `.claude/skills/` for Claude Code discovery.',
+      '',
+      `Installed routing profile: ${config.profile} (${profiles[config.profile].stability}).`,
+      '',
+      'Each wrapper explicitly directs Claude Code to read the matching canonical `.agents/skills/<skill>/SKILL.md` body. The canonical body is the source of truth; wrappers intentionally do not duplicate skill content.',
+      '',
+      'This compatibility layout was validated against Claude Code 2.1.236. If a future compatibility probe fails, the installer must use the recorded inline-body fallback rather than silently changing this contract.',
+      '',
+    ].join('\n'),
+  }];
+
+  for (const skill of skillBundleCatalog.skills) {
+    artifacts.push({
+      path: `.claude/skills/${skill.name}/SKILL.md`,
+      ownership: 'full',
+      content: [
+        '---',
+        `name: ${skill.name}`,
+        'description: Load the canonical orca-kit skill instructions.',
+        '---',
+        '',
+        `# ${skill.name}`,
+        '',
+        `This is a lightweight Claude Code compatibility wrapper. Read the canonical \`.agents/skills/${skill.name}/SKILL.md\` file at \`../../../.agents/skills/${skill.name}/SKILL.md\` before acting.`,
+        'The canonical `.agents` body is the source of truth; do not duplicate its',
+        'contents in this wrapper.',
+        '',
+      ].join('\n'),
+    });
+  }
+  return artifacts;
 }
 
 function renderAgentsBlock(config: WorkflowConfig): string {

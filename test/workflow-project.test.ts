@@ -64,6 +64,56 @@ describe('WorkflowProject planning', () => {
     expect(plan.summary).toEqual({ create: 0, update: 0, unchanged: artifactCount, blocked: 0 });
   });
 
+  it.each(['codex-only', 'claude-coordinator', 'claude-only', 'codex-coordinator'] as const)(
+    'applies and verifies the complete %s profile, then no-ops',
+    async (profile) => {
+      const { filesystem, workflow } = createWorkflow();
+      const firstPlan = await workflow.plan({ type: 'init', path: root, profile });
+      expect(firstPlan.canApply).toBe(true);
+      const firstReceipt = await workflow.apply(firstPlan);
+      expect(firstReceipt).toMatchObject({ applied: true, verified: true });
+
+      const secondPlan = await workflow.plan({ type: 'init', path: root, profile });
+      expect(secondPlan.blockers).toEqual([]);
+      expect(secondPlan.files.every((file) => file.action === 'unchanged')).toBe(true);
+      const secondReceipt = await workflow.apply(secondPlan);
+      expect(secondReceipt).toMatchObject({ applied: false, verified: true, written: [] });
+
+      const claudeArtifacts = Object.keys(filesystem.snapshot()).filter((filePath) =>
+        filePath.includes('/.claude/skills/') || filePath.endsWith('/CLAUDE.md'));
+      expect(claudeArtifacts).toHaveLength(profile === 'codex-only' ? 0 : 18);
+    },
+  );
+
+  it.each(['codex-only', 'claude-coordinator', 'claude-only', 'codex-coordinator'] as const)(
+    'Doctor validates the installed %s profile and its local artifacts',
+    async (profile) => {
+      const { workflow } = createWorkflow();
+      await workflow.apply(await workflow.plan({ type: 'init', path: root, profile }));
+      const report = await workflow.doctor(root);
+      expect(report.healthy).toBe(true);
+      expect(report.checks).toContainEqual(expect.objectContaining({ id: 'config-contract', status: 'PASS' }));
+      expect(report.checks).toContainEqual(expect.objectContaining({
+        id: 'claude-discovery',
+        status: profile === 'codex-only' ? 'SKIP' : 'PASS',
+      }));
+      expect(report.checks).toContainEqual(expect.objectContaining({
+        id: 'routing-local',
+        status: profile === 'claude-only' || profile === 'codex-coordinator' ? 'WARN' : 'PASS',
+      }));
+    },
+  );
+
+  it('Doctor reports Claude artifact drift even when the rest of the installation is intact', async () => {
+    const { filesystem, workflow } = createWorkflow();
+    await workflow.apply(await workflow.plan({ type: 'init', path: root, profile: 'claude-coordinator' }));
+    filesystem.seed(path.join(root, '.claude/skills/tdd/SKILL.md'), 'user drift\n');
+    const report = await workflow.doctor(root);
+    expect(report.healthy).toBe(false);
+    expect(report.checks).toContainEqual(expect.objectContaining({ id: 'claude-discovery', status: 'FAIL' }));
+    expect(report.checks).toContainEqual(expect.objectContaining({ id: 'drift', status: 'FAIL' }));
+  });
+
   it('reports local drift and never plans to overwrite it', async () => {
     const files = Object.fromEntries(
       renderDesiredArtifacts(resolveConfig('codex-only')).map((artifact) => [artifact.path, artifact.content]),
@@ -166,6 +216,32 @@ describe('WorkflowProject planning', () => {
     }));
   });
 
+  it('refuses an existing unmanaged Claude skill directory', async () => {
+    const { workflow } = createWorkflow({ '.claude/skills/tdd/README.md': 'User-owned skill\n' });
+    const plan = await workflow.plan({ type: 'init', path: root, profile: 'claude-only' });
+    expect(plan.blockers).toContainEqual(expect.objectContaining({
+      code: 'collision',
+      path: '.claude/skills/tdd/SKILL.md',
+    }));
+    expect(plan.files.find((file) => file.path === '.claude/skills/tdd/SKILL.md')?.action).toBe('unchanged');
+  });
+
+  it('reports a byte-identical unmanaged CLAUDE.md as a collision', async () => {
+    const desired = renderDesiredArtifacts(resolveConfig('claude-only'))
+      .find((artifact) => artifact.path === 'CLAUDE.md')?.content;
+    expect(desired).toBeDefined();
+    const { workflow } = createWorkflow({ 'CLAUDE.md': desired! });
+    const plan = await workflow.plan({ type: 'init', path: root, profile: 'claude-only' });
+    expect(plan.blockers).toContainEqual(expect.objectContaining({
+      code: 'collision',
+      path: 'CLAUDE.md',
+    }));
+    expect(plan.files.find((file) => file.path === 'CLAUDE.md')).toMatchObject({
+      action: 'unchanged',
+      reason: 'Existing content is preserved.',
+    });
+  });
+
   it('applies once, preserves user AGENTS.md bytes, and is idempotent', async () => {
     const userInstructions = '# User instructions\r\nKeep this exact.\r\n';
     const { filesystem, workflow } = createWorkflow({ 'AGENTS.md': userInstructions });
@@ -219,20 +295,17 @@ describe('WorkflowProject planning', () => {
     expect(report.checks).toContainEqual(expect.objectContaining({ id: 'manifest-contract', status: 'FAIL' }));
   });
 
-  it('detects a self-consistent swap to a profile Phase 2 cannot install', async () => {
+  it('refuses a profile transition instead of overwriting the installed contract', async () => {
     const { filesystem, workflow } = createWorkflow();
     await workflow.apply(await workflow.plan({ type: 'init', path: root, profile: 'codex-only' }));
-    const claudeArtifacts = new Map(
-      renderDesiredArtifacts(resolveConfig('claude-only')).map((artifact) => [artifact.path, artifact.content]),
-    );
-    for (const artifactPath of ['.orca-kit/config.yaml', '.orca-kit/manifest.json', 'AGENTS.md']) {
-      filesystem.seed(path.join(root, artifactPath), claudeArtifacts.get(artifactPath)!);
-    }
-
-    expect((await workflow.diff(root)).clean).toBe(true);
-    const report = await workflow.doctor(root);
-    expect(report.healthy).toBe(false);
-    expect(report.checks).toContainEqual(expect.objectContaining({ id: 'config-contract', status: 'FAIL' }));
-    expect(report.checks).toContainEqual(expect.objectContaining({ id: 'manifest-contract', status: 'FAIL' }));
+    const before = filesystem.snapshot();
+    const plan = await workflow.plan({ type: 'init', path: root, profile: 'claude-only' });
+    expect(plan.canApply).toBe(false);
+    expect(plan.blockers).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: 'drift', path: '.orca-kit/config.yaml' }),
+      expect.objectContaining({ code: 'drift', path: 'AGENTS.md' }),
+      expect.objectContaining({ code: 'drift', path: '.orca-kit/manifest.json' }),
+    ]));
+    expect(filesystem.snapshot()).toEqual(before);
   });
 });

@@ -15,11 +15,11 @@ const temporary = await mkdtemp(path.join(tmpdir(), 'orca-kit-packed-smoke-'));
 try {
   const packageDirectory = path.join(temporary, 'package');
   const installDirectory = path.join(temporary, 'install');
-  const targetRepository = path.join(temporary, 'repository');
+  const profiles = ['codex-only', 'claude-coordinator', 'claude-only', 'codex-coordinator'] as const;
   await Promise.all([
     mkdir(packageDirectory),
     mkdir(installDirectory),
-    mkdir(targetRepository),
+    ...profiles.map((profile) => mkdir(path.join(temporary, `repository-${profile}`))),
   ]);
 
   const packed = await execa('npm', [
@@ -46,38 +46,42 @@ try {
 
   const tarball = path.join(packageDirectory, packResult.filename);
   await execa('npm', ['install', '--ignore-scripts', '--prefix', installDirectory, tarball]);
-  await execa('git', ['-C', targetRepository, 'init', '--quiet', '-b', 'main']);
-  await execa('git', [
-    '-C', targetRepository, 'remote', 'add', 'origin',
-    'git@github.com:DYEWolf/orca-kit-packed-smoke.git',
-  ]);
-
   const cli = path.join(installDirectory, 'node_modules/@dyewolf/orca-kit/dist/cli.js');
   const run = async (arguments_: readonly string[]) => execa('node', [cli, ...arguments_]);
-  const dryRun = JSON.parse((await run([
-    'init', targetRepository, '--profile', 'codex-only', '--dry-run', '--json',
-  ])).stdout) as { summary: { create: number }; canApply: boolean };
-  const first = JSON.parse((await run([
-    'init', targetRepository, '--profile', 'codex-only', '--yes', '--json',
-  ])).stdout) as { receipt: { applied: boolean; written: string[]; verified: boolean } };
-  const second = JSON.parse((await run([
-    'init', targetRepository, '--profile', 'codex-only', '--yes', '--json',
-  ])).stdout) as { receipt: { applied: boolean; written: string[] } };
-  const doctor = JSON.parse((await run(['doctor', targetRepository, '--json'])).stdout) as {
-    healthy: boolean;
-    summary: { FAIL: number };
-  };
-  const diff = JSON.parse((await run(['diff', targetRepository, '--json'])).stdout) as { clean: boolean };
 
-  if (!dryRun.canApply || dryRun.summary.create < 60) throw new Error('Packed dry-run did not plan a complete installation.');
-  if (!first.receipt.applied || !first.receipt.verified || first.receipt.written.length !== dryRun.summary.create) {
-    throw new Error('Packed first init did not apply and verify the complete plan.');
+  for (const profile of profiles) {
+    const targetRepository = path.join(temporary, `repository-${profile}`);
+    await execa('git', ['-C', targetRepository, 'init', '--quiet', '-b', 'main']);
+    await execa('git', [
+      '-C', targetRepository, 'remote', 'add', 'origin',
+      `git@github.com:DYEWolf/orca-kit-packed-smoke-${profile}.git`,
+    ]);
+
+    const dryRun = JSON.parse((await run([
+      'init', targetRepository, '--profile', profile, '--dry-run', '--json',
+    ])).stdout) as { summary: { create: number }; canApply: boolean };
+    const first = JSON.parse((await run([
+      'init', targetRepository, '--profile', profile, '--yes', '--json',
+    ])).stdout) as { receipt: { applied: boolean; written: string[]; verified: boolean } };
+    const second = JSON.parse((await run([
+      'init', targetRepository, '--profile', profile, '--yes', '--json',
+    ])).stdout) as { receipt: { applied: boolean; written: string[] } };
+    const doctor = JSON.parse((await run(['doctor', targetRepository, '--json'])).stdout) as {
+      healthy: boolean;
+      summary: { FAIL: number };
+    };
+    const diff = JSON.parse((await run(['diff', targetRepository, '--json'])).stdout) as { clean: boolean };
+
+    if (!dryRun.canApply || dryRun.summary.create < 60) throw new Error(`Packed dry-run failed for ${profile}.`);
+    if (!first.receipt.applied || !first.receipt.verified || first.receipt.written.length !== dryRun.summary.create) {
+      throw new Error(`Packed first init failed for ${profile}.`);
+    }
+    if (second.receipt.applied || second.receipt.written.length !== 0) throw new Error(`Packed second init was not a no-op for ${profile}.`);
+    if (!doctor.healthy || doctor.summary.FAIL !== 0) throw new Error(`Packed doctor failed for ${profile}.`);
+    if (!diff.clean) throw new Error(`Packed diff was not clean for ${profile}.`);
   }
-  if (second.receipt.applied || second.receipt.written.length !== 0) throw new Error('Packed second init was not a no-op.');
-  if (!doctor.healthy || doctor.summary.FAIL !== 0) throw new Error('Packed doctor did not report a healthy local installation.');
-  if (!diff.clean) throw new Error('Packed diff did not report a clean installation.');
 
-  process.stdout.write(`Packed CLI smoke test passed with ${first.receipt.written.length} installed artifacts.\n`);
+  process.stdout.write(`Packed CLI smoke test passed for ${profiles.length} profiles.\n`);
 } finally {
   await rm(temporary, { recursive: true, force: true });
 }

@@ -48,6 +48,35 @@ describe('local CLI installation lifecycle', () => {
       await rm(repository, { recursive: true, force: true });
     }
   }, 20_000);
+
+  it.each(['codex-only', 'claude-coordinator', 'claude-only', 'codex-coordinator'] as const)(
+    'supports the %s profile through CLI dry-run, apply, verify, and no-op',
+    async (profile) => {
+      const repository = await mkdtemp(path.join(tmpdir(), `orca-kit-cli-${profile}-`));
+      try {
+        await execa('git', ['-C', repository, 'init', '--quiet', '-b', 'main']);
+        await execa('git', ['-C', repository, 'remote', 'add', 'origin', `git@github.com:DYEWolf/${profile}.git`]);
+
+        const dryRun = JSON.parse((await runCli([
+          'init', repository, '--profile', profile, '--dry-run', '--json',
+        ])).stdout) as { canApply: boolean; summary: { create: number } };
+        const first = JSON.parse((await runCli([
+          'init', repository, '--profile', profile, '--yes', '--json',
+        ])).stdout) as { receipt: { applied: boolean; verified: boolean; written: string[] } };
+        const second = JSON.parse((await runCli([
+          'init', repository, '--profile', profile, '--yes', '--json',
+        ])).stdout) as { receipt: { applied: boolean; written: string[] } };
+
+        expect(dryRun.canApply).toBe(true);
+        expect(first.receipt).toMatchObject({ applied: true, verified: true });
+        expect(first.receipt.written).toHaveLength(dryRun.summary.create);
+        expect(second.receipt).toMatchObject({ applied: false, written: [] });
+      } finally {
+        await rm(repository, { recursive: true, force: true });
+      }
+    },
+    20_000,
+  );
 });
 
 async function runCli(arguments_: string[], reject = true) {

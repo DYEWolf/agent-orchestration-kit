@@ -3,20 +3,23 @@
 `@dyewolf/orca-kit` is an open-source npm CLI for configuring an existing GitHub
 repository with an opinionated Orca coordinator/worker engineering workflow.
 
-The project is currently under development. Phase 2 supports deterministic
-planning and safe local application for the `codex-only` profile:
+The project is currently under development. Phase 3 supports deterministic
+planning and safe local application for all four approved routing profiles:
 
 ```bash
 npm install
 npm run build
 node dist/cli.js init /path/to/repository --profile codex-only --dry-run
 node dist/cli.js init /path/to/repository --profile codex-only --yes
+node dist/cli.js init /path/to/repository --profile claude-coordinator --yes
+node dist/cli.js init /path/to/repository --profile claude-only --yes
+node dist/cli.js init /path/to/repository --profile codex-coordinator --yes
 node dist/cli.js doctor /path/to/repository
 node dist/cli.js diff /path/to/repository
 ```
 
 The CLI does not install or authenticate Orca, Codex, Claude, GitHub CLI, models,
-accounts, subscriptions, or credentials. Phase 2 performs local repository
+accounts, subscriptions, or credentials. Phases 2 and 3 perform local repository
 writes only; global Orca and remote GitHub integration arrive in Phase 4.
 
 ## Project status
@@ -26,15 +29,19 @@ writes only; global Orca and remote GitHub integration arrive in Phase 4.
   rendering, deterministic ChangePlan, in-memory filesystem, and drift detection
 - Phase 2: atomic local application and rollback, managed instructions, pinned
   17-skill bundle, provenance, local doctor/diff, and drift refusal
-- Later phases: Claude compatibility, Orca/GitHub integration, and release automation
+- Phase 3: all four profiles, Claude Code compatibility wrappers, and
+  profile-aware local Doctor checks
+- Later phases: Orca/GitHub integration and release automation
 
 See [the approved specification](docs/approved-specification.md) and
 [contributing guide](CONTRIBUTING.md).
 
 ## Practical agent workflow
 
-The installed workflow is Codex-only and uses Orca for supervised execution.
-Invoke skills with `$skill-name` syntax; the coordinator owns the conversation,
+The installed workflow uses Orca for supervised execution. Claude profiles add
+`CLAUDE.md` and lightweight `.claude/skills/` discovery wrappers; canonical skill
+bodies remain under `.agents/skills/`. Invoke skills with `$skill-name` syntax;
+the coordinator owns the conversation,
 GitHub Issues, Runs, Tasks, gates, worktrees, and integration.
 
 For a clear destination, use `$ask-matt` or start with `$grill-with-docs`, then

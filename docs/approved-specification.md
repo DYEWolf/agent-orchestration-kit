@@ -210,10 +210,12 @@ maintainer-side patches so sync can detect conflicts. Bodies use neutral roles.
 
 Canonical content installs at `.agents/skills/`. Codex discovery uses supported
 `agents/openai.yaml`. Claude profiles additionally render `CLAUDE.md` and
-`.claude/skills/<skill>/SKILL.md` wrappers without symlinks. Phase 3 must first
-test whether referenced canonical bodies are reliably loaded; otherwise wrappers
-inline the full content and both hashes are recorded. Existing non-managed
-Claude skill directories are collisions, never overwritten.
+lightweight `.claude/skills/<skill>/SKILL.md` wrappers without symlinks. Each
+wrapper explicitly directs Claude Code to read the canonical `.agents` body.
+This behavior is a versioned Claude Code compatibility contract, proven on
+Claude Code 2.1.236; a future failing compatibility probe selects the inline-body
+fallback, with both hashes recorded. Existing non-managed Claude skill
+directories are collisions, never overwritten.
 
 ## 11. Generated project structure
 
@@ -406,8 +408,9 @@ smokes, Claude-worker test/promotion decision, and publish 1.0.0.
 
 ## 24. Open implementation research
 
-- Blocking Phase 3: determine whether Claude reliably follows a wrapper's
-  canonical-body reference; otherwise inline it.
+- Phase 3 decision resolved: Claude Code 2.1.236 followed a lightweight wrapper's
+  canonical-body reference in three fresh sessions. Keep the probe as a
+  versioned compatibility gate and inline bodies if it later fails.
 - Blocking profile promotion: validate Claude worker lifecycle.
 - Determine minimum Orca version and cross-platform installed-skill detection.
 - Determine supported Claude effort values and Codex `xhigh`/`max` support.

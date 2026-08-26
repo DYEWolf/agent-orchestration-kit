@@ -28,9 +28,6 @@ export function registerInitCommand(program: Command): void {
     .option('--json', 'emit stable machine-readable JSON')
     .action(async (path: string, options: InitOptions) => {
       const profile = profileNameSchema.parse(options.profile) as ProfileName;
-      if (profile !== 'codex-only') {
-        throw new Error('Phase 2 local application currently supports only the codex-only profile.');
-      }
       const workflow = new WorkflowProject();
       const plan = await workflow.plan({ type: 'init', path, profile });
       if (options.dryRun === true) {
