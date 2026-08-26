@@ -1,0 +1,68 @@
+{
+  "name": "@dyewolf/orca-kit",
+  "version": "0.1.0",
+  "description": "Configure an existing GitHub repository with an opinionated Orca coordinator/worker workflow.",
+  "type": "module",
+  "bin": {
+    "orca-kit": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "templates",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsup",
+    "check": "npm run typecheck && npm test && npm run build",
+    "dev": "tsx src/cli.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "prepack": "npm run check"
+  },
+  "keywords": [
+    "orca",
+    "codex",
+    "claude",
+    "ai-agents",
+    "workflow",
+    "cli"
+  ],
+  "author": "DYEWolf",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DYEWolf/orca-kit.git"
+  },
+  "bugs": {
+    "url": "https://github.com/DYEWolf/orca-kit/issues"
+  },
+  "homepage": "https://github.com/DYEWolf/orca-kit#readme",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@clack/prompts": "0.11.0",
+    "commander": "14.0.3",
+    "execa": "9.6.1",
+    "yaml": "2.9.0",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.3",
+    "fast-check": "4.9.0",
+    "tsx": "4.23.12",
+    "tsup": "8.5.1",
+    "typescript": "5.9.3",
+    "vitest": "3.2.7"
+  },
+  "overrides": {
+    "esbuild": "0.28.1"
+  }
+}
