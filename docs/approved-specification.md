@@ -1,8 +1,10 @@
-# `@dyewolf/orca-kit` — approved product and implementation specification
+# `@dyewolf/agent-orchestration-kit` — approved product and implementation specification
 
-Status: approved planning handoff, revision 2. This repository-local document is
-the complete acceptance authority. The original provisional name
-`orca-workflow` is replaced everywhere by `orca-kit`.
+Status: approved planning handoff, revision 3. This repository-local document is
+the complete acceptance authority. The former provisional identities
+`orca-workflow` and `orca-kit` are superseded by `agent-orchestration-kit`.
+The complete code, generated-artifact, package, and repository migration remains
+implementation work.
 
 ## 1. Executive summary
 
@@ -15,7 +17,7 @@ worktrees.
 The primary command is:
 
 ```bash
-npx @dyewolf/orca-kit@latest init
+npx @dyewolf/agent-orchestration-kit@latest init
 ```
 
 The CLI configures a repository. It does not install or authenticate Orca,
@@ -137,10 +139,12 @@ review.
 
 ### 7.5 Stability gate
 
-Profiles become stable only after a live Orca Run smoke test. Claude as an Orca
-worker must demonstrate Dispatch receipt, bounded work, exactly one
-`worker_done`, and no nested creation before the two Claude-worker profiles are
-promoted. Pending profiles remain selectable with a visible warning.
+Profiles become stable only after a live Orca Run smoke test. Each Claude-worker
+profile is promoted independently after its own Run demonstrates Dispatch
+receipt, bounded work, exactly one `worker_done`, no nested creation, and
+coordinator receipt and acceptance. A profile that fails or has not run remains
+selectable with a visible warning; pending optional profiles do not block the
+1.0.0 release while the stable profile set remains available.
 
 ### 7.6 Shared execution policy
 
@@ -221,8 +225,8 @@ directories are collisions, never overwritten.
 
 ```text
 AGENTS.md                         managed block only
-.orca-kit/config.yaml            generator input
-.orca-kit/manifest.json          CLI/bundle versions and per-file hashes
+.agent-orchestration-kit/config.yaml   generator input
+.agent-orchestration-kit/manifest.json CLI/bundle versions and per-file hashes
 .agents/THIRD_PARTY_NOTICES.md
 .agents/skills/<skill>/...
 docs/agents/orca-execution.md
@@ -246,9 +250,9 @@ are distinguished. Zod validates configuration. V1 ships no migrations.
 The CLI owns only this AGENTS block:
 
 ```markdown
-<!-- orca-kit:start version="1" -->
+<!-- agent-orchestration-kit:start version="1" -->
 Generated orchestration constitution...
-<!-- orca-kit:end -->
+<!-- agent-orchestration-kit:end -->
 ```
 
 Everything outside it is preserved byte-for-byte. Fully generated files state
@@ -326,8 +330,8 @@ Maintenance scripts cover upstream checking/sync and bundle validation.
 
 Use strict TypeScript, ESM, Node.js 22+, Commander, `@clack/prompts`, Zod,
 `yaml`, Execa argument arrays, Vitest, tsup, npm, and MIT. The canonical public
-identity is repository `DYEWolf/orca-kit`, package `@dyewolf/orca-kit`, and bin
-`orca-kit`.
+identity is repository `DYEWolf/agent-orchestration-kit`, package
+`@dyewolf/agent-orchestration-kit`, and bin `agent-orchestration-kit`.
 
 ## 20. Licensing and provenance
 
@@ -365,7 +369,8 @@ profiles, Windows paths/spaces/Unicode/CRLF, missing tools, and unavailable Orca
 CI uses temporary repositories and fake executables rather than live accounts.
 
 Release gates pack and inspect the tarball, install that tarball in a fresh
-repository, exercise dry-run/init/no-op/doctor/diff, run OS and Node matrices,
+repository, exercise dry-run/init/no-op/doctor/diff, run the full macOS,
+Windows, and Linux by Node.js 22, 24, and 26 matrix,
 validate rendered skills/links/frontmatter, and perform live Orca smoke tests for
 stable profiles. Claude-worker profiles require their additional lifecycle test.
 
@@ -403,20 +408,46 @@ and external doctor coverage. Gate: every mutation is enumerated and confirmed.
 
 ### Phase 5 — public release
 
-Complete platform matrix, trusted publishing, public docs, live stable-profile
-smokes, Claude-worker test/promotion decision, and publish 1.0.0.
+Complete platform matrix, public docs, live stable-profile smokes, optional
+Claude-worker profile promotion, the npm bootstrap required for trusted
+publishing, and publish 1.0.0 through OIDC.
 
 ## 24. Open implementation research
 
 - Phase 3 decision resolved: Claude Code 2.1.236 followed a lightweight wrapper's
   canonical-body reference in three fresh sessions. Keep the probe as a
   versioned compatibility gate and inline bodies if it later fails.
-- Blocking profile promotion: validate Claude worker lifecycle.
-- Determine minimum Orca version and cross-platform installed-skill detection.
-- Determine supported Claude effort values and Codex `xhigh`/`max` support.
-- Confirm npm scope permission.
-- Check Orca trademark/package naming before publication.
-- Select final GitHub label colors and descriptions.
+- Profile promotion evidence remains to be executed: validate each pending
+  Claude-worker profile independently through the live lifecycle contract in
+  section 7.5. A pending optional profile does not block 1.0.0.
+- Orca compatibility decision resolved on 2026-08-27: V1 requires the tested
+  `1.4.190` baseline, resolves `orca` from `PATH`, and verifies required command
+  capabilities, readiness, installed skills, and repository registration through
+  machine-readable CLI output. See
+  `docs/research/phase-4-orca-compatibility.md`.
+- Claude effort decision resolved on 2026-08-27: V1 leaves `effort` unset for
+  Claude alias routes and lets Claude Code apply the resolved model's default.
+  Doctor validates the installed CLI/model capability instead of encoding a
+  level that may become invalid as `opus` and `sonnet` aliases advance.
+- Codex effort decision resolved on 2026-08-27: official OpenAI documentation
+  confirms GPT-5.6 Sol, Terra, and Luna support both `xhigh` and `max`.
+- npm scope permission confirmed on 2026-08-27: authenticated owner
+  `daedhriel` can manage packages in the `dyewolf` organization, and
+  `@dyewolf/agent-orchestration-kit` remains unpublished.
+- Naming-risk decision resolved on 2026-08-27: use the descriptive identity
+  `agent-orchestration-kit`, remove `orca-kit` from public and internal owned
+  identifiers, and reserve “Orca” for truthful references to the external
+  runtime. See `docs/research/orca-kit-name-risk.md`.
+- GitHub label metadata resolved on 2026-08-27: create `ready-for-agent` with
+  color `0E8A16` and description “Approved, executable, unblocked implementation
+  issue ready to be claimed.” Missing is Doctor `FAIL`; existing metadata drift
+  is a non-mutating Doctor `WARN`.
+- npm release bootstrap resolved on 2026-08-27: after all release gates pass,
+  publish 0.1.0 manually with account 2FA under the `next` dist-tag, configure
+  the package's trusted publisher for the repository's `publish.yml` and
+  protected `npm-publish` environment, disable traditional publish tokens, and
+  publish the first stable 1.0.0 through GitHub Actions OIDC. See
+  `docs/research/npm-release-bootstrap.md`.
 
 ## 25. V1 acceptance criteria
 
@@ -485,4 +516,5 @@ advance past a phase until its exit gate passes.
 - Update/configure/eject, Markdown tracker, and custom workers are V2.
 - Optional Orca skill installation/registration and labels require confirmation.
 - Strict TypeScript, ESM, Node 22+, npm distribution.
-- Canonical identity is `DYEWolf/orca-kit`, `@dyewolf/orca-kit`, and `orca-kit`.
+- Canonical identity is `DYEWolf/agent-orchestration-kit`,
+  `@dyewolf/agent-orchestration-kit`, and `agent-orchestration-kit`.
