@@ -32,6 +32,15 @@ The upstream snapshot and support assets are retained where the procedure
 requires them. The complete attribution and MIT license are in
 `.agents/THIRD_PARTY_NOTICES.md`.
 
+## Repository-local Campaign bootstrap
+
+`campaign` is a repository-local explicit-only skill added for the Campaign
+authorization workflow. It is not an upstream Matt Pocock adaptation and has no
+distributed bundle/catalog entry yet; productization and generated artifacts are
+deliberately deferred. Its `agents/openai.yaml` disables implicit invocation,
+and its focused references keep the Campaign Record, preflight, and lifecycle
+rules out of the entrypoint.
+
 ## Orca and Codex changes
 
 The local adaptations preserve the upstream engineering procedures while
@@ -50,6 +59,7 @@ making these deliberate changes:
   coordinator decisions, Orca mailbox questions, bounded Tasks, and evidence
   gates.
 - Native Codex metadata disables implicit invocation only for `ask-matt`,
+  `campaign`,
   `grill-with-docs`, `handoff`, `implement`, `improve-codebase-architecture`,
   `to-spec`, `to-tickets`, and `wayfinder`. No alternate invocation-disable
   key is used.

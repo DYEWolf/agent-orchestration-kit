@@ -17,6 +17,10 @@ Use this path when the user has an idea they want built:
 4. **Implement** — explicitly invoke `$implement` for an approved implementation issue. The coordinator owns runtime dispatch through Orca; the issue remains the durable contract and contains no model or routing instructions.
 5. **Review and verify** — use `$code-review` when the implementation is ready for review or the user requests it. Accept, correct, or escalate based on the actual diff and deterministic verification.
 
+Campaign is not part of this default path. After tickets are published, manual
+Issue execution remains the default; only an explicit `$campaign` invocation
+can authorize a fixed multi-Issue execution.
+
 The sequence above is a recommendation. It becomes automatic only when the user explicitly authorizes that end-to-end flow. Completing one phase never implicitly invokes the next phase.
 
 ## On-ramps and standalone flows
@@ -32,6 +36,7 @@ The sequence above is a recommendation. It becomes automatic only when the user 
 - **An in-progress merge or rebase conflict** → `$resolving-merge-conflicts`.
 - **A branch or pull request needs independent inspection** → `$code-review`.
 - **The work must move to another harness, directory, or colleague** → `$handoff`, and only at the corresponding phase boundary.
+- **Explicitly start, inspect, pause, resume, or cancel a fixed set of approved implementation Issues** → `$campaign`.
 
 If no installed flow fits, keep Sol in the conversation and use a coordinator-created Orca evidence Task only for a bounded fact-finding need. Do not invent a route or present runtime worker selection as a user-facing workflow.
 

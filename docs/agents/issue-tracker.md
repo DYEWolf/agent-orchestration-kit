@@ -97,13 +97,37 @@ assigned planning Issue remains planning. An open assigned implementation Issue
 is claimed only when its execution Run is also bound or created. Closing an
 Orca Task does not close an Issue.
 
+## Campaign Record
+
+Only an explicit `$campaign` start appends a Campaign Record. After successful
+read-only atomic preflight and the relevant authorization answers, append one
+immutable anchor-Issue comment beginning exactly:
+
+```markdown
+[decision] Campaign Record
+<!-- orca-campaign-record:v1 -->
+```
+
+Record the stable Campaign identity, fixed ordered membership/anchor, repository remote and target branch,
+base and local mutations, selected relevant Preauthorized Mutations, Protected
+Mutation policy, cross-Issue concurrency of one, inherited worker limit,
+integration route, pause/stopping conditions, and creation time. Do not update
+it with a mutable Campaign status. Reconstruct status from Issues and Orca Runs;
+use the existing tagged comments above for evidence and resolution. A blocked
+but otherwise complete Issue may be a future member without `ready-for-agent`,
+while an unblocked member must carry it; it never expands membership later.
+Choose a common umbrella anchor when parent/umbrella facts identify one,
+otherwise the first member; an explicit alternate must be a provided relevant
+existing Issue and need not be membership.
+
 ## Labels
 
 Use existing repository labels and preserve their meaning. The only label
 required by this workflow is:
 
 - `ready-for-agent` — approved, executable, unblocked implementation Issue whose
-  contract, acceptance criteria, and verification are complete.
+  objective, constraints, acceptance criteria, risks/review, and verification
+  contract are complete.
 
 `wontfix` may be used when the repository wants to distinguish intentional
 non-implementation, but it is not required by the workflow. Wayfinder types are

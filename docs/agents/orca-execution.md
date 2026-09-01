@@ -15,6 +15,42 @@ There are two distinct Run types:
   for that Issue. Keep exactly one execution Run per claimed implementation
   Issue, including corrections and review.
 
+## Campaign authorization
+
+`$campaign` is an explicit-only runtime authorization over a user-provided,
+ordered fixed set of approved implementation Issues. It is not a Run or a
+permanent execution-mode setting: each member retains one Issue-owned execution
+Run, and manual execution remains the default. Read-only atomic preflight may
+include an otherwise complete blocked Issue without `ready-for-agent` as a
+future member; an unblocked member must carry the label, and any incomplete or
+conflicted member rejects the entire proposal with no effects. A common existing
+umbrella is the default record anchor, otherwise the first member is used; an
+explicit alternate must be a provided relevant existing anchor and need not be
+membership.
+
+After presenting the proposed authorization/frontier and receiving only the
+relevant optional Preauthorized Mutation decisions—push integration commits,
+create/update branches, pull-request create/update/merge on the PR route, and
+remote workflow trigger/rerun only for Issues that require it—append the immutable
+`[decision] Campaign Record` comment with
+`<!-- orca-campaign-record:v1 -->` to its anchor Issue and immediately execute.
+Reconstruct status from GitHub/Orca and use ordinary tagged comments for later
+progress and resolution. Cross-Issue concurrency is one; inherited worker
+concurrency applies inside that one active Issue.
+
+An Issue Pause permits other independent members; a Campaign Pause stops all
+members. Protected Mutations require an immediate confirmation of the pending
+mutation: publishing, deployment/protected environments, secrets/credentials,
+protection changes, destructive external actions, and global machine/account
+changes. Resume reuses the immutable record and existing Issue-owned Runs;
+cancellation stops new work, releases Campaign-owned terminals/worktrees,
+unassigns unaccepted Issues, records incomplete progress/evidence, preserves
+accepted evidence, and performs no rollback. Corrections remain in the existing
+Run; investigate failures, pause on three same-context failures, and never retry
+`RETHINK`. Close only after verification, `SHIP` when required, exactly one
+coordinator-owned integration commit, target identity revalidation, and
+remote-target containment.
+
 ## Issue-to-Run transition
 
 ```text

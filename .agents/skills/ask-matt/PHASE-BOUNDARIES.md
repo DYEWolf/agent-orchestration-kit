@@ -30,5 +30,8 @@ Work top to bottom at the boundary; the first applicable answer wins.
 - Specification ends only after explicit approval of the full draft, then publishes a non-executable umbrella/spec issue; it does not create tickets automatically.
 - Ticket drafting ends only after explicit approval of the complete breakdown, then publishes durable issues; it does not dispatch implementation automatically.
 - Implementation and review advance only through the coordinator's explicitly authorized Orca flow and evidence-based acceptance.
+- Ticket publication stops at the ticket boundary. An explicit `$campaign` is a
+  separate runtime authorization over a fixed Issue set, never an automatic
+  phase transition.
 
 The sole exception to these stopping rules is a user-authorized end-to-end flow whose requested behavior explicitly includes the listed transitions. Even then, each phase must satisfy its own approval and evidence gates.

@@ -16,6 +16,7 @@ installed set and its manual adaptation rules are recorded in
 - `$grill-with-docs` and `$grilling` establish shared understanding and decisions.
 - `$to-spec` and `$to-tickets` pass the explicit specification and ticket gates.
 - `$implement`, `$tdd`, and `$code-review` cover bounded execution and review.
+- `$campaign` explicitly authorizes a fixed Issue set for bounded coordinated execution.
 - `$diagnosing-bugs`, `$improve-codebase-architecture`, `$codebase-design`,
   `$domain-modeling`, `$research`, `$prototype`, `$handoff`, and
   `$resolving-merge-conflicts` are focused on-ramps.
@@ -23,6 +24,11 @@ installed set and its manual adaptation rules are recorded in
 Skills are procedures, not ownership authorities. The coordinator decides when
 to invoke or transition between them; a worker follows only its Dispatch
 contract. See `docs/agents/orca-execution.md` for operational details.
+
+Campaign never starts implicitly: manual execution remains the default and
+`$to-tickets` stops after publication. A Campaign coordinates existing
+Issue-owned Runs over its explicit fixed membership; it is not a persistent mode
+or replacement Run.
 
 ## Orca coordination model
 
@@ -142,6 +148,34 @@ checks pass, escalations are resolved, required review passes, the final diff
 stays in scope, and settled workers are released, reused, or intentionally
 retained. Record progress, decisions, verification, review, and resolution in
 the Issue using `docs/agents/issue-tracker.md` conventions.
+
+## Campaign authorization
+
+A Campaign is an explicit, fixed, per-execution authorization for approved
+implementation Issues. Its preflight is read-only and atomic; approved blocked
+Issues may be future members without `ready-for-agent`, while unblocked members
+must carry it. Validate objective, acceptance, constraints, risks/review, and
+verification independently; an invalid member rejects the whole proposal
+without effects. Cross-Issue concurrency is one, while the normal internal
+worker limit applies only inside the sole active Issue.
+
+Each Issue still owns exactly one execution Run. Use fresh worker terminals and
+child worktrees by default unless exact shared state requires the current
+worktree; workers never commit. Corrections stay in the same Run, failures are
+investigated rather than blindly retried, three same-context failures pause the
+Issue, and `RETHINK` is never retried.
+
+Protected Mutations always need immediate confirmation: publishing,
+deployment/protected environments, secrets/credentials, branch or environment
+protection, destructive external actions, and global machine/account changes.
+Issue-local `RETHINK` pauses one Issue; transversal `RETHINK` pauses the
+Campaign. Cancellation stops new work, cleans Campaign-owned resources,
+unassigns unaccepted Issues, records incomplete evidence, preserves accepted
+evidence, and performs no rollback. An Issue is accepted only after
+verification, `SHIP` when review is required, exactly one coordinator-owned
+integration commit, trustworthy revalidated target identity, and containment in
+the authorized remote target branch; local-only or temporary-branch commits do
+not qualify.
 
 ## Canonical references
 
