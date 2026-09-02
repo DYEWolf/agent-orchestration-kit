@@ -279,7 +279,7 @@ export class WorkflowProject implements WorkflowProjectContract {
 
     const missingSkills: string[] = [];
     for (const skill of skillBundleCatalog.skills) {
-      for (const relativePath of ['SKILL.md', 'agents/openai.yaml', 'PROVENANCE.json']) {
+      for (const relativePath of [...Object.keys(skill.files), 'PROVENANCE.json']) {
         const displayPath = `.agents/skills/${skill.name}/${relativePath}`;
         const skillPath = await resolveDoctorPath('skills-path', displayPath);
         if (skillPath === undefined || !(await this.#filesystem.exists(skillPath))) missingSkills.push(`${skill.name}/${relativePath}`);
@@ -294,7 +294,14 @@ export class WorkflowProject implements WorkflowProjectContract {
     const noticesPath = await resolveDoctorPath('attribution', '.agents/THIRD_PARTY_NOTICES.md');
     if (noticesPath !== undefined) {
       const noticeContent = await this.#filesystem.exists(noticesPath) ? await this.#filesystem.readFile(noticesPath) : '';
-      const noticesValid = noticeContent.includes(skillBundleCatalog.upstreamCommit) && noticeContent.includes('MIT License');
+      const upstreamNamesPresent = skillBundleCatalog.skills
+        .filter((skill) => skill.origin.kind === 'upstream')
+        .every((skill) => noticeContent.includes(`- \`${skill.name}\`:`));
+      const firstPartyNamesAbsent = skillBundleCatalog.skills
+        .filter((skill) => skill.origin.kind === 'first-party')
+        .every((skill) => !noticeContent.includes(`- \`${skill.name}\`:`));
+      const noticesValid = noticeContent.includes(skillBundleCatalog.upstreamCommit)
+        && noticeContent.includes('MIT License') && upstreamNamesPresent && firstPartyNamesAbsent;
       checks.push({ id: 'attribution', status: noticesValid ? 'PASS' : 'FAIL', message: noticesValid ? 'Pinned upstream attribution and MIT license are present.' : 'Third-party attribution is missing or incomplete.' });
     }
 
@@ -362,7 +369,7 @@ export class WorkflowProject implements WorkflowProjectContract {
         id: 'claude-discovery',
         status: claudeIssues.length === 0 ? 'PASS' : 'FAIL',
         message: claudeIssues.length === 0
-          ? 'CLAUDE.md and all 17 canonical-body Claude skill wrappers are intact.'
+          ? `CLAUDE.md and all ${skillBundleCatalog.skills.length} canonical-body Claude skill wrappers are intact.`
           : `Claude compatibility artifacts are incomplete: ${claudeIssues.join(', ')}.`,
       });
     } else {

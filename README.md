@@ -33,8 +33,9 @@ writes only; global Orca and remote GitHub integration arrive in Phase 4.
 - Phase 0: repository, package identity, and policy documents
 - Phase 1: configuration, profiles, repository inspection, desired-state
   rendering, deterministic ChangePlan, in-memory filesystem, and drift detection
-- Phase 2: atomic local application and rollback, managed instructions, pinned
-  17-skill bundle, provenance, local doctor/diff, and drift refusal
+- Phase 2: atomic local application and rollback, managed instructions, a
+  catalog-derived mixed-origin skill bundle (including first-party Campaign),
+  provenance, local doctor/diff, and drift refusal
 - Phase 3: all four profiles, Claude Code compatibility wrappers, and
   profile-aware local Doctor checks, including deterministic CLI/auth probes
 - Later phases: Orca/GitHub integration and release automation
@@ -61,6 +62,11 @@ that transition.
 The durable sequence is `Issue → Run → Tasks → Dispatches → verification →
 review → acceptance`. A worker sends one `worker_done` report; the coordinator
 decides whether the evidence satisfies the Issue and closes it.
+
+Manual Issue execution remains the default. `$campaign` is an explicit-only
+authorization for a user-provided fixed Issue set: it performs read-only
+preflight, records the immutable authorization, and never acts as a permanent
+execution mode or backlog runner.
 
 For foggy or multi-session work, use `$wayfinder` to create a GitHub decision
 map and resolve its frontier one decision at a time. Return to grilling or

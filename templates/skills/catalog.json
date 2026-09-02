@@ -11,302 +11,381 @@
   "skills": [
     {
       "name": "ask-matt",
-      "upstreamPath": "skills/engineering/ask-matt/SKILL.md",
-      "originalContentHash": "b25d86fb36b1d294eeead5d7db529f86135f9671f2afcd607579a63bb2213769",
-      "renderedContentHash": "7d104c6c6aa88e1727f95323545a451d5004a47b7cffdd5d3f8b36341ae2fb48",
-      "overlayVersion": "1",
-      "supportFiles": [],
-      "patch": {
-        "kind": "replacement",
-        "source": "templates/patches/ask-matt-body.md",
-        "reason": "Router must reference only installed skills."
+      "origin": {
+        "kind": "upstream",
+        "upstreamPath": "skills/engineering/ask-matt/SKILL.md",
+        "originalContentHash": "b25d86fb36b1d294eeead5d7db529f86135f9671f2afcd607579a63bb2213769",
+        "overlayVersion": "1",
+        "renderedContentHash": "38afc6b53d5ef27977a8316b960cca835c7b3e528eff3a65b40dfe3838cb05ec",
+        "supportFiles": [],
+        "patch": {
+          "kind": "replacement",
+          "source": "templates/patches/ask-matt-body.md",
+          "reason": "Router must reference only installed skills."
+        }
+      }
+    },
+    {
+      "name": "campaign",
+      "origin": {
+        "kind": "first-party",
+        "author": "orca-kit",
+        "sourcePath": "templates/skills/campaign",
+        "sourceContentHash": "892c0983c0856ff1adea742090716a6f573d4bf64ec660abb9f5ecc2db9a4b54",
+        "renderedContentHash": "892c0983c0856ff1adea742090716a6f573d4bf64ec660abb9f5ecc2db9a4b54",
+        "files": [
+          {
+            "path": "agents/openai.yaml",
+            "hash": "5eaa483a219caa22cbfa20117633ef8d9100725716fc4b50325e4bf4e2812adc"
+          },
+          {
+            "path": "references/lifecycle.md",
+            "hash": "7b56d5dda08a95dc9f80820a7b3e6adfc763c235682f9e6c3bbfc8e7a722d1f0"
+          },
+          {
+            "path": "references/preflight-and-record.md",
+            "hash": "7f173571049eb487ae10620c81a3dde765ca38d6a9df7c933be4b640ecac5dd7"
+          },
+          {
+            "path": "SKILL.md",
+            "hash": "892c0983c0856ff1adea742090716a6f573d4bf64ec660abb9f5ecc2db9a4b54"
+          }
+        ]
       }
     },
     {
       "name": "code-review",
-      "upstreamPath": "skills/engineering/code-review/SKILL.md",
-      "originalContentHash": "47f4e52c21694def9c7c11cbfbf891ca35eac7a93e395797515be3c8a409ae50",
-      "renderedContentHash": "0b295c7cdb138455b93a1145ed7d70ce53c8caabff4254b8cd01bdd955bd1a32",
-      "overlayVersion": "1",
-      "supportFiles": [],
-      "patch": {
-        "kind": "mechanical",
-        "replacements": [
-          "adapter-specific slash invocations -> neutral skill names",
-          "setup skill fallback -> installed GitHub tracker documentation"
-        ]
+      "origin": {
+        "kind": "upstream",
+        "upstreamPath": "skills/engineering/code-review/SKILL.md",
+        "originalContentHash": "47f4e52c21694def9c7c11cbfbf891ca35eac7a93e395797515be3c8a409ae50",
+        "overlayVersion": "1",
+        "renderedContentHash": "0b295c7cdb138455b93a1145ed7d70ce53c8caabff4254b8cd01bdd955bd1a32",
+        "supportFiles": [],
+        "patch": {
+          "kind": "mechanical",
+          "replacements": [
+            "adapter-specific slash invocations -> neutral skill names",
+            "setup skill fallback -> installed GitHub tracker documentation"
+          ]
+        }
       }
     },
     {
       "name": "codebase-design",
-      "upstreamPath": "skills/engineering/codebase-design/SKILL.md",
-      "originalContentHash": "2c20617f87ec8af6a434859f381b2f061a69b530444e74eb39e78bb016a6d1e2",
-      "renderedContentHash": "f64494233170e9dd18fcc2dd2a943a05f3c616b1db5277bbb47a1e9194a915f8",
-      "overlayVersion": "1",
-      "supportFiles": [
-        {
-          "path": "skills/engineering/codebase-design/DEEPENING.md",
-          "hash": "f3dd099ce99289bd213914d8ee3e2429b78309c3957ca4583f7659551b1d53c1"
-        },
-        {
-          "path": "skills/engineering/codebase-design/DESIGN-IT-TWICE.md",
-          "hash": "8e740bf98446dbd4dfdc132ac4346d9a7eedaf93de6a495889171cf7f99f16bd"
+      "origin": {
+        "kind": "upstream",
+        "upstreamPath": "skills/engineering/codebase-design/SKILL.md",
+        "originalContentHash": "2c20617f87ec8af6a434859f381b2f061a69b530444e74eb39e78bb016a6d1e2",
+        "overlayVersion": "1",
+        "renderedContentHash": "f64494233170e9dd18fcc2dd2a943a05f3c616b1db5277bbb47a1e9194a915f8",
+        "supportFiles": [
+          {
+            "path": "skills/engineering/codebase-design/DEEPENING.md",
+            "hash": "f3dd099ce99289bd213914d8ee3e2429b78309c3957ca4583f7659551b1d53c1"
+          },
+          {
+            "path": "skills/engineering/codebase-design/DESIGN-IT-TWICE.md",
+            "hash": "8e740bf98446dbd4dfdc132ac4346d9a7eedaf93de6a495889171cf7f99f16bd"
+          }
+        ],
+        "patch": {
+          "kind": "mechanical",
+          "replacements": [
+            "adapter-specific slash invocations -> neutral skill names",
+            "setup skill fallback -> installed GitHub tracker documentation"
+          ]
         }
-      ],
-      "patch": {
-        "kind": "mechanical",
-        "replacements": [
-          "adapter-specific slash invocations -> neutral skill names",
-          "setup skill fallback -> installed GitHub tracker documentation"
-        ]
       }
     },
     {
       "name": "diagnosing-bugs",
-      "upstreamPath": "skills/engineering/diagnosing-bugs/SKILL.md",
-      "originalContentHash": "77f3cf31bc99b2f49af943222526531fcc9fc41d047626d3640e875e85af3e84",
-      "renderedContentHash": "d32a00e7c3c640908af326fd7e4ba192767165de147d1ba79309cfe56de657ad",
-      "overlayVersion": "1",
-      "supportFiles": [
-        {
-          "path": "skills/engineering/diagnosing-bugs/scripts/hitl-loop.template.sh",
-          "hash": "35103539fc36873eea36074769ad454f9379d6fc8b2dc0e26ce987fd3bfe5503"
+      "origin": {
+        "kind": "upstream",
+        "upstreamPath": "skills/engineering/diagnosing-bugs/SKILL.md",
+        "originalContentHash": "77f3cf31bc99b2f49af943222526531fcc9fc41d047626d3640e875e85af3e84",
+        "overlayVersion": "1",
+        "renderedContentHash": "d32a00e7c3c640908af326fd7e4ba192767165de147d1ba79309cfe56de657ad",
+        "supportFiles": [
+          {
+            "path": "skills/engineering/diagnosing-bugs/scripts/hitl-loop.template.sh",
+            "hash": "35103539fc36873eea36074769ad454f9379d6fc8b2dc0e26ce987fd3bfe5503"
+          }
+        ],
+        "patch": {
+          "kind": "mechanical",
+          "replacements": [
+            "adapter-specific slash invocations -> neutral skill names",
+            "setup skill fallback -> installed GitHub tracker documentation"
+          ]
         }
-      ],
-      "patch": {
-        "kind": "mechanical",
-        "replacements": [
-          "adapter-specific slash invocations -> neutral skill names",
-          "setup skill fallback -> installed GitHub tracker documentation"
-        ]
       }
     },
     {
       "name": "domain-modeling",
-      "upstreamPath": "skills/engineering/domain-modeling/SKILL.md",
-      "originalContentHash": "327a2b50620e2fd70abc6893cd6965e76b20f8d0adb0dc2c8d5eb3845efb643e",
-      "renderedContentHash": "bc01a776bbf75f23ad4490da1faf34d21728a3c71de808ebaff668b45aae27d8",
-      "overlayVersion": "1",
-      "supportFiles": [
-        {
-          "path": "skills/engineering/domain-modeling/ADR-FORMAT.md",
-          "hash": "944c92aa790e8fbdc9199640b170979abb8a34ba8d0fe18c2a01a63bce140ca0"
-        },
-        {
-          "path": "skills/engineering/domain-modeling/CONTEXT-FORMAT.md",
-          "hash": "17ab16ce783e4d2801ee52fd9acdf550cbf44de65ae76797a93943bbedf22a13"
+      "origin": {
+        "kind": "upstream",
+        "upstreamPath": "skills/engineering/domain-modeling/SKILL.md",
+        "originalContentHash": "327a2b50620e2fd70abc6893cd6965e76b20f8d0adb0dc2c8d5eb3845efb643e",
+        "overlayVersion": "1",
+        "renderedContentHash": "bc01a776bbf75f23ad4490da1faf34d21728a3c71de808ebaff668b45aae27d8",
+        "supportFiles": [
+          {
+            "path": "skills/engineering/domain-modeling/ADR-FORMAT.md",
+            "hash": "944c92aa790e8fbdc9199640b170979abb8a34ba8d0fe18c2a01a63bce140ca0"
+          },
+          {
+            "path": "skills/engineering/domain-modeling/CONTEXT-FORMAT.md",
+            "hash": "17ab16ce783e4d2801ee52fd9acdf550cbf44de65ae76797a93943bbedf22a13"
+          }
+        ],
+        "patch": {
+          "kind": "mechanical",
+          "replacements": [
+            "adapter-specific slash invocations -> neutral skill names",
+            "setup skill fallback -> installed GitHub tracker documentation"
+          ]
         }
-      ],
-      "patch": {
-        "kind": "mechanical",
-        "replacements": [
-          "adapter-specific slash invocations -> neutral skill names",
-          "setup skill fallback -> installed GitHub tracker documentation"
-        ]
       }
     },
     {
       "name": "grill-with-docs",
-      "upstreamPath": "skills/engineering/grill-with-docs/SKILL.md",
-      "originalContentHash": "7de372c13488f1ee96cc11cd8907b56b6809cc93eef776eeddd37de6b6cbe3fe",
-      "renderedContentHash": "fbee36ee42207652b9d9e155fbdc1491b3547959f3d1257091d59c7cf7e6d9a3",
-      "overlayVersion": "1",
-      "supportFiles": [],
-      "patch": {
-        "kind": "mechanical",
-        "replacements": [
-          "adapter-specific slash invocations -> neutral skill names",
-          "setup skill fallback -> installed GitHub tracker documentation"
-        ]
+      "origin": {
+        "kind": "upstream",
+        "upstreamPath": "skills/engineering/grill-with-docs/SKILL.md",
+        "originalContentHash": "7de372c13488f1ee96cc11cd8907b56b6809cc93eef776eeddd37de6b6cbe3fe",
+        "overlayVersion": "1",
+        "renderedContentHash": "fbee36ee42207652b9d9e155fbdc1491b3547959f3d1257091d59c7cf7e6d9a3",
+        "supportFiles": [],
+        "patch": {
+          "kind": "mechanical",
+          "replacements": [
+            "adapter-specific slash invocations -> neutral skill names",
+            "setup skill fallback -> installed GitHub tracker documentation"
+          ]
+        }
       }
     },
     {
       "name": "grilling",
-      "upstreamPath": "skills/productivity/grilling/SKILL.md",
-      "originalContentHash": "10ff989e7498b23b5acb49d5048f11dcd906757d2f79c5cdf8a00001381296f2",
-      "renderedContentHash": "d7fd5145de97c335853a17abc41a1c75a97941f8bcdd8c1b421d7a563ccfada3",
-      "overlayVersion": "1",
-      "supportFiles": [],
-      "patch": {
-        "kind": "mechanical",
-        "replacements": [
-          "adapter-specific slash invocations -> neutral skill names",
-          "setup skill fallback -> installed GitHub tracker documentation"
-        ]
+      "origin": {
+        "kind": "upstream",
+        "upstreamPath": "skills/productivity/grilling/SKILL.md",
+        "originalContentHash": "10ff989e7498b23b5acb49d5048f11dcd906757d2f79c5cdf8a00001381296f2",
+        "overlayVersion": "1",
+        "renderedContentHash": "d7fd5145de97c335853a17abc41a1c75a97941f8bcdd8c1b421d7a563ccfada3",
+        "supportFiles": [],
+        "patch": {
+          "kind": "mechanical",
+          "replacements": [
+            "adapter-specific slash invocations -> neutral skill names",
+            "setup skill fallback -> installed GitHub tracker documentation"
+          ]
+        }
       }
     },
     {
       "name": "handoff",
-      "upstreamPath": "skills/productivity/handoff/SKILL.md",
-      "originalContentHash": "7c62de979fdc7ac32fb5ddb2146156c917f80ee070d30fadc9d40343c4b6ed25",
-      "renderedContentHash": "22fd58bde7cf51fc6439b7e980b0bba478aa7f156666bf206f6df72d55b9aae7",
-      "overlayVersion": "1",
-      "supportFiles": [],
-      "patch": {
-        "kind": "mechanical",
-        "replacements": [
-          "adapter-specific slash invocations -> neutral skill names",
-          "setup skill fallback -> installed GitHub tracker documentation"
-        ]
+      "origin": {
+        "kind": "upstream",
+        "upstreamPath": "skills/productivity/handoff/SKILL.md",
+        "originalContentHash": "7c62de979fdc7ac32fb5ddb2146156c917f80ee070d30fadc9d40343c4b6ed25",
+        "overlayVersion": "1",
+        "renderedContentHash": "22fd58bde7cf51fc6439b7e980b0bba478aa7f156666bf206f6df72d55b9aae7",
+        "supportFiles": [],
+        "patch": {
+          "kind": "mechanical",
+          "replacements": [
+            "adapter-specific slash invocations -> neutral skill names",
+            "setup skill fallback -> installed GitHub tracker documentation"
+          ]
+        }
       }
     },
     {
       "name": "implement",
-      "upstreamPath": "skills/engineering/implement/SKILL.md",
-      "originalContentHash": "6d3fd9e83b8f36e5213854779db49b256a457a7ebb4a503e53fa7dcff696adc3",
-      "renderedContentHash": "9404b7604d4701c6ac2eb521883c3d5c0bdfbf104053c4b070eb62bdaf4814e1",
-      "overlayVersion": "1",
-      "supportFiles": [],
-      "patch": {
-        "kind": "mechanical",
-        "replacements": [
-          "adapter-specific slash invocations -> neutral skill names",
-          "setup skill fallback -> installed GitHub tracker documentation"
-        ]
+      "origin": {
+        "kind": "upstream",
+        "upstreamPath": "skills/engineering/implement/SKILL.md",
+        "originalContentHash": "6d3fd9e83b8f36e5213854779db49b256a457a7ebb4a503e53fa7dcff696adc3",
+        "overlayVersion": "1",
+        "renderedContentHash": "9404b7604d4701c6ac2eb521883c3d5c0bdfbf104053c4b070eb62bdaf4814e1",
+        "supportFiles": [],
+        "patch": {
+          "kind": "mechanical",
+          "replacements": [
+            "adapter-specific slash invocations -> neutral skill names",
+            "setup skill fallback -> installed GitHub tracker documentation"
+          ]
+        }
       }
     },
     {
       "name": "improve-codebase-architecture",
-      "upstreamPath": "skills/engineering/improve-codebase-architecture/SKILL.md",
-      "originalContentHash": "d1ac25511a936ff4250a48dbcefda363837d6bb9321b3cba73df99fa37270a75",
-      "renderedContentHash": "f348936b2f551a0c6bd7a1e306694193c8f794f3c31fbe0b2834647bb51216f0",
-      "overlayVersion": "1",
-      "supportFiles": [
-        {
-          "path": "skills/engineering/improve-codebase-architecture/HTML-REPORT.md",
-          "hash": "581e8bb5a521e46bbda8ca7e19b15948bed882187108092ebb90c62513b77528"
+      "origin": {
+        "kind": "upstream",
+        "upstreamPath": "skills/engineering/improve-codebase-architecture/SKILL.md",
+        "originalContentHash": "d1ac25511a936ff4250a48dbcefda363837d6bb9321b3cba73df99fa37270a75",
+        "overlayVersion": "1",
+        "renderedContentHash": "f348936b2f551a0c6bd7a1e306694193c8f794f3c31fbe0b2834647bb51216f0",
+        "supportFiles": [
+          {
+            "path": "skills/engineering/improve-codebase-architecture/HTML-REPORT.md",
+            "hash": "581e8bb5a521e46bbda8ca7e19b15948bed882187108092ebb90c62513b77528"
+          }
+        ],
+        "patch": {
+          "kind": "mechanical",
+          "replacements": [
+            "adapter-specific slash invocations -> neutral skill names",
+            "setup skill fallback -> installed GitHub tracker documentation"
+          ]
         }
-      ],
-      "patch": {
-        "kind": "mechanical",
-        "replacements": [
-          "adapter-specific slash invocations -> neutral skill names",
-          "setup skill fallback -> installed GitHub tracker documentation"
-        ]
       }
     },
     {
       "name": "prototype",
-      "upstreamPath": "skills/engineering/prototype/SKILL.md",
-      "originalContentHash": "714de632d116bb73f65cdb5a882db15b9369a6713b9a47c0fad827848f0bfbe3",
-      "renderedContentHash": "1cec4be8d6a4bc3b00b638d4896f71333db2c3ca21d3f80b73f62a2b6b5b9b7c",
-      "overlayVersion": "1",
-      "supportFiles": [
-        {
-          "path": "skills/engineering/prototype/LOGIC.md",
-          "hash": "f61c7d249e786a79ef289018901c348271e1798dd0b0bc5607b5c6f4d4a01ab9"
-        },
-        {
-          "path": "skills/engineering/prototype/UI.md",
-          "hash": "723211e878acbc7b6ff09755263f3295cde724ba902ff0064da41eed51d45ad3"
+      "origin": {
+        "kind": "upstream",
+        "upstreamPath": "skills/engineering/prototype/SKILL.md",
+        "originalContentHash": "714de632d116bb73f65cdb5a882db15b9369a6713b9a47c0fad827848f0bfbe3",
+        "overlayVersion": "1",
+        "renderedContentHash": "1cec4be8d6a4bc3b00b638d4896f71333db2c3ca21d3f80b73f62a2b6b5b9b7c",
+        "supportFiles": [
+          {
+            "path": "skills/engineering/prototype/LOGIC.md",
+            "hash": "f61c7d249e786a79ef289018901c348271e1798dd0b0bc5607b5c6f4d4a01ab9"
+          },
+          {
+            "path": "skills/engineering/prototype/UI.md",
+            "hash": "723211e878acbc7b6ff09755263f3295cde724ba902ff0064da41eed51d45ad3"
+          }
+        ],
+        "patch": {
+          "kind": "mechanical",
+          "replacements": [
+            "adapter-specific slash invocations -> neutral skill names",
+            "setup skill fallback -> installed GitHub tracker documentation"
+          ]
         }
-      ],
-      "patch": {
-        "kind": "mechanical",
-        "replacements": [
-          "adapter-specific slash invocations -> neutral skill names",
-          "setup skill fallback -> installed GitHub tracker documentation"
-        ]
       }
     },
     {
       "name": "research",
-      "upstreamPath": "skills/engineering/research/SKILL.md",
-      "originalContentHash": "985569f15739c713d6784887c3d186d4ef9ac85bec5ad9c068d25bf0739928e4",
-      "renderedContentHash": "8f26395f2bf477ffa1a44f105b00e44e9f2e4996c649906bddd022d44f4ee61d",
-      "overlayVersion": "1",
-      "supportFiles": [],
-      "patch": {
-        "kind": "mechanical",
-        "replacements": [
-          "adapter-specific slash invocations -> neutral skill names",
-          "setup skill fallback -> installed GitHub tracker documentation"
-        ]
+      "origin": {
+        "kind": "upstream",
+        "upstreamPath": "skills/engineering/research/SKILL.md",
+        "originalContentHash": "985569f15739c713d6784887c3d186d4ef9ac85bec5ad9c068d25bf0739928e4",
+        "overlayVersion": "1",
+        "renderedContentHash": "8f26395f2bf477ffa1a44f105b00e44e9f2e4996c649906bddd022d44f4ee61d",
+        "supportFiles": [],
+        "patch": {
+          "kind": "mechanical",
+          "replacements": [
+            "adapter-specific slash invocations -> neutral skill names",
+            "setup skill fallback -> installed GitHub tracker documentation"
+          ]
+        }
       }
     },
     {
       "name": "resolving-merge-conflicts",
-      "upstreamPath": "skills/engineering/resolving-merge-conflicts/SKILL.md",
-      "originalContentHash": "9d8114f8ef0b31f535a265fc05c364bd8cf2e2895a830040e06c22acb11f54b0",
-      "renderedContentHash": "3066748696c230aac236be712ff4afc70a7f91bffb09e040b84c9a84c19ac4f8",
-      "overlayVersion": "1",
-      "supportFiles": [],
-      "patch": {
-        "kind": "mechanical",
-        "replacements": [
-          "adapter-specific slash invocations -> neutral skill names",
-          "setup skill fallback -> installed GitHub tracker documentation"
-        ]
+      "origin": {
+        "kind": "upstream",
+        "upstreamPath": "skills/engineering/resolving-merge-conflicts/SKILL.md",
+        "originalContentHash": "9d8114f8ef0b31f535a265fc05c364bd8cf2e2895a830040e06c22acb11f54b0",
+        "overlayVersion": "1",
+        "renderedContentHash": "3066748696c230aac236be712ff4afc70a7f91bffb09e040b84c9a84c19ac4f8",
+        "supportFiles": [],
+        "patch": {
+          "kind": "mechanical",
+          "replacements": [
+            "adapter-specific slash invocations -> neutral skill names",
+            "setup skill fallback -> installed GitHub tracker documentation"
+          ]
+        }
       }
     },
     {
       "name": "tdd",
-      "upstreamPath": "skills/engineering/tdd/SKILL.md",
-      "originalContentHash": "cb01f66bebfaa25fa1f88e6b7e769cd9fd9f35b1120b8563749820738814c927",
-      "renderedContentHash": "b7e2670926558c04fcbd74dc3b1816d832549a0decdba6a0f4d3d2cd2ed547d4",
-      "overlayVersion": "1",
-      "supportFiles": [
-        {
-          "path": "skills/engineering/tdd/mocking.md",
-          "hash": "3ceb807fdf4a47d6a93d4d9a891e5ba6d362a6247bd08adc451feebfc17361ef"
-        },
-        {
-          "path": "skills/engineering/tdd/tests.md",
-          "hash": "859f9e592c188fda4fc7277dd180e4ce9c7a2e13f6efe1f6f29eccc9d28c106a"
+      "origin": {
+        "kind": "upstream",
+        "upstreamPath": "skills/engineering/tdd/SKILL.md",
+        "originalContentHash": "cb01f66bebfaa25fa1f88e6b7e769cd9fd9f35b1120b8563749820738814c927",
+        "overlayVersion": "1",
+        "renderedContentHash": "b7e2670926558c04fcbd74dc3b1816d832549a0decdba6a0f4d3d2cd2ed547d4",
+        "supportFiles": [
+          {
+            "path": "skills/engineering/tdd/mocking.md",
+            "hash": "3ceb807fdf4a47d6a93d4d9a891e5ba6d362a6247bd08adc451feebfc17361ef"
+          },
+          {
+            "path": "skills/engineering/tdd/tests.md",
+            "hash": "859f9e592c188fda4fc7277dd180e4ce9c7a2e13f6efe1f6f29eccc9d28c106a"
+          }
+        ],
+        "patch": {
+          "kind": "mechanical",
+          "replacements": [
+            "adapter-specific slash invocations -> neutral skill names",
+            "setup skill fallback -> installed GitHub tracker documentation"
+          ]
         }
-      ],
-      "patch": {
-        "kind": "mechanical",
-        "replacements": [
-          "adapter-specific slash invocations -> neutral skill names",
-          "setup skill fallback -> installed GitHub tracker documentation"
-        ]
       }
     },
     {
       "name": "to-spec",
-      "upstreamPath": "skills/engineering/to-spec/SKILL.md",
-      "originalContentHash": "43ad9cf318e5e7d3d1fa360253a37021796dc87a0c2e595ad262661a10f85088",
-      "renderedContentHash": "f84e44c456287d3b0566d27ab2d53af56bb512bb67dfe329eaba4a204bdc6bbb",
-      "overlayVersion": "1",
-      "supportFiles": [],
-      "patch": {
-        "kind": "mechanical",
-        "replacements": [
-          "adapter-specific slash invocations -> neutral skill names",
-          "setup skill fallback -> installed GitHub tracker documentation"
-        ]
+      "origin": {
+        "kind": "upstream",
+        "upstreamPath": "skills/engineering/to-spec/SKILL.md",
+        "originalContentHash": "43ad9cf318e5e7d3d1fa360253a37021796dc87a0c2e595ad262661a10f85088",
+        "overlayVersion": "1",
+        "renderedContentHash": "f84e44c456287d3b0566d27ab2d53af56bb512bb67dfe329eaba4a204bdc6bbb",
+        "supportFiles": [],
+        "patch": {
+          "kind": "mechanical",
+          "replacements": [
+            "adapter-specific slash invocations -> neutral skill names",
+            "setup skill fallback -> installed GitHub tracker documentation"
+          ]
+        }
       }
     },
     {
       "name": "to-tickets",
-      "upstreamPath": "skills/engineering/to-tickets/SKILL.md",
-      "originalContentHash": "5c9fba69845c2519b9b35b9af42ae5142c21f8ca15ac2123dc2722002c8058ae",
-      "renderedContentHash": "01a2457ea4de5e49eb0f654e9f047772e10ecbd478c79fae263751a2172cdabb",
-      "overlayVersion": "1",
-      "supportFiles": [],
-      "patch": {
-        "kind": "mechanical",
-        "replacements": [
-          "adapter-specific slash invocations -> neutral skill names",
-          "setup skill fallback -> installed GitHub tracker documentation"
-        ]
+      "origin": {
+        "kind": "upstream",
+        "upstreamPath": "skills/engineering/to-tickets/SKILL.md",
+        "originalContentHash": "5c9fba69845c2519b9b35b9af42ae5142c21f8ca15ac2123dc2722002c8058ae",
+        "overlayVersion": "1",
+        "renderedContentHash": "01a2457ea4de5e49eb0f654e9f047772e10ecbd478c79fae263751a2172cdabb",
+        "supportFiles": [],
+        "patch": {
+          "kind": "mechanical",
+          "replacements": [
+            "adapter-specific slash invocations -> neutral skill names",
+            "setup skill fallback -> installed GitHub tracker documentation"
+          ]
+        }
       }
     },
     {
       "name": "wayfinder",
-      "upstreamPath": "skills/engineering/wayfinder/SKILL.md",
-      "originalContentHash": "fee6e1d0c50f0e736b4ef8a599060c959afae904c9a97d82c97f049fcc3aa0f1",
-      "renderedContentHash": "96bd079cd23f07e1411ea7fbf000a32794b5defebd3e6e3093920506f4232d7d",
-      "overlayVersion": "1",
-      "supportFiles": [],
-      "patch": {
-        "kind": "mechanical",
-        "replacements": [
-          "adapter-specific slash invocations -> neutral skill names",
-          "setup skill fallback -> installed GitHub tracker documentation",
-          "Wayfinder label taxonomy -> body metadata and native tracker relationships"
-        ]
+      "origin": {
+        "kind": "upstream",
+        "upstreamPath": "skills/engineering/wayfinder/SKILL.md",
+        "originalContentHash": "fee6e1d0c50f0e736b4ef8a599060c959afae904c9a97d82c97f049fcc3aa0f1",
+        "overlayVersion": "1",
+        "renderedContentHash": "96bd079cd23f07e1411ea7fbf000a32794b5defebd3e6e3093920506f4232d7d",
+        "supportFiles": [],
+        "patch": {
+          "kind": "mechanical",
+          "replacements": [
+            "adapter-specific slash invocations -> neutral skill names",
+            "setup skill fallback -> installed GitHub tracker documentation",
+            "Wayfinder label taxonomy -> body metadata and native tracker relationships"
+          ]
+        }
       }
     }
   ]

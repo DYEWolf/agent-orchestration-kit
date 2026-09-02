@@ -42,4 +42,7 @@ implement, wayfinder, improve-codebase-architecture, handoff, grilling,
 domain-modeling, research, prototype, tdd, diagnosing-bugs, codebase-design,
 code-review, and resolving-merge-conflicts.
 
+Campaign is installed but explicit-only: do not start it from this router.
+Only an explicit user request may invoke campaign for a fixed Issue set.
+
 Do not route to any skill outside this list.

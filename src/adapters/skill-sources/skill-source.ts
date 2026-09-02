@@ -1,26 +1,7 @@
-export const STANDARD_SKILL_NAMES = [
-  'ask-matt',
-  'grill-with-docs',
-  'to-spec',
-  'to-tickets',
-  'implement',
-  'wayfinder',
-  'improve-codebase-architecture',
-  'handoff',
-  'grilling',
-  'domain-modeling',
-  'research',
-  'prototype',
-  'tdd',
-  'diagnosing-bugs',
-  'codebase-design',
-  'code-review',
-  'resolving-merge-conflicts',
-] as const;
+export type SkillName = string;
 
-export type StandardSkillName = (typeof STANDARD_SKILL_NAMES)[number];
-
-export interface SkillProvenance {
+export interface UpstreamSkillProvenance {
+  readonly kind: 'upstream';
   readonly upstreamRepository: string;
   readonly upstreamPath: string;
   readonly upstreamCommit: string;
@@ -29,14 +10,24 @@ export interface SkillProvenance {
   readonly renderedContentHash: string;
 }
 
+export interface FirstPartySkillProvenance {
+  readonly kind: 'first-party';
+  readonly author: 'orca-kit';
+  readonly sourcePath: string;
+  readonly sourceContentHash: string;
+  readonly renderedContentHash: string;
+}
+
+export type SkillProvenance = UpstreamSkillProvenance | FirstPartySkillProvenance;
+
 export interface SkillSnapshot {
-  readonly name: StandardSkillName;
+  readonly name: SkillName;
   readonly upstreamBody: string;
   readonly orcaOverlay: string;
   readonly provenance: SkillProvenance;
 }
 
 export interface SkillSourceAdapter {
-  list(): Promise<readonly StandardSkillName[]>;
-  load(name: StandardSkillName): Promise<SkillSnapshot>;
+  list(): Promise<readonly SkillName[]>;
+  load(name: SkillName): Promise<SkillSnapshot>;
 }

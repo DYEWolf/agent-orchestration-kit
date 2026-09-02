@@ -11,6 +11,10 @@ interface PackResult {
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const temporary = await mkdtemp(path.join(tmpdir(), 'orca-kit-packed-smoke-'));
+const packEnvironment = { ...process.env };
+for (const key of Object.keys(packEnvironment)) {
+  if (/^npm_config_dry[-_]run$/i.test(key)) delete packEnvironment[key];
+}
 
 try {
   const packageDirectory = path.join(temporary, 'package');
@@ -35,10 +39,16 @@ else process.exit(4);
   const packed = await execa('npm', [
     'pack',
     '--ignore-scripts',
+    '--dry-run=false',
     '--json',
     '--pack-destination',
     packageDirectory,
-  ], { cwd: repositoryRoot });
+  ], {
+    cwd: repositoryRoot,
+    // `npm pack --dry-run` runs prepack and passes its dry-run config to child
+    // processes. The smoke needs a real, disposable tarball to install.
+    env: packEnvironment,
+  });
   const [packResult] = JSON.parse(packed.stdout) as PackResult[];
   if (packResult === undefined) throw new Error('npm pack did not return a package result.');
 
@@ -55,7 +65,9 @@ else process.exit(4);
   }
 
   const tarball = path.join(packageDirectory, packResult.filename);
-  await execa('npm', ['install', '--ignore-scripts', '--prefix', installDirectory, tarball]);
+  await execa('npm', ['install', '--ignore-scripts', '--dry-run=false', '--prefix', installDirectory, tarball], {
+    env: packEnvironment,
+  });
   const cli = path.join(installDirectory, 'node_modules/@dyewolf/orca-kit/dist/cli.js');
   const run = async (arguments_: readonly string[]) => execa('node', [cli, ...arguments_], {
     env: {

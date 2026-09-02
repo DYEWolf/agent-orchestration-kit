@@ -14,12 +14,15 @@ or GitHub, and it does not generate Claude compatibility artifacts.
 - `.orca-kit/config.yaml` and `.orca-kit/manifest.json`.
 - Four documents under `docs/agents/`.
 - Complete MIT attribution under `.agents/THIRD_PARTY_NOTICES.md`.
-- Seventeen pinned skills under `.agents/skills/`, including support files,
-  Codex `agents/openai.yaml`, and per-skill `PROVENANCE.json`.
+- A catalog-derived mixed-origin skill bundle under `.agents/skills/`, including
+  pinned upstream skills plus first-party `campaign`, support files, Codex
+  `agents/openai.yaml`, and per-skill `PROVENANCE.json`.
 
 The bundle is pinned to Matt Pocock's skills repository at commit
 `6654f6b60cd9d5be8b54c6fafe44346dabeb3b76`, with Orca overlay version 1.
 `ask-matt` is patched to route only to the installed vocabulary.
+Campaign is explicitly authored by orca-kit, is excluded from third-party
+notices, and never claims Matt Pocock provenance.
 
 ## Transaction invariant
 

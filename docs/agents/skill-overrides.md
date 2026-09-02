@@ -1,6 +1,6 @@
 # Local skill provenance and overrides
 
-The seventeen local engineering and productivity skills originate from
+The upstream engineering and productivity skills originate from
 [`mattpocock/skills`](https://github.com/mattpocock/skills), pinned to commit
 `6654f6b60cd9d5be8b54c6fafe44346dabeb3b76`. Their local copies under
 `.agents/skills/` are manually maintained Codex adaptations, not a floating
@@ -32,14 +32,14 @@ The upstream snapshot and support assets are retained where the procedure
 requires them. The complete attribution and MIT license are in
 `.agents/THIRD_PARTY_NOTICES.md`.
 
-## Repository-local Campaign bootstrap
+## First-party Campaign
 
-`campaign` is a repository-local explicit-only skill added for the Campaign
-authorization workflow. It is not an upstream Matt Pocock adaptation and has no
-distributed bundle/catalog entry yet; productization and generated artifacts are
-deliberately deferred. Its `agents/openai.yaml` disables implicit invocation,
-and its focused references keep the Campaign Record, preflight, and lifecycle
-rules out of the entrypoint.
+`campaign` is an explicit-only first-party orca-kit skill distributed through
+the same catalog and generated-artifact pipeline as upstream skills. Its origin
+records `orca-kit` authorship plus source and render hashes; it is not a Matt
+Pocock adaptation and never appears in third-party notices. Its
+`agents/openai.yaml` disables implicit invocation, and its focused references
+keep the Campaign Record, preflight, and lifecycle rules out of the entrypoint.
 
 ## Orca and Codex changes
 
@@ -77,7 +77,7 @@ accepting an update.
 ## Licensing and compatibility boundary
 
 These adaptations retain the upstream MIT attribution to Matt Pocock. This
-installation is Codex-only: it has no Claude compatibility layer, Claude
-configuration, or alternate adapter instructions. Product-specific text and
-legacy setup, pull-request-description, and design skills are intentionally not
-part of this seventeen-skill set.
+installation can expose catalog-derived Claude discovery wrappers only in
+Claude-required profiles. Product-specific text and legacy setup,
+pull-request-description, and design skills remain excluded from the upstream
+inventory.

@@ -150,7 +150,7 @@ function renderAgentsBlock(config: WorkflowConfig): string {
     '',
     '## Phase gates',
     '',
-    'The default flow is grill-with-docs → to-spec → to-tickets → implement. wayfinder precedes it when the destination is too foggy for one session. Never silently advance between phases. Pause for approval at understanding, specification, and ticket-breakdown gates even when an end-to-end flow was authorized.',
+    'The default flow is grill-with-docs → to-spec → to-tickets → implement. wayfinder precedes it when the destination is too foggy for one session. Campaign is explicit-only: it authorizes a fixed Issue set and never replaces manual execution as the default. Never silently advance between phases. Pause for approval at understanding, specification, and ticket-breakdown gates even when an end-to-end flow was authorized.',
     '',
     '## Worker contract',
     '',
@@ -187,6 +187,13 @@ Each GitHub implementation Issue maps to exactly one Orca execution Run. A Run
 may contain evidence, implementation, verification, correction, and independent
 review Tasks. Cross-Issue dependencies stay in GitHub; dependencies inside the
 Issue stay in Orca.
+
+## Campaign authorization
+
+Campaign is an explicit-only authorization over a user-provided fixed Issue set;
+manual Issue execution remains the default. Read-only preflight validates every
+member before the immutable Campaign Record is written, and cross-Issue
+concurrency is one while normal Task concurrency remains inside the active Issue.
 
 ## Dispatch rules
 
@@ -281,9 +288,11 @@ function renderSkillOverridesDoc(): string {
 
 # Skill overrides
 
-Canonical editable content lives under \`.agents/skills/\`. Each skill contains a
-pinned upstream procedure, a structural Orca overlay, Codex discovery metadata,
-and \`PROVENANCE.json\` with the exact upstream commit and hashes.
+Canonical editable content lives under \`.agents/skills/\`. Catalog membership
+determines every installed skill, wrapper, manifest entry, Doctor check, and
+notice. Upstream skills carry their pinned procedure, overlay, exact commit,
+and hashes; first-party skills carry explicit orca-kit authorship plus source
+and render hashes in \`PROVENANCE.json\`.
 
 The Orca overlay has precedence when upstream wording assumes direct user waits,
 a Skill tool, nested subagents, background agents, fresh branches, or automatic
@@ -293,5 +302,9 @@ ask/reply, and explicit mutation ownership. Workers never nest delegation.
 Project invariants belong in \`AGENTS.md\`; reusable procedures belong in skills.
 The generated files become user-owned after installation. V1 does not update or
 merge them, and a later init refuses local drift rather than overwriting it.
+
+Campaign is a first-party explicit-only authorization skill. Manual Issue
+execution remains the default; Campaign never claims upstream provenance or
+appears in third-party notices.
 `;
 }

@@ -1,0 +1,5 @@
+interface:
+  display_name: "Campaign"
+  short_description: "Authorize fixed Issue work with explicit gates"
+policy:
+  allow_implicit_invocation: false

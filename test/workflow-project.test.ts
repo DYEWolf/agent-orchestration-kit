@@ -7,6 +7,7 @@ import { NodeFileSystem } from '../src/adapters/filesystem/node-filesystem.js';
 import { FakeHarnessAdapter } from '../src/adapters/harness/fake-harness.js';
 import type { ClaudeHarnessReport } from '../src/adapters/harness/harness.js';
 import { renderDesiredArtifacts } from '../src/artifacts/render.js';
+import { skillBundleCatalog } from '../src/artifacts/skill-bundle.js';
 import { inspectManagedBlock } from '../src/artifacts/managed-block.js';
 import { resolveConfig } from '../src/config/profiles.js';
 import type { RepositoryInspection } from '../src/repository/inspection.js';
@@ -87,7 +88,7 @@ describe('WorkflowProject planning', () => {
 
       const claudeArtifacts = Object.keys(filesystem.snapshot()).filter((filePath) =>
         filePath.includes('/.claude/skills/') || filePath.endsWith('/CLAUDE.md'));
-      expect(claudeArtifacts).toHaveLength(profile === 'codex-only' ? 0 : 18);
+      expect(claudeArtifacts).toHaveLength(profile === 'codex-only' ? 0 : skillBundleCatalog.skills.length + 1);
     },
   );
 
@@ -176,6 +177,29 @@ describe('WorkflowProject planning', () => {
     expect(report.healthy).toBe(false);
     expect(report.checks).toContainEqual(expect.objectContaining({ id: 'claude-discovery', status: 'FAIL' }));
     expect(report.checks).toContainEqual(expect.objectContaining({ id: 'drift', status: 'FAIL' }));
+  });
+
+  it('Doctor reports a missing Campaign artifact through the catalog-derived skills check', async () => {
+    const files = Object.fromEntries(
+      renderDesiredArtifacts(resolveConfig('codex-only')).map((artifact) => [artifact.path, artifact.content]),
+    );
+    delete files['.agents/skills/campaign/SKILL.md'];
+    const { workflow } = createWorkflow(files);
+    const report = await workflow.doctor(root);
+    expect(report.healthy).toBe(false);
+    expect(report.checks).toContainEqual(expect.objectContaining({
+      id: 'skills',
+      status: 'FAIL',
+      message: expect.stringContaining('campaign/SKILL.md'),
+    }));
+  });
+
+  it('Doctor validates catalog-declared Campaign references and excludes it from attribution', async () => {
+    const { workflow } = createWorkflow();
+    await workflow.apply(await workflow.plan({ type: 'init', path: root, profile: 'codex-only' }));
+    const report = await workflow.doctor(root);
+    expect(report.checks).toContainEqual(expect.objectContaining({ id: 'skills', status: 'PASS' }));
+    expect(report.checks).toContainEqual(expect.objectContaining({ id: 'attribution', status: 'PASS' }));
   });
 
   it('reports local drift and never plans to overwrite it', async () => {

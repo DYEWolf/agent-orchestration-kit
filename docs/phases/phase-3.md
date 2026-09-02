@@ -3,8 +3,8 @@
 Status: implemented; live Claude wrapper smoke passed on Claude Code 2.1.236 on
 2026-08-26.
 
-Claude-required profiles render `CLAUDE.md` and 17 lightweight `.claude/skills`
-wrappers. `WorkflowProject.doctor()` determines this from the installed profile,
+Claude-required profiles render `CLAUDE.md` and one lightweight `.claude/skills`
+wrapper per catalog member. `WorkflowProject.doctor()` determines this from the installed profile,
 then reports stable CLI presence, minimum version (`2.1.236`), authentication
 (`claude auth status --json`), canonical routing, and wrapper integrity checks.
 Codex-only installations skip Claude compatibility and contain no Claude

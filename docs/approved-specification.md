@@ -10,7 +10,8 @@ implementation work.
 
 Build a public MIT-licensed npm CLI that configures an existing GitHub repository
 with an opinionated AI engineering workflow built around Orca, one coordinator,
-bounded workers, a pinned Orca-adapted Matt Pocock skill bundle, GitHub Issues,
+bounded workers, a catalog-derived mixed-origin skill bundle with pinned
+Orca-adapted Matt Pocock procedures and first-party Campaign, GitHub Issues,
 deterministic verification, explicit decision gates, risk-based review, and safe
 worktrees.
 
@@ -176,7 +177,8 @@ implies `ready-for-agent` or an Issue-owned execution Run.
 
 ## 9. Installed skill bundle
 
-The standard bundle contains exactly these user-facing skills:
+The catalog is the authoritative bundle inventory. It includes these pinned
+upstream user-facing skills:
 
 - `ask-matt`
 - `grill-with-docs`
@@ -199,14 +201,20 @@ It also contains these reusable procedures:
 - `code-review`
 - `resolving-merge-conflicts`
 
+It also includes first-party `campaign`, an explicit-only authorization for a
+fixed Issue set. Campaign has `orca-kit` authorship and source/render hashes;
+it never claims Matt Pocock provenance and is excluded from third-party notices.
+
 `setup-matt-pocock-skills` and unrelated upstream skills are excluded.
 `ask-matt` may route only to installed skills.
 
 ## 10. Skill packaging and multi-harness rendering
 
-Every release carries reviewed snapshots with upstream repository/path, exact
-commit, original hash, overlay version, rendered hash, and full MIT attribution.
-Init is offline for skill contents. Maintainers alone run upstream sync.
+Every release carries reviewed upstream snapshots with repository/path, exact
+commit, original hash, overlay version, rendered hash, and full MIT attribution,
+alongside first-party records with explicit authorship and source/render hashes.
+Init is offline for skill contents. Maintainers alone run upstream sync; it
+preserves first-party entries and rejects name collisions.
 
 Each rendered SKILL.md consists of CLI-owned frontmatter, a structural Orca
 section, and the pinned upstream body. Necessary body changes are recorded as
@@ -454,7 +462,8 @@ publishing, and publish 1.0.0 through OIDC.
 V1 is complete only when npx configures an existing GitHub repository; stable
 profiles match the manual reference and pass live routing/lifecycle tests;
 codex-only emits no Claude files; Claude wrappers are actually discovered; the
-17-skill bundle is complete, pinned, attributed, and validated; confirmed labels
+catalog-derived skill bundle is complete, pinned where upstream, attributed
+where third-party, and validated; confirmed labels
 exist or doctor fails; init is idempotent and preserves unmanaged content;
 dry-run writes nothing; failed init leaves no partial local state; missing
 prerequisites do not trigger installation/login; all external mutations are
@@ -510,7 +519,8 @@ advance past a phase until its exit gate passes.
 - Stable V1 profiles are codex-only and claude-coordinator; Claude-worker
   profiles await one smoke test.
 - Required GitHub labels are installed with confirmation.
-- Exactly 17 approved skills, pinned and structurally overlaid; no live init fetch.
+- Catalog-derived upstream and first-party skills; upstream snapshots remain
+  pinned and structurally overlaid, and init never live-fetches skill content.
 - Managed AGENTS block, hash drift refusal, and no force.
 - Public commands are init, doctor, and diff.
 - Update/configure/eject, Markdown tracker, and custom workers are V2.

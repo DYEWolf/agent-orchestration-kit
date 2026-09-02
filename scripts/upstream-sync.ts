@@ -1,10 +1,17 @@
 import path from 'node:path';
-import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { execa } from 'execa';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
+import {
+  FIRST_PARTY_SKILL_REGISTRY,
+  assertNoOriginCollisions,
+  mergeCatalogSkills,
+  type FirstPartyCatalogSkill,
+  type UpstreamCatalogSkill,
+} from '../src/artifacts/skill-catalog.js';
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const upstreamRepository = 'https://github.com/mattpocock/skills';
@@ -57,17 +64,6 @@ interface UpstreamFrontmatter {
   readonly 'disable-model-invocation'?: boolean;
 }
 
-interface CatalogSkill {
-  readonly name: string;
-  readonly upstreamPath: string;
-  readonly originalContentHash: string;
-  readonly renderedContentHash: string;
-  readonly overlayVersion: string;
-  readonly files: Readonly<Record<string, string>>;
-  readonly supportFiles: readonly { path: string; hash: string }[];
-  readonly patch: Readonly<Record<string, unknown>>;
-}
-
 const temporary = await mkdtemp(path.join(tmpdir(), 'orca-kit-upstream-sync-'));
 try {
   await execa('git', ['clone', '--quiet', '--filter=blob:none', '--no-checkout', `${upstreamRepository}.git`, temporary]);
@@ -78,7 +74,9 @@ try {
   const sharedOverlay = await readFile(path.join(repositoryRoot, 'templates/overlays/shared.md'), 'utf8');
   const askMattReplacement = await readFile(path.join(repositoryRoot, 'templates/patches/ask-matt-body.md'), 'utf8');
   const license = await readFile(path.join(temporary, 'LICENSE'), 'utf8');
-  const catalogSkills: CatalogSkill[] = [];
+  const catalogSkills: UpstreamCatalogSkill[] = [];
+  const firstPartySkills = await readFirstPartySkills();
+  assertNoOriginCollisions(Object.keys(skills), firstPartySkills.map((skill) => skill.name));
 
   for (const [name, upstreamDirectory] of Object.entries(skills)) {
     const sourceDirectory = path.join(temporary, upstreamDirectory);
@@ -136,25 +134,28 @@ try {
       await writeFile(destination, content, 'utf8');
     }
 
-    const catalogSkill: CatalogSkill = {
+    const catalogSkill: UpstreamCatalogSkill = {
       name,
-      upstreamPath: `${upstreamDirectory}/SKILL.md`,
-      originalContentHash: sha256(original),
-      renderedContentHash: sha256(rendered),
-      overlayVersion,
       files: Object.fromEntries(Object.entries(files).sort(([a], [b]) => a.localeCompare(b))),
-      supportFiles: supportFiles.sort((a, b) => a.path.localeCompare(b.path)),
-      patch,
+      origin: {
+        kind: 'upstream',
+        upstreamPath: `${upstreamDirectory}/SKILL.md`,
+        originalContentHash: sha256(original),
+        overlayVersion,
+        renderedContentHash: sha256(rendered),
+        supportFiles: supportFiles.sort((a, b) => a.path.localeCompare(b.path)),
+        patch,
+      },
     };
     catalogSkills.push(catalogSkill);
     await writeFile(path.join(snapshotRoot, 'provenance.json'), `${JSON.stringify({
       upstreamRepository,
-      upstreamPath: catalogSkill.upstreamPath,
+      upstreamPath: catalogSkill.origin.upstreamPath,
       upstreamCommit,
-      originalContentHash: catalogSkill.originalContentHash,
+      originalContentHash: catalogSkill.origin.originalContentHash,
       overlayVersion,
-      renderedContentHash: catalogSkill.renderedContentHash,
-      supportFiles: catalogSkill.supportFiles,
+      renderedContentHash: catalogSkill.origin.renderedContentHash,
+      supportFiles: catalogSkill.origin.supportFiles,
     }, null, 2)}\n`, 'utf8');
   }
 
@@ -164,7 +165,7 @@ try {
     upstreamCommit,
     overlayVersion,
     license: { spdx: 'MIT', hash: sha256(license), content: license },
-    skills: catalogSkills.sort((a, b) => a.name.localeCompare(b.name)),
+    skills: mergeCatalogSkills(catalogSkills, firstPartySkills),
   };
   await mkdir(path.join(repositoryRoot, 'src/generated'), { recursive: true });
   await writeFile(path.join(repositoryRoot, 'src/generated/skill-bundle.json'), `${JSON.stringify(catalog, null, 2)}\n`, 'utf8');
@@ -172,7 +173,9 @@ try {
     ...catalog,
     skills: catalog.skills.map(({ files: _files, ...skill }) => skill),
   }, null, 2)}\n`, 'utf8');
-  const inventory = catalog.skills.map((skill) => `- ${skill.name}: ${skill.upstreamPath}`).join('\n');
+  const inventory = catalogSkills
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((skill) => `- ${skill.name}: ${skill.origin.upstreamPath}`).join('\n');
   await writeFile(path.join(repositoryRoot, 'THIRD_PARTY_NOTICES.md'), [
     '# Third-party notices',
     '',
@@ -269,6 +272,48 @@ function renderOpenAiMetadata(name: string, description: string, disableModelInv
     },
     policy: { allow_implicit_invocation: !disableModelInvocation },
   })}`;
+}
+
+async function readFirstPartySkills(): Promise<readonly FirstPartyCatalogSkill[]> {
+  return Promise.all(FIRST_PARTY_SKILL_REGISTRY.map(async (definition) => {
+    const sourceDirectory = path.join(repositoryRoot, definition.sourcePath);
+    const files = await readTree(sourceDirectory);
+    const skill = files['SKILL.md'];
+    const metadata = files['agents/openai.yaml'];
+    if (skill === undefined || metadata === undefined) {
+      throw new Error(`First-party skill ${definition.name} must include SKILL.md and agents/openai.yaml.`);
+    }
+    return {
+      name: definition.name,
+      files,
+      origin: {
+        kind: 'first-party' as const,
+        author: definition.author,
+        sourcePath: definition.sourcePath,
+        sourceContentHash: sha256(skill),
+        renderedContentHash: sha256(skill),
+        files: Object.entries(files)
+          .map(([filePath, content]) => ({ path: filePath, hash: sha256(content) }))
+          .sort((left, right) => left.path.localeCompare(right.path)),
+      },
+    } satisfies FirstPartyCatalogSkill;
+  }));
+}
+
+async function readTree(directory: string, prefix = ''): Promise<Record<string, string>> {
+  const files: Record<string, string> = {};
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    const relativePath = prefix === '' ? entry.name : `${prefix}/${entry.name}`;
+    const absolutePath = path.join(directory, entry.name);
+    if (entry.isDirectory()) {
+      Object.assign(files, await readTree(absolutePath, relativePath));
+    } else if (entry.isFile()) {
+      files[relativePath] = await readFile(absolutePath, 'utf8');
+    } else {
+      throw new Error(`First-party skill source contains unsupported entry: ${relativePath}`);
+    }
+  }
+  return Object.fromEntries(Object.entries(files).sort(([a], [b]) => a.localeCompare(b)));
 }
 
 function sha256(content: string): string {
