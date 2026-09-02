@@ -39,9 +39,11 @@ writes only; global Orca and remote GitHub integration arrive in Phase 4.
   provenance, local doctor/diff, and drift refusal
 - Phase 3: all four profiles, Claude Code compatibility wrappers, and
   profile-aware local Doctor checks, including deterministic CLI/auth probes
-- Later phases: Orca/GitHub integration and release automation
+- Phase 5: public Node 22/24/26 release matrix and packed cross-platform smoke
+- Later phases: additional Orca/GitHub integration and release automation
 
 See [the approved specification](docs/approved-specification.md) and
+[the Phase 5 release matrix policy](docs/phases/phase-5.md), and
 [contributing guide](CONTRIBUTING.md).
 
 ## Practical agent workflow

@@ -19,13 +19,14 @@
   "scripts": {
     "build": "tsup",
     "bundle:validate": "tsx scripts/validate-bundle.ts",
-    "check": "npm run identity:validate && npm run typecheck && npm run bundle:validate && npm test && npm run build && npm run smoke:packed",
+    "check": "npm run identity:validate && npm run release:validate && npm run typecheck && npm run bundle:validate && npm test && npm run build && npm run smoke:packed",
     "dev": "tsx src/cli.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "smoke:packed": "tsx scripts/smoke-packed.ts",
     "smoke:claude": "tsx scripts/smoke-claude-wrapper.ts --live",
     "identity:validate": "tsx scripts/validate-identity.ts",
+    "release:validate": "tsx scripts/validate-release-matrix.ts",
     "typecheck": "tsc --noEmit",
     "upstream:sync": "tsx scripts/upstream-sync.ts",
     "prepack": "npm run check"

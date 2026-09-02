@@ -1,0 +1,6 @@
+# Keep tracked text byte-stable across platform checkouts for hash validation.
+* text=auto eol=lf
+
+# Windows command fixtures intentionally retain their native CRLF semantics.
+*.bat text eol=crlf
+*.cmd text eol=crlf
