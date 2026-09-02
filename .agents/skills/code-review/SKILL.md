@@ -5,15 +5,18 @@ description: "Review a committed checkpoint or WIP snapshot along separate Stand
 
 # Code Review
 
-This is a read-only review. Read `AGENTS.md` and, when present,
-`docs/agents/orca-execution.md` for the canonical Orca lifecycle and risk policy. The
-coordinator decides whether review is needed and which reviewer model to use; a worker
-performing this skill reviews only its dispatched scope. Never edit, stage, commit, or
-otherwise fix the reviewed change.
+This is a read-only review. Read `AGENTS.md`, `docs/agents/execution-policy.md`, and,
+when present, `docs/agents/orca-execution.md` for the canonical Orca lifecycle and risk
+policy. The coordinator decides whether review is needed, whether it is full or delta,
+and which reviewer model to use; a worker performing this skill reviews only its
+dispatched scope. Never edit, stage, commit, or otherwise fix the reviewed change.
 
 ## Pin a review snapshot
 
-Accept either of these review inputs:
+The Dispatch must supply a fixed point, expected candidate identity, review mode
+(`full` or `delta`), and originating Issue/spec. Delta mode also supplies the prior
+candidate, prior receipt, authorized finding IDs, and correction diff. Accept either of
+these candidate forms:
 
 - **Committed checkpoint:** resolve the supplied fixed point and compare
   `git diff <fixed-point>...HEAD`; record `git log <fixed-point>..HEAD --oneline`.
@@ -30,12 +33,26 @@ Accept either of these review inputs:
   Treat that complete capture as the review snapshot; do not create a commit or stage
   files merely to make the WIP reviewable.
 
-If no fixed point is supplied, ask for one. If it does not resolve, or the combined
-snapshot is empty, stop and report that prerequisite failure. For a WIP snapshot,
+Compute or verify the candidate identity with
+`node .agents/scripts/candidate-id.mjs <fixed-point>`. If no fixed point or expected
+identity is supplied, ask for it. If either does not resolve, the identity mismatches, or
+the combined snapshot is empty, stop and report that prerequisite failure. For a WIP snapshot,
 "combined" means the committed comparison, staged diff, unstaged diff, and the
 enumerated untracked content; an untracked file with no `git diff` output still makes
 the snapshot non-empty and must be reviewed. Never alter the worktree to manufacture a
 diff.
+
+## Select full or delta review
+
+- **Full:** inspect the complete candidate against both Standards and Spec axes below.
+- **Delta:** inspect the correction diff against the authorized stable finding IDs,
+  their acceptance conditions, affected verification, and regressions introduced by the
+  correction. Preserve the prior non-blocking findings without relitigating unchanged
+  code.
+
+Stop delta review and request full review if the correction changes unrelated paths,
+architecture, public or persistent contracts, security assumptions, or the previously
+assessed blast radius.
 
 ## Establish the evidence sources
 
@@ -51,7 +68,8 @@ diff.
 ## Standards axis
 
 Report hard breaches of documented standards separately from judgement-call smells.
-For each finding cite the file/hunk and the rule or smell, and state a concrete remedy.
+For each finding assign a stable ID such as `STD-001`, cite the file/hunk and the rule or
+smell, and state a concrete acceptance condition for its correction.
 The baseline is:
 
 - **Mysterious Name:** a name does not reveal what it holds or does; rename it.
@@ -78,7 +96,8 @@ report independent from the Spec report.
 
 ## Spec axis
 
-Compare the snapshot to the originating issue/spec and report, separately:
+Compare the snapshot to the originating issue/spec and report, separately. Assign stable
+IDs such as `SPEC-001` to findings:
 
 - requested behavior or acceptance criteria that are missing or partial;
 - behavior added without authorization (scope creep);
@@ -90,9 +109,11 @@ not turn an assumption into a blocking finding without evidence.
 
 ## Aggregate and verdict
 
-Present two headings, `Standards` and `Spec`, with findings kept in their original axis.
-For each finding include severity, file/hunk, evidence, and a concise recommendation.
-End with one verdict:
+For full review, present two headings, `Standards` and `Spec`, with findings kept in their
+original axis. For delta review, present each authorized finding ID and its state
+(`resolved`, `unresolved`, or `regressed`), followed by any correction-induced finding.
+For every finding include stable ID, severity, file/hunk, evidence, violated rule or
+requirement, and acceptance condition. End with one verdict:
 
 - **SHIP:** no unresolved blocking finding; the snapshot can proceed.
 - **FIX_FIRST:** a concrete defect, hard standards breach, or missing requirement must be
@@ -102,7 +123,9 @@ End with one verdict:
   local correction, or the snapshot contradicts a load-bearing decision. Return to the
   coordinator for a new decision before implementation continues.
 
-For high-risk changes, the coordinator obtains the independent reviewer required by
-`AGENTS.md` and records that evidence with the issue. Do not require a second reviewer by
-ritual for routine work. A worker reviewer reports its verdict and evidence through its
-Dispatch; it does not create Tasks or review the same change again.
+End the report with a compact receipt containing review mode, expected and observed
+candidate identity, fixed point, verification inspected, verdict, and open/resolved
+finding IDs. For high-risk changes, the coordinator obtains the independent reviewer
+required by `AGENTS.md` and records that evidence with the issue. Do not require a second
+reviewer by ritual for routine work. A worker reviewer reports its verdict and evidence
+through its Dispatch; it does not create Tasks or initiate another review cycle.

@@ -58,6 +58,18 @@ making these deliberate changes:
   implicit commits, and worker-owned integration are translated into explicit
   coordinator decisions, Orca mailbox questions, bounded Tasks, and evidence
   gates.
+- Repository-local execution is classified before orchestration so trivial work
+  can remain direct, bounded work uses at most one implementer, and model effort,
+  verification, and independent review scale with uncertainty and risk rather
+  than workflow ritual.
+- Dispatch context and completion reports are bounded; coordinator sessions can
+  be replaced from durable checkpoints without changing logical ownership or
+  creating another Run.
+- Verification and review bind to an exact candidate. Review findings retain
+  stable IDs, confined corrections use delta review, and two equivalent blocking
+  rounds pause rather than launching an unbounded correction loop. The local
+  `.agents/scripts/candidate-id.mjs` helper computes reproducible committed or
+  WIP identities without staging the worktree.
 - Native Codex metadata disables implicit invocation only for `ask-matt`,
   `campaign`,
   `grill-with-docs`, `handoff`, `implement`, `improve-codebase-architecture`,

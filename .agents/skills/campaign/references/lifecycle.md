@@ -33,6 +33,9 @@ discovered Issue can join.
 - A worker failure is investigated rather than blindly retried. Three failures
   in the same context pause that Issue for a coordinator decision.
 - `FIX_FIRST` creates a bounded correction Task in that Issue's existing Run.
+  Preserve stable finding IDs and use delta review when the correction remains
+  confined to them; expand to full review if scope or risk changes. Two
+  equivalent blocking review rounds pause the Issue for a coordinator decision.
   `RETHINK` pauses for an architecture or requirement decision and is never
   retried.
 - A Protected Mutation pauses with the exact pending mutation and confirmation
@@ -44,9 +47,14 @@ discovered Issue can join.
   Issues, and records incomplete progress/evidence. Accepted commits/evidence
   remain intact; cancellation performs no rollback.
 
-An Issue becomes accepted only after verification, `SHIP` when review is
-required, exactly one coordinator-owned integration commit, trustworthy
-revalidated target identity, and containment in the authorized remote target
-branch before closing the Issue. Local-only or temporary-branch commits do not
-qualify. A Protected Mutation pauses the Campaign and requests confirmation
-immediately before that mutation.
+Classify review per Issue; Campaign membership alone never requires it. Write
+the execution-policy coordinator checkpoint at every Issue boundary before
+starting the next member.
+
+An Issue becomes accepted only after candidate-bound verification,
+candidate-bound `SHIP` when review is required, exactly one coordinator-owned
+integration commit, trustworthy revalidated target identity, and containment in
+the authorized remote target branch before closing the Issue. Any candidate
+identity change invalidates affected evidence. Local-only or temporary-branch
+commits do not qualify. A Protected Mutation pauses the Campaign and requests
+confirmation immediately before that mutation.

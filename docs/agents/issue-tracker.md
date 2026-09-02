@@ -6,6 +6,11 @@ repository explicitly when needed with `--repo DYEWolf/agent-orchestration-kit`.
 execution state inside a Run, while GitHub preserves the durable contract,
 ownership, comments, labels, and dependencies.
 
+Classify requests with `docs/agents/execution-policy.md` before creating an
+Issue. A trivial, low-risk, low-uncertainty, isolated direct change does not need
+a fabricated Issue or Run. If work is already Issue-owned, or its route requires
+durable ownership, preserve the lifecycle below.
+
 ## Planning versus execution
 
 An open unassigned Issue is unclaimed work. A Planning Run may investigate or
@@ -81,9 +86,12 @@ Operational comments begin with one durable tag:
 
 - `[progress]` — what changed, what is next, and any blocker.
 - `[decision]` — the decision, alternatives, and reason.
-- `[verification]` — command or QA, result, and environment limitation.
-- `[review]` — `SHIP`, `FIX_FIRST`, or `RETHINK`, with evidence and follow-up.
-- `[resolution]` — final outcome, verification, and deferred work before close.
+- `[verification]` — exact candidate identity, command or QA, result, and
+  environment limitation.
+- `[review]` — full or delta mode, exact candidate identity, `SHIP`,
+  `FIX_FIRST`, or `RETHINK`, stable finding IDs, evidence, and follow-up.
+- `[resolution]` — final candidate identity, outcome, verification, review when
+  required, and deferred work before close.
 
 ```bash
 gh issue comment <number> --repo DYEWolf/agent-orchestration-kit --body "[progress] ..."

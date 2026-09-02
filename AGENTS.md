@@ -23,7 +23,8 @@ installed set and its manual adaptation rules are recorded in
 
 Skills are procedures, not ownership authorities. The coordinator decides when
 to invoke or transition between them; a worker follows only its Dispatch
-contract. See `docs/agents/orca-execution.md` for operational details.
+contract. Classify work with `docs/agents/execution-policy.md` before selecting
+a procedure; see `docs/agents/orca-execution.md` for operational details.
 
 Campaign never starts implicitly: manual execution remains the default and
 `$to-tickets` stops after publication. A Campaign coordinates existing
@@ -44,19 +45,22 @@ Route by uncertainty and blast radius, not by line count:
 
 - **Coordinator** — plans, creates or binds Runs, writes Task contracts, routes
   work, supervises gates, integrates, and accepts or rejects the result; normally
-  use GPT-5.6 Sol with high effort.
+  use GPT-5.6 Sol with high effort. It is one logical owner, but a bounded
+  checkpoint may replace its physical session without creating another Run.
 - **Explorer** — performs bounded read-oriented repository investigation and
   returns evidence; normally use GPT-5.6 Luna with high effort.
 - **Implementer** — executes a clear bounded contract; normally use GPT-5.6
-  Luna with xhigh effort.
+  Luna with high effort.
 - **Difficult implementer** — handles technically difficult but already-decided
-  work; use GPT-5.6 Luna with max effort when warranted.
+  work; use GPT-5.6 Luna with xhigh effort, and max only when the recorded
+  difficulty warrants it.
 - **Judgment worker** — investigates and implements where local choices are
   required; use GPT-5.6 Terra with high effort.
 - **Architect** — resolves system-level design, contract, or migration choices;
   use GPT-5.6 Sol with xhigh effort.
-- **Independent reviewer** — inspects a fresh high-risk snapshot and reports a
-  verdict without editing; use GPT-5.6 Sol with high effort.
+- **Independent reviewer** — inspects a fresh risk-selected snapshot and reports
+  a verdict without editing; use Terra with high effort for medium-risk judgment
+  and GPT-5.6 Sol with high effort for high-risk work.
 
 The escalation ladder is `Luna → Terra → Sol`, used only when the current role
 cannot safely decide. A worker escalates instead of changing architecture,
@@ -69,6 +73,17 @@ The prompt identifies the role. A coordinator owns or creates the Run and has
 no live worker Dispatch preamble. A worker has a live Dispatch preamble, owns
 only that Task, and reports through its Dispatch. A worker must not create
 nested work or broaden its scope because an adjacent concern is visible.
+
+### Classify before orchestrating
+
+Classify shape, risk, uncertainty, and locality with
+`docs/agents/execution-policy.md`, then record the minimum safe route. Trivial,
+low-risk, low-uncertainty, isolated work stays direct: it requires no fabricated
+Issue, Run, worker, or reviewer, but still requires a targeted deterministic
+check. Bounded work uses at most one implementation worker. A Task DAG is for
+genuinely separable feature work, and fresh independent review is reserved for
+stated risks, always including high-risk changes. Campaign membership alone
+does not change an Issue's review requirement.
 
 ## No nested delegation
 
@@ -93,25 +108,29 @@ conflict resolution, pushes, and integration commits.
 
 ## Orca lifecycle
 
-For implementation, claim the GitHub Issue first and bind or create exactly one
-Issue-owned execution Run. Then create bounded Tasks, declare dependencies,
-select worktrees, dispatch ready Tasks, wait for completion/questions/
-escalations, run gates, review when risk requires it, integrate, and record the
-final evidence. An optional planning Run is separate: it may explore or shape a
-proposal but never claims or authorizes implementation by itself.
+For non-trivial implementation, claim the GitHub Issue first and bind or create
+exactly one Issue-owned execution Run. Then create only the bounded Tasks the
+selected route needs, declare dependencies, select worktrees, dispatch ready
+Tasks, wait for completion/questions/escalations, run gates, review when risk
+requires it, integrate, and record the final evidence. Direct trivial work uses
+the repository-local change and targeted verification without manufacturing
+lifecycle objects. An optional planning Run is separate: it may explore or
+shape a proposal but never claims or authorizes implementation by itself.
 
 Workers complete their Dispatch exactly once with concrete evidence and stop by
-sending one Orca `worker_done` lifecycle message. The completion report includes
-changed files, acceptance results, verification commands, decisions,
-uncertainty, and intentionally undone work. A completion report is not
-coordinator acceptance.
+sending one Orca `worker_done` lifecycle message. The bounded completion report
+includes changed files, one result per acceptance criterion and verification
+command, decisions, uncertainty, and intentionally undone work. Do not return
+raw transcripts or complete logs. A completion report is not coordinator
+acceptance.
 
 ## Issue, Run, and Task rules
 
 GitHub Issues are durable human work units. GitHub owns dependencies between
 Issues; Orca owns ordering among Tasks inside one Issue's execution Run. An
 implementation Issue is executable only when it is approved, claimed, unblocked,
-and has objective acceptance and verification criteria.
+and has objective acceptance and verification criteria. Do not create an Issue
+solely to add ceremony to a direct trivial route.
 
 Every Task contract states its objective, context, owned scope, constraints,
 acceptance criteria, verification commands, escalation conditions, and expected
@@ -124,10 +143,11 @@ silently conflated.
 
 ## Gates, verification, review, and acceptance
 
-The default route is `$grill-with-docs` → `$to-spec` → `$to-tickets` →
-`$implement`; `$wayfinder` precedes it when the destination is unclear. Pause
-for explicit approval at understanding, specification, and ticket-breakdown
-gates. Completing one phase never silently starts the next.
+Classify first. The substantial-feature route is `$grill-with-docs` →
+`$to-spec` → `$to-tickets` → `$implement`; use only the phases needed to remove
+actual uncertainty. `$wayfinder` precedes it when the destination is unclear.
+Pause for explicit approval at understanding, specification, and
+ticket-breakdown gates. Completing one phase never silently starts the next.
 
 At pre-dispatch, confirm Issue claim, the single execution Run where required,
 bounded non-overlapping contracts, dependencies, and worktree choice. At
@@ -137,17 +157,22 @@ failures. At integration, confirm the approved diff, final checks, and issue
 evidence.
 
 Review is risk-based. High-risk changes require a fresh independent review;
-routine bounded changes can use deterministic checks and normal review. A
+routine bounded changes can use deterministic checks and coordinator review. A
 reviewer returns exactly one of `SHIP`, `FIX_FIRST`, or `RETHINK` and never
-implements its own correction. `FIX_FIRST` creates a new bounded correction Task
-in the same execution Run; `RETHINK` pauses for an architectural or requirement
+implements its own correction. Findings use stable IDs. `FIX_FIRST` creates a
+bounded correction Task in the same execution Run, followed by delta review when
+the correction remains confined to those IDs; expanding risk or scope requires
+full review. Two equivalent blocking review rounds pause for a coordinator
+decision. `RETHINK` pauses immediately for an architectural or requirement
 decision.
 
 The coordinator accepts work only after every Task meets its criteria, required
 checks pass, escalations are resolved, required review passes, the final diff
 stays in scope, and settled workers are released, reused, or intentionally
-retained. Record progress, decisions, verification, review, and resolution in
-the Issue using `docs/agents/issue-tracker.md` conventions.
+retained. Verification and review receipts bind to an exact candidate; any
+candidate change invalidates affected evidence until it is rerun. Record
+progress, decisions, candidate identity, verification, review, and resolution
+in the Issue using `docs/agents/issue-tracker.md` conventions.
 
 ## Campaign authorization
 
@@ -159,11 +184,14 @@ verification independently; an invalid member rejects the whole proposal
 without effects. Cross-Issue concurrency is one, while the normal internal
 worker limit applies only inside the sole active Issue.
 
-Each Issue still owns exactly one execution Run. Use fresh worker terminals and
-child worktrees by default unless exact shared state requires the current
-worktree; workers never commit. Corrections stay in the same Run, failures are
-investigated rather than blindly retried, three same-context failures pause the
-Issue, and `RETHINK` is never retried.
+Each Issue still owns exactly one execution Run. Review remains independently
+risk-classified; Campaign membership never makes review mandatory. Use fresh
+worker terminals and child worktrees by default unless exact shared state
+requires the current worktree; workers never commit. Corrections stay in the
+same Run, failures are
+investigated rather than blindly retried, two equivalent blocking review rounds
+or three same-context execution failures pause the Issue, and `RETHINK` is never
+retried.
 
 Protected Mutations always need immediate confirmation: publishing,
 deployment/protected environments, secrets/credentials, branch or environment
@@ -179,6 +207,8 @@ not qualify.
 
 ## Canonical references
 
+- `docs/agents/execution-policy.md` — task classification, worker/context
+  budgets, verification scope, checkpoints, and candidate-bound review.
 - `docs/agents/orca-execution.md` — lifecycle, contracts, gates, review, and
   worktree checklists.
 - `docs/agents/issue-tracker.md` — GitHub `gh` operations, Issue bodies,

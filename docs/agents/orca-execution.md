@@ -1,7 +1,15 @@
 # Orca execution reference
 
-`AGENTS.md` defines the invariants. This document is the operational checklist
-for moving from a GitHub Issue to an integrated change.
+`AGENTS.md` defines the invariants and `docs/agents/execution-policy.md` defines
+classification, context budgets, verification scope, checkpoints, and
+candidate-bound review. This document is the operational checklist for moving
+from a request or GitHub Issue to an integrated change.
+
+Classify before creating lifecycle objects. A trivial, low-risk,
+low-uncertainty, isolated change may execute directly with targeted
+verification and no fabricated Issue, Run, Task, worker, or reviewer. The
+remaining sections apply when the selected route or existing durable ownership
+requires them.
 
 ## Planning and execution Runs
 
@@ -46,14 +54,17 @@ changes. Resume reuses the immutable record and existing Issue-owned Runs;
 cancellation stops new work, releases Campaign-owned terminals/worktrees,
 unassigns unaccepted Issues, records incomplete progress/evidence, preserves
 accepted evidence, and performs no rollback. Corrections remain in the existing
-Run; investigate failures, pause on three same-context failures, and never retry
-`RETHINK`. Close only after verification, `SHIP` when required, exactly one
-coordinator-owned integration commit, target identity revalidation, and
-remote-target containment.
+Run; investigate failures, preserve stable review finding IDs, pause on two
+equivalent blocking review rounds or three same-context execution failures, and
+never retry `RETHINK`. Campaign membership does not require review. Close only
+after candidate-bound verification, candidate-bound `SHIP` when required,
+exactly one coordinator-owned integration commit, target identity revalidation,
+and remote-target containment.
 
 ## Issue-to-Run transition
 
 ```text
+[ ] Classify shape, risk, uncertainty, and locality; record the minimum route.
 [ ] Read the Issue body, relevant domain docs/ADRs, and linked dependencies.
 [ ] If needed, keep exploration in a separate Planning Run.
 [ ] Claim the implementation Issue: gh issue edit <n> --add-assignee @me
@@ -63,6 +74,7 @@ remote-target containment.
 [ ] Declare Orca Task dependencies; keep cross-Issue blockers in GitHub.
 [ ] Dispatch only ready Tasks and wait for completion, questions, or escalations.
 [ ] Run implementation, verification, and risk-required review gates.
+[ ] Revalidate candidate identity and its receipt.
 [ ] Integrate, commit, and update the Issue with evidence; close at the final gate.
 ```
 
@@ -74,6 +86,10 @@ Planning Run: <id or none>
 Execution Run: <id>
 Coordinator/integrator: <name or terminal>
 Worktree/branch: <path> / <branch>
+Route: <direct | single-worker | task-dag | decision-first>
+Classification: <shape/risk/uncertainty/locality>
+Verification/review: <scope> / <mode>
+Budgets: <workers>; <blocking review rounds>
 GitHub blockers: #<issue>, #<issue> | none
 Orca Task blockers: <task-id> -> <task-id> | none
 ```
@@ -85,7 +101,7 @@ contract:
 
 ```text
 Objective: <one outcome>
-Context: <only the facts needed to act>
+Context: <selected facts and source/evidence pointers needed to act>
 Owned scope: <files/modules>
 Constraints: <interfaces, invariants, and exclusions>
 Acceptance criteria:
@@ -95,7 +111,7 @@ Verification:
 Escalate when: <architectural, API, data, security, or requirement decision>
 Expected report:
   - files changed or inspected
-  - verification commands and results
+  - one result per acceptance criterion and verification command
   - unspecified decisions and unresolved uncertainty
   - intentionally undone work
 ```
@@ -105,7 +121,8 @@ Issue-owned execution Run. Planning/evidence Tasks belong to a separate
 Planning Run or coordinator planning context and do not claim implementation.
 Both require bounded scope, non-overlap with active writers, correct
 dependencies, and a complete contract. A worker completion is a report, not
-acceptance.
+acceptance. Do not inject raw conversation history, complete terminal logs, or
+global worker/Run inventories into a Dispatch or completion report.
 
 ## Lifecycle and event transitions
 
@@ -119,7 +136,7 @@ retains settled workers deliberately. Workers do not create new project work.
 | Full spec approved | Publish one non-executable umbrella/spec Issue and preserve approval evidence. | Draft tickets only when explicitly requested or already authorized. |
 | Ticket breakdown approved | Create durable implementation Issues, blockers, verification, and labels. | Do not create workers or Runs merely because tickets exist. |
 | Implementation Issue begins | Claim it, create/bind its one execution Run, choose worktree, and create the minimum Task DAG. | Dispatch only ready Task contracts. |
-| Review returns `FIX_FIRST` | Keep integration blocked and create a correction Task in the same execution Run. | Re-run checks and review the corrected snapshot. |
+| Review returns `FIX_FIRST` | Keep integration blocked, preserve stable finding IDs, and create a correction Task in the same execution Run. | Re-run affected checks and use delta review when the correction stays confined to those IDs; full review when scope/risk expands. Pause after two equivalent blocking rounds. |
 | Worker escalates architecture | Pause the dependent path and record the coordinator's decision. | Update the contract before redispatching or canceling work. |
 
 Moving into a new product phase is automatic only when the user explicitly
@@ -134,6 +151,7 @@ Record a short result in the Issue using the conventions in
 ```text
 Gate: <pre-dispatch | implementation | verification | review | integration>
 Issue: #<number>   Run: <run-id>   Task(s): <task-id(s)>
+Candidate: <commit-and-tree or WIP snapshot SHA-256>
 Evidence: <commands, report paths, or review link>
 Result: PASS | BLOCKED | FAIL
 Next action: <dispatch, correction Task, escalation, integration, or re-plan>
@@ -142,21 +160,25 @@ Next action: <dispatch, correction Task, escalation, integration, or re-plan>
 Pre-dispatch confirms the correct Run type, Issue claim, bounded contracts,
 non-overlapping ownership, dependencies, and worktree. Implementation confirms
 each report and out-of-contract decision. Verification runs exact commands and
-separates environment limitations from failures. Review checks the actual diff
-against the Issue and repository standards. Integration records final evidence
-before closing the Issue.
+separates environment limitations from failures. Review checks the exact
+candidate against the Issue and repository standards. Integration recomputes
+candidate identity and records final evidence before closing the Issue. A
+mismatch invalidates affected verification and review evidence.
 
 ## Verification and completion
 
-Prefer deterministic checks: focused tests, typechecking, linting, builds,
-schema checks, and exact QA commands named in the contract. If credentials,
-network, browser, or external infrastructure is unavailable, report that limit
-and arrange verification at the coordinator gate; do not call it a product
-failure or silently claim success.
+Choose targeted, module, or full scope according to
+`docs/agents/execution-policy.md`. Prefer deterministic checks: focused tests,
+typechecking, linting, builds, schema checks, and exact QA commands named in the
+contract. A full suite is not automatic when focused evidence covers a
+low-risk change. If credentials, network, browser, or external infrastructure
+is unavailable, report that limit and arrange verification at the coordinator
+gate; do not call it a product failure or silently claim success.
 
-A worker's one completion report states files changed, summary, verification
-commands and results, decisions not specified by the contract, unresolved
-uncertainty, and intentionally undone work. Completion does not authorize
+A worker's one completion report states files changed, a bounded result for each
+acceptance criterion and verification command, decisions not specified by the
+contract, unresolved uncertainty, and intentionally undone work. Include only
+the diagnostic excerpt needed for a failed check. Completion does not authorize
 integration.
 
 ## Review and verdicts
@@ -165,22 +187,42 @@ Require independent review when failure could materially affect security,
 authentication, user data, financial operations, persistent integrity,
 availability, deployment, architectural boundaries, or broad cross-cutting
 behavior. Routine bounded changes may rely on deterministic verification and
-the normal review policy.
+coordinator review. Campaign membership does not change this classification.
 
 ```text
 [review]
 Verdict: SHIP | FIX_FIRST | RETHINK
 Issue: #<number>   Run: <run-id>
-Diff: <commit/range or worktree>
+Mode: full | delta
+Candidate: <expected and observed identity>
+Fixed point: <full commit>
 Checks: <commands and results>
-Findings: <evidence, severity, and file/line>
+Findings: <stable ID, evidence, severity, violated rule/requirement, acceptance condition>
 Follow-up: <none | correction Task | escalation/re-plan>
 ```
 
-`SHIP` permits integration after the other gates. `FIX_FIRST` blocks
-integration, routes a correction Task to an implementer, reruns affected checks,
-and reviews the corrected snapshot. `RETHINK` stops implementation and
-integration until the requirement or architecture is made explicit.
+`SHIP` permits integration after the other gates only for that candidate.
+`FIX_FIRST` blocks integration, routes a correction Task containing the stable
+finding IDs to an implementer, reruns affected checks, and uses delta review of
+the corrected snapshot unless scope or risk expands. Two equivalent blocking
+rounds pause for a coordinator decision instead of starting a third cycle.
+`RETHINK` stops implementation and integration until the requirement or
+architecture is made explicit.
+
+## Candidate receipt and coordinator checkpoint
+
+For a committed candidate, record its full commit and tree IDs. For WIP, record
+the fixed base and reproducible SHA-256 capture of all committed-comparison,
+staged, unstaged, and untracked bytes by running
+`node .agents/scripts/candidate-id.mjs <fixed-point>`. The coordinator owns the
+receipt and recomputes identity immediately before integration.
+
+Before replacing or compacting a materially full coordinator context, record a
+bounded durable checkpoint containing Issue/Run, objective and route, settled
+decisions, completed/pending Tasks, candidate identity, open finding IDs,
+verification state, next action, and known risks. Always checkpoint at a
+Campaign Issue boundary. Resume the same logical ownership and Run from the
+checkpoint and canonical artifacts, never from a copied transcript.
 
 ## Escalation
 

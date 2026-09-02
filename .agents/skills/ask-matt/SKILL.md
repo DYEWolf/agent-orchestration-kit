@@ -5,9 +5,29 @@ description: Route an explicitly invoked request to the installed planning, impl
 
 # Ask Matt
 
-This is a router and decision aid, not an autonomous dispatcher. Sol asks the user questions, records decisions, and authorizes phase transitions. A worker receives only a coordinator-created, bounded Orca Task and returns evidence; it never owns the conversation, asks the user, makes an unassigned product decision, creates another Task, or silently advances the flow. See `docs/agents/orca-execution.md` and [PHASE-BOUNDARIES.md](PHASE-BOUNDARIES.md).
+This is a router and decision aid, not an autonomous dispatcher. Classify shape,
+risk, uncertainty, and locality with `docs/agents/execution-policy.md` before
+selecting a workflow. Sol asks the user questions only when a material decision
+is genuinely unresolved, records decisions, and authorizes phase transitions. A
+worker receives only a coordinator-created, bounded Orca Task and returns
+evidence; it never owns the conversation, asks the user, makes an unassigned
+product decision, creates another Task, or silently advances the flow. See
+`docs/agents/orca-execution.md` and
+[PHASE-BOUNDARIES.md](PHASE-BOUNDARIES.md).
 
-## Target workflow: idea to ship
+## Route the smallest useful flow
+
+- **Trivial, low-risk, settled, isolated** → direct coordinator execution plus
+  the closest deterministic check. Do not create an Issue, Run, worker, or
+  reviewer solely for ceremony.
+- **Bounded and settled** → direct execution or one implementation worker, with
+  the Issue/Run lifecycle when delegated, risk-bearing, or already Issue-owned.
+- **Feature with settled outcomes** → `$to-spec` and `$to-tickets` only when the
+  durable contract or decomposition is actually needed, then `$implement`.
+- **Architectural or ambiguous** → `$wayfinder` or `$grill-with-docs`, followed
+  by explicit specification and ticket gates as needed.
+
+## Substantial workflow: idea to ship
 
 Use this path when the user has an idea they want built:
 
@@ -15,13 +35,16 @@ Use this path when the user has an idea they want built:
 2. **Specify** — explicitly invoke `$to-spec`. Sol drafts the complete specification, obtains explicit approval of the full document, and publishes one non-executable umbrella/spec issue. The issue is not ready for implementation.
 3. **Split durable work** — explicitly invoke `$to-tickets`. Sol drafts outcome-based implementation issues, including acceptance, constraints, risks, verification, and genuine blocking edges; the user explicitly approves the breakdown before publication. Only implementation issues ready to execute receive `ready-for-agent`.
 4. **Implement** — explicitly invoke `$implement` for an approved implementation issue. The coordinator owns runtime dispatch through Orca; the issue remains the durable contract and contains no model or routing instructions.
-5. **Review and verify** — use `$code-review` when the implementation is ready for review or the user requests it. Accept, correct, or escalate based on the actual diff and deterministic verification.
+5. **Review and verify** — use `$code-review` when the risk policy requires it or the user requests it. Accept, correct, or escalate based on the exact candidate and deterministic verification.
 
 Campaign is not part of this default path. After tickets are published, manual
 Issue execution remains the default; only an explicit `$campaign` invocation
 can authorize a fixed multi-Issue execution.
 
-The sequence above is a recommendation. It becomes automatic only when the user explicitly authorizes that end-to-end flow. Completing one phase never implicitly invokes the next phase.
+The sequence above is a recommendation for substantial work, not the default
+cost of every change. It becomes automatic only when the user explicitly
+authorizes that end-to-end flow. Completing one phase never implicitly invokes
+the next phase.
 
 ## On-ramps and standalone flows
 
@@ -45,5 +68,9 @@ If no installed flow fits, keep Sol in the conversation and use a coordinator-cr
 - Facts are investigated; decisions are put to the user.
 - Shared understanding precedes specification; explicit full-spec approval precedes publication.
 - An approved umbrella/spec precedes ticket drafting; explicit ticket-breakdown approval precedes publication.
-- GitHub issues are durable boundaries for specs and implementation outcomes. Runtime worker routing is an Orca concern and never belongs in a ticket.
+- GitHub issues are durable boundaries for non-trivial specs and implementation
+  outcomes. Do not manufacture one for the direct trivial route. Runtime worker
+  routing is an Orca concern and never belongs in a ticket.
+- Campaign membership never raises review risk. Select review from the Issue's
+  risk and bind any verdict to the exact reviewed candidate.
 - A phase boundary is a decision point, not a trigger. Read [PHASE-BOUNDARIES.md](PHASE-BOUNDARIES.md) before choosing whether to continue, gather bounded evidence, hand off, or enter the next explicitly authorized phase.

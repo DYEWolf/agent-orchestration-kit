@@ -1,13 +1,14 @@
 ---
 name: handoff
-description: Create a redacted, portable handoff for full ownership transfer or a bounded supervised Dispatch.
+description: Create a redacted, portable handoff for ownership transfer, a bounded supervised Dispatch, or coordinator session replacement.
 ---
 
 # Handoff
 
-Read `AGENTS.md` and, when present, `docs/agents/orca-execution.md` for ownership and
-Dispatch rules. A handoff is a durable orientation artifact, not a second copy of the
-issue, plan, ADR, commit, or diff. Reference those artifacts by path or URL.
+Read `AGENTS.md`, `docs/agents/execution-policy.md`, and, when present,
+`docs/agents/orca-execution.md` for ownership, checkpoint, and Dispatch rules. A handoff
+is a durable orientation artifact, not a second copy of the issue, plan, ADR, commit, or
+diff. Reference those artifacts by path or URL.
 
 ## Classify the handoff
 
@@ -22,28 +23,39 @@ Choose exactly one mode before writing:
   worker. Preserve the issue, Run, Task, and Dispatch context; the worker reports findings
   or changes back through its Dispatch. The artifact is supporting evidence, not an
   ownership transfer, and the worker must not create a new Run or pass the work onward.
+- **Coordinator checkpoint:** the logical coordinator and Issue-owned Run remain the
+  same, but a fresh physical session resumes from a bounded durable summary. Record the
+  checkpoint in the Issue/Run when one exists; do not copy the transcript or create a
+  replacement Run. Use this at Campaign Issue boundaries and when context is materially
+  full, tool-output dominated, or entering repeated review.
 
 If invoked inside a worker Dispatch, default to a supervised artifact unless the Task
 explicitly authorizes a full transfer; ask the coordinator before changing ownership.
 
 ## Write a portable artifact
 
-Resolve the operating system temporary directory (`$TMPDIR`, then `/tmp`, or the platform
-equivalent) and create a fresh file such as
-`<tmpdir>/orca-handoff-<timestamp>.md`. Never write the handoff into the repository by
-default. Include:
+For ownership transfer or supervised Dispatch, resolve the operating system temporary
+directory (`$TMPDIR`, then `/tmp`, or the platform equivalent) and create a fresh file
+such as `<tmpdir>/orca-handoff-<timestamp>.md`. Never write it into the repository by
+default. For a coordinator checkpoint, use the durable Issue/Run record when available;
+use a temporary portable file only when no such record exists. Include:
 
 ```markdown
 # Handoff: <objective>
 
 ## Mode
-Full ownership transfer | Supervised Dispatch
+Full ownership transfer | Supervised Dispatch | Coordinator checkpoint
 
 ## Next session focus
 <the user's requested focus>
 
 ## Current state
 <one paragraph: what is true now and why the next session starts here>
+
+## Route and candidate
+- Classification: <shape/risk/uncertainty/locality>
+- Route/review/verification: <selected policy>
+- Candidate identity: <identity or none>
 
 ## Source artifacts
 - Issue/spec: <path or URL>
@@ -56,6 +68,9 @@ Full ownership transfer | Supervised Dispatch
 
 ## Remaining work
 - <next concrete action>
+
+## Open findings
+- <stable finding ID and acceptance condition, or none>
 
 ## Decisions and constraints
 - <decision, owner, or non-negotiable constraint>

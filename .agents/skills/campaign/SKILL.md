@@ -36,9 +36,12 @@ when constructing or validating that proposal.
 
 Reconstruct status from GitHub and Orca; do not mutate a Campaign status ledger.
 Advance one Campaign Issue at a time, while each Issue preserves its own single
-execution Run and its normal Task DAG. Read [lifecycle details](references/lifecycle.md)
-before handling a gate, failure, review result, acceptance, pause, resume, or
-cancel request.
+execution Run and its minimum Task DAG. Classify each Issue independently with
+`docs/agents/execution-policy.md`; Campaign membership does not require review or
+raise model effort. Write a bounded coordinator checkpoint at every Issue
+boundary so a fresh physical session can continue the same logical ownership.
+Read [lifecycle details](references/lifecycle.md) before handling a gate, failure,
+review result, acceptance, pause, resume, or cancel request.
 
 Protected Mutations always require immediate confirmation, even during an active
 Campaign. Keep an outstanding Protected Mutation pause tied to exactly the
@@ -54,9 +57,10 @@ Issues, and records incomplete progress/evidence. Accepted commits/evidence are
 preserved and no rollback is performed. Isolated execution uses fresh worker
 terminals and child worktrees by default; use the current worktree only when
 exact shared state or shared verification requires it. Acceptance requires
-verification, required `SHIP`, exactly one coordinator-owned integration
-commit, revalidated target identity, and containment in the authorized remote
-target branch; local-only or temporary-branch commits do not qualify.
+candidate-bound verification, required candidate-bound `SHIP`, exactly one
+coordinator-owned integration commit, revalidated target identity, and
+containment in the authorized remote target branch; local-only or
+temporary-branch commits do not qualify.
 
 Manual Issue execution remains the default; `$to-tickets` publishes issues and
 stops, and `$campaign` is the only route that starts Campaign work.
