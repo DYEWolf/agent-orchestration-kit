@@ -21,6 +21,13 @@ export function formatPlan(plan: ChangePlan): string {
     );
   }
 
+  lines.push('', 'GitHub label mutations:');
+  for (const action of plan.githubLabelMutations) {
+    lines.push(
+      `  ${action.state.toUpperCase().padEnd(17)} ${action.id} repositoryNodeId=${JSON.stringify(action.repositoryNodeId)} target=${JSON.stringify(action.target)} name=${JSON.stringify(action.name)} color=${JSON.stringify(action.color)} description=${JSON.stringify(action.description)} argv=${JSON.stringify(action.argv)} — ${action.reason}`,
+    );
+  }
+
   if (plan.blockers.length > 0) {
     lines.push('', 'Blockers:');
     for (const blocker of plan.blockers) {
@@ -32,7 +39,7 @@ export function formatPlan(plan: ChangePlan): string {
     '',
     `Summary: ${plan.summary.create} create, ${plan.summary.update} update, ${plan.summary.unchanged} unchanged, ${plan.summary.blocked} blocked`,
     plan.canApply
-      ? 'This plan is eligible for local application and its explicitly enumerated Orca actions.'
+      ? 'This plan is eligible for local application and its explicitly enumerated Orca and GitHub actions.'
       : 'This plan cannot be applied until every blocker is resolved.',
   );
   return `${lines.join('\n')}\n`;

@@ -49,6 +49,145 @@ describe('local CLI installation lifecycle', () => {
     }
   }, 20_000);
 
+  it('suppresses GitHub mutations independently, then creates one authoritative missing label', async () => {
+    const repository = await mkdtemp(path.join(tmpdir(), 'agent-orchestration-kit-cli-github-missing-'));
+    const state = path.join(repository, 'fake-gh-state');
+    const log = path.join(repository, 'fake-gh-log');
+    try {
+      await execa('git', ['-C', repository, 'init', '--quiet', '-b', 'main']);
+      await execa('git', ['-C', repository, 'remote', 'add', 'origin', 'git@github.com:DYEWolf/github-missing.git']);
+      await writeFile(log, '');
+      const environment = {
+        AOK_GH_MODE: 'label-missing',
+        AOK_GH_STATE: state,
+        AOK_GH_LOG: log,
+        AOK_ORCA_SKILLS: 'installed',
+        AOK_ORCA_REPOS: 'present',
+      };
+      const suppressed = JSON.parse((await runCli([
+        'init', repository, '--profile', 'codex-only', '--yes', '--json', '--no-github-mutations', '--no-global', '--no-orca-registration',
+      ], true, environment)).stdout) as {
+        plan: { githubLabelMutations: { state: string }[] };
+        receipt: { githubActions: unknown[] };
+      };
+      expect(suppressed.plan.githubLabelMutations).toEqual([expect.objectContaining({ state: 'suppressed' })]);
+      expect(suppressed.receipt.githubActions).toEqual([]);
+      await expect(readFile(state, 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
+
+      const created = JSON.parse((await runCli([
+        'init', repository, '--profile', 'codex-only', '--yes', '--json', '--no-global', '--no-orca-registration',
+      ], true, environment)).stdout) as {
+        receipt: { githubActions: { id: string; status: string; message: string }[]; verified: boolean };
+      };
+      expect(created.receipt).toMatchObject({ verified: true });
+      expect(created.receipt.githubActions).toEqual([{
+        id: 'create-ready-for-agent-label', status: 'executed', message: expect.any(String),
+      }]);
+      expect(await readFile(state, 'utf8')).toBe('created\n');
+      const calls = (await readFile(log, 'utf8')).trim().split('\n');
+      expect(calls.filter((line) => line === 'create')).toHaveLength(1);
+    } finally {
+      await rm(repository, { recursive: true, force: true });
+    }
+  }, 20_000);
+
+  it('reports a GitHub create failure with a sanitized receipt and preserves local files', async () => {
+    const repository = await mkdtemp(path.join(tmpdir(), 'agent-orchestration-kit-cli-github-failure-'));
+    const state = path.join(repository, 'fake-gh-state');
+    const log = path.join(repository, 'fake-gh-log');
+    try {
+      await execa('git', ['-C', repository, 'init', '--quiet', '-b', 'main']);
+      await execa('git', ['-C', repository, 'remote', 'add', 'origin', 'git@github.com:DYEWolf/github-failure.git']);
+      await writeFile(log, '');
+      const result = await runCli(['init', repository, '--profile', 'codex-only', '--yes', '--json', '--no-global', '--no-orca-registration'], false, {
+        AOK_GH_MODE: 'missing-create-fail', AOK_GH_STATE: state, AOK_GH_LOG: log,
+        AOK_GH_SENTINEL: '1',
+        AOK_ORCA_SKILLS: 'installed', AOK_ORCA_REPOS: 'present',
+      });
+      expect(result.exitCode).toBe(2);
+      const payload = JSON.parse(result.stdout) as {
+        receipt: { applied: boolean; verified: boolean; githubActions: { status: string; message: string }[] };
+      };
+      expect(payload.receipt).toMatchObject({ applied: true, verified: true });
+      expect(payload.receipt.githubActions).toEqual([{ id: 'create-ready-for-agent-label', status: 'failed', message: expect.any(String) }]);
+      expect(JSON.stringify(payload)).not.toContain('sentinel');
+      expect(await readFile(path.join(repository, '.agent-orchestration-kit/config.yaml'), 'utf8')).toContain('schemaVersion: 1');
+      await expect(readFile(state, 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
+      expect((await readFile(log, 'utf8')).split('\n').filter((line) => line === 'create')).toHaveLength(1);
+    } finally {
+      await rm(repository, { recursive: true, force: true });
+    }
+  }, 20_000);
+
+  it.each([
+    ['repository errors non-array', 'repo-errors-non-array'],
+    ['repository errors non-empty', 'repo-errors-array'],
+    ['repository non-object top-level value', 'repo-top-level-array'],
+    ['repository missing data', 'repo-missing-data'],
+    ['repository non-object data', 'repo-data-null'],
+    ['repository null', 'repo-null'],
+    ['repository missing fields', 'repo-malformed'],
+    ['repository wrong field types', 'repo-wrong-types'],
+    ['label errors non-array', 'label-errors-non-array'],
+    ['label errors non-empty', 'label-errors-array'],
+    ['label non-object top-level value', 'label-top-level-array'],
+    ['label missing data', 'label-missing-data'],
+    ['label non-object data', 'label-data-null'],
+    ['label null node', 'label-null-node'],
+    ['label unexpected node', 'label-unexpected-node'],
+    ['label missing property', 'label-missing-property'],
+    ['label malformed object', 'label-malformed'],
+    ['label wrong field types', 'label-wrong-types'],
+    ['mutation malformed JSON', 'mutation-malformed-json'],
+    ['mutation errors non-array', 'mutation-errors-non-array'],
+    ['mutation errors non-empty', 'mutation-errors-array'],
+    ['mutation non-object top-level value', 'mutation-top-level-array'],
+    ['mutation non-object data', 'mutation-data-null'],
+    ['mutation null createLabel', 'mutation-null'],
+    ['mutation partial label', 'mutation-partial'],
+    ['mutation wrong name', 'mutation-wrong-name'],
+    ['mutation wrong metadata', 'mutation-wrong-metadata'],
+    ['mutation wrong repository ID', 'mutation-wrong-repository-id'],
+  ] as const)('rejects untrusted GitHub GraphQL data in the CLI for %s', async (_label, mode) => {
+    const repository = await mkdtemp(path.join(tmpdir(), 'agent-orchestration-kit-cli-github-envelope-'));
+    const state = path.join(repository, 'fake-gh-state');
+    const log = path.join(repository, 'fake-gh-log');
+    const mutationResponse = mode.startsWith('mutation-');
+    try {
+      await execa('git', ['-C', repository, 'init', '--quiet', '-b', 'main']);
+      await execa('git', ['-C', repository, 'remote', 'add', 'origin', `git@github.com:DYEWolf/envelope-${mode}.git`]);
+      await writeFile(log, '');
+      const result = await runCli(['init', repository, '--profile', 'codex-only', '--yes', '--json', '--no-global', '--no-orca-registration'], false, {
+        AOK_GH_MODE: mode,
+        AOK_GH_STATE: state,
+        AOK_GH_LOG: log,
+        AOK_GH_SENTINEL: '1',
+        AOK_ORCA_SKILLS: 'installed',
+        AOK_ORCA_REPOS: 'present',
+      });
+      expect(result.exitCode).toBe(2);
+      const payload = JSON.parse(result.stdout) as {
+        blockers?: unknown[];
+        plan?: { blockers: unknown[] };
+        receipt?: { applied: boolean; verified: boolean; githubActions: { id: string; status: string }[] };
+      };
+      expect(JSON.stringify(payload)).not.toContain('secret-sentinel');
+      if (mutationResponse) {
+        expect(payload.receipt).toMatchObject({ applied: true, verified: true, githubActions: [{ id: 'create-ready-for-agent-label', status: 'failed' }] });
+        await expect(readFile(path.join(repository, '.agent-orchestration-kit/config.yaml'), 'utf8')).resolves.toContain('schemaVersion: 1');
+        await expect(readFile(state, 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
+        expect((await readFile(log, 'utf8')).split('\n').filter((line) => line === 'create')).toHaveLength(1);
+      } else {
+        expect(payload.blockers?.length).toBeGreaterThan(0);
+        expect(payload.receipt).toBeUndefined();
+        await expect(readFile(path.join(repository, '.agent-orchestration-kit/config.yaml'), 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
+        expect((await readFile(log, 'utf8')).split('\n').filter((line) => line === 'create')).toHaveLength(0);
+      }
+    } finally {
+      await rm(repository, { recursive: true, force: true });
+    }
+  }, 20_000);
+
   it.each(['codex-only', 'claude-coordinator', 'claude-only', 'codex-coordinator'] as const)(
     'supports the %s profile through CLI dry-run, apply, verify, and no-op',
     async (profile) => {
@@ -226,10 +365,22 @@ else process.exit(4);
       const lines = result.stdout.split('\n');
       const skillLine = lines.find((line) => line.includes('install-orchestration-skill'));
       const repositoryLine = lines.find((line) => line.includes('register-repository'));
+      const githubLine = lines.find((line) => line.includes('create-ready-for-agent-label'));
       expect(skillLine).toContain('target="global orchestration skill"');
       expect(repositoryLine).toContain(`target=${JSON.stringify(canonicalRepository)}`);
+      expect(githubLine).toContain('target="github.com/DYEWolf/text-argv"');
+      expect(githubLine).toContain('repositoryNodeId="R_fixture"');
+      expect(githubLine).toContain('name="ready-for-agent"');
+      expect(githubLine).toContain('color="0E8A16"');
+      expect(githubLine).toContain(`description=${JSON.stringify('Approved, executable, unblocked implementation issue ready to be claimed.')}`);
       expect(parseHumanArgv(skillLine!)).toEqual(['skills', 'install', '--skill', 'orchestration']);
       expect(parseHumanArgv(repositoryLine!)).toEqual(['repo', 'add', '--path', canonicalRepository]);
+      expect(parseHumanArgv(githubLine!)).toEqual([
+        'api', 'graphql', '--hostname', 'github.com',
+        '-f', 'query=mutation($repositoryId: ID!, $name: String!, $color: String!, $description: String!) { createLabel(input: { repositoryId: $repositoryId, name: $name, color: $color, description: $description }) { label { name color description repository { id } } } }',
+        '-f', 'repositoryId=R_fixture', '-f', 'name=ready-for-agent', '-f', 'color=0E8A16',
+        '-f', 'description=Approved, executable, unblocked implementation issue ready to be claimed.',
+      ]);
     } finally {
       await rm(temporary, { recursive: true, force: true });
     }
@@ -277,14 +428,24 @@ else process.exit(4);
   }, 20_000);
 
   it('does not write when JSON mode is requested without explicit confirmation', async () => {
+    // Prompt denial is not portable in subprocess tests; this is the CLI's
+    // deterministic noninteractive mapping for missing confirmation.
     const repository = await mkdtemp(path.join(tmpdir(), 'agent-orchestration-kit-cli-no-confirmation-'));
+    const state = path.join(repository, 'fake-gh-state');
+    const log = path.join(repository, 'fake-gh-log');
     try {
       await execa('git', ['-C', repository, 'init', '--quiet', '-b', 'main']);
       await execa('git', ['-C', repository, 'remote', 'add', 'origin', 'git@github.com:DYEWolf/no-confirmation.git']);
-      const result = await runCli(['init', repository, '--profile', 'codex-only', '--json'], false);
+      await writeFile(log, '');
+      const result = await runCli(['init', repository, '--profile', 'codex-only', '--json'], false, {
+        AOK_GH_STATE: state,
+        AOK_GH_LOG: log,
+      });
       expect(result.exitCode).toBe(1);
       expect(result.stderr).toContain('--json requires --yes or --dry-run');
       await expect(readFile(path.join(repository, '.agent-orchestration-kit/config.yaml'), 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
+      expect((await readFile(log, 'utf8')).split('\n').filter((line) => line === 'create')).toHaveLength(0);
+      await expect(readFile(state, 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
     } finally {
       await rm(repository, { recursive: true, force: true });
     }

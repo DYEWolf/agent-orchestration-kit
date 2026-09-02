@@ -67,6 +67,7 @@ async function main(): Promise<void> {
       '--profile',
       'claude-coordinator',
       '--yes',
+      '--no-github-mutations',
       '--json',
     ], { cwd: repositoryRoot, reject: false, stdin: 'ignore' });
     if (init.failed || init.exitCode !== 0) {

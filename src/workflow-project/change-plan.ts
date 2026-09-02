@@ -1,6 +1,7 @@
 import type { ProfileName } from '../config/schema.js';
 import type { GitHubRepositoryIdentity } from '../repository/inspection.js';
 import type { OrcaAction } from '../adapters/orca/orca.js';
+import type { READY_FOR_AGENT_LABEL } from '../adapters/github/github.js';
 
 export type PlannedFileAction = 'create' | 'update' | 'unchanged';
 
@@ -17,6 +18,7 @@ export interface PlanBlocker {
     | 'collision'
     | 'drift'
     | 'foreign-version'
+    | 'github-prerequisite'
     | 'invalid-manifest'
     | 'malformed-managed-block'
     | 'unsafe-path';
@@ -27,6 +29,18 @@ export interface PlanBlocker {
 export interface PlannedExternalAction {
   readonly id: OrcaAction['id'];
   readonly target: string;
+  readonly argv: readonly string[];
+  readonly state: 'planned' | 'already-satisfied' | 'suppressed' | 'unavailable';
+  readonly reason: string;
+}
+
+export interface PlannedGitHubLabelMutation {
+  readonly id: 'create-ready-for-agent-label';
+  readonly repositoryNodeId: string;
+  readonly target: string;
+  readonly name: typeof READY_FOR_AGENT_LABEL.name;
+  readonly color: typeof READY_FOR_AGENT_LABEL.color;
+  readonly description: typeof READY_FOR_AGENT_LABEL.description;
   readonly argv: readonly string[];
   readonly state: 'planned' | 'already-satisfied' | 'suppressed' | 'unavailable';
   readonly reason: string;
@@ -46,7 +60,7 @@ export interface ChangePlan {
   readonly files: readonly PlannedFileChange[];
   readonly blockers: readonly PlanBlocker[];
   readonly globalCommands: readonly PlannedExternalAction[];
-  readonly githubLabelMutations: readonly [];
+  readonly githubLabelMutations: readonly PlannedGitHubLabelMutation[];
   readonly validations: readonly string[];
   readonly rollbackActions: readonly string[];
   readonly summary: {

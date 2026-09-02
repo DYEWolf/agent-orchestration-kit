@@ -5,6 +5,8 @@ import { NodeHarnessAdapter } from '../adapters/harness/node-harness.js';
 import type { HarnessAdapter, HarnessCheckStatus } from '../adapters/harness/harness.js';
 import { NodeOrcaAdapter } from '../adapters/orca/node-orca.js';
 import { requiredOrcaActions, type OrcaAdapter, type OrcaCheck } from '../adapters/orca/orca.js';
+import { NodeGitHubAdapter } from '../adapters/github/node-github.js';
+import { requiredGitHubActions, type GitHubAdapter, type GitHubCheck, type GitHubDiscovery } from '../adapters/github/github.js';
 import { insertOrReplaceManagedBlock, inspectManagedBlock } from '../artifacts/managed-block.js';
 import { renderDesiredArtifacts, type DesiredArtifact } from '../artifacts/render.js';
 import { profiles, resolveConfig } from '../config/profiles.js';
@@ -16,7 +18,7 @@ import {
 import { sha256 } from '../shared/hash.js';
 import { PathShapeError, resolveSafeTarget, UnsafePathError } from '../shared/path.js';
 import { CLI_VERSION } from '../version.js';
-import type { ChangePlan, PlanBlocker, PlannedFileChange } from './change-plan.js';
+import type { ChangePlan, PlanBlocker, PlannedFileChange, PlannedGitHubLabelMutation } from './change-plan.js';
 import { computeDrift, type DriftReport } from './drift.js';
 import { manifestSchema, type Manifest } from './manifest.js';
 import { FileTransaction } from './transactions.js';
@@ -30,6 +32,7 @@ export interface InitWorkflowCommand {
   readonly profile: ProfileName;
   readonly global?: boolean;
   readonly orcaRegistration?: boolean;
+  readonly githubMutations?: boolean;
 }
 
 export type WorkflowCommand = InitWorkflowCommand;
@@ -41,6 +44,7 @@ export interface ApplyReceipt {
   readonly cleanupWarnings: readonly string[];
   readonly verified: boolean;
   readonly externalActions: readonly { readonly id: string; readonly status: 'executed' | 'failed'; readonly message: string }[];
+  readonly githubActions: readonly { readonly id: string; readonly status: 'executed' | 'failed'; readonly message: string }[];
 }
 
 export type DoctorStatus = 'PASS' | 'WARN' | 'FAIL' | 'SKIP';
@@ -70,6 +74,7 @@ export interface WorkflowProjectDependencies {
   readonly inspect?: (path: string) => Promise<RepositoryInspection>;
   readonly harness?: HarnessAdapter;
   readonly orca?: OrcaAdapter;
+  readonly github?: GitHubAdapter;
 }
 
 export class WorkflowProject implements WorkflowProjectContract {
@@ -77,15 +82,22 @@ export class WorkflowProject implements WorkflowProjectContract {
   readonly #inspect: (path: string) => Promise<RepositoryInspection>;
   readonly #harness: HarnessAdapter;
   readonly #orca: OrcaAdapter;
+  readonly #github: GitHubAdapter;
 
   public constructor(dependencies: WorkflowProjectDependencies = {}) {
     this.#filesystem = dependencies.filesystem ?? new NodeFileSystem();
     this.#inspect = dependencies.inspect ?? inspectRepository;
     this.#harness = dependencies.harness ?? new NodeHarnessAdapter();
     this.#orca = dependencies.orca ?? new NodeOrcaAdapter();
+    this.#github = dependencies.github ?? new NodeGitHubAdapter();
   }
 
   public async plan(command: WorkflowCommand): Promise<ChangePlan> {
+    return this.planInternal(command, true);
+  }
+
+  /** Plan the local transaction without allowing a later remote read to veto it. */
+  private async planInternal(command: WorkflowCommand, includeGitHub: boolean): Promise<ChangePlan> {
     const repository = await this.#inspect(command.path);
     const repositoryRoot = await this.#filesystem.realpath(repository.root);
     const config = resolveConfig(command.profile);
@@ -122,17 +134,6 @@ export class WorkflowProject implements WorkflowProjectContract {
     }
 
     files.sort((a, b) => a.path.localeCompare(b.path));
-    const uniqueBlockers = [...new Map(
-      blockers.map((blocker) => [`${blocker.code}:${blocker.path}`, blocker]),
-    ).values()];
-    uniqueBlockers.sort((a, b) => a.path.localeCompare(b.path) || a.code.localeCompare(b.code));
-    const summary = {
-      create: files.filter((file) => file.action === 'create').length,
-      update: files.filter((file) => file.action === 'update').length,
-      unchanged: files.filter((file) => file.action === 'unchanged').length,
-      blocked: uniqueBlockers.length,
-    };
-
     const discovery = await this.#orca.discover(repositoryRoot);
     const external = requiredOrcaActions(discovery.repositoryTarget ?? repositoryRoot);
     const coreAvailable = discovery.cli.status === 'pass'
@@ -140,6 +141,27 @@ export class WorkflowProject implements WorkflowProjectContract {
       && discovery.readiness.status === 'pass';
     const globalAction = toPlannedAction(external[0]!, globalEnabled, discovery.globalSkill, coreAvailable && discovery.canInstallSkill);
     const registrationAction = toPlannedAction(external[1]!, registrationEnabled, discovery.repository, coreAvailable && discovery.canRegisterRepository);
+    let githubAction: PlannedGitHubLabelMutation;
+    if (includeGitHub) {
+      const githubDiscovery = await this.#github.discover(repository.github);
+      const requiredGitHubAction = requiredGitHubActions(repository.github, githubDiscovery.repositoryNodeId ?? '')[0]!;
+      githubAction = toPlannedGitHubAction(requiredGitHubAction, command.githubMutations !== false, githubDiscovery);
+      for (const blocker of githubPrerequisiteBlockers(repository.github.display, githubDiscovery)) blockers.push(blocker);
+    } else {
+      // This path is used only for local verification. It deliberately omits
+      // remote discovery and therefore cannot enumerate a remote mutation.
+      const localOnlyAction = requiredGitHubActions(repository.github, '')[0]!;
+      githubAction = { ...localOnlyAction, state: 'suppressed', reason: 'Skipped during local post-apply verification.' };
+    }
+    const finalBlockers = [...new Map(
+      blockers.map((blocker) => [`${blocker.code}:${blocker.path}`, blocker]),
+    ).values()].sort((a, b) => a.path.localeCompare(b.path) || a.code.localeCompare(b.code));
+    const finalSummary = {
+      create: files.filter((file) => file.action === 'create').length,
+      update: files.filter((file) => file.action === 'update').length,
+      unchanged: files.filter((file) => file.action === 'unchanged').length,
+      blocked: finalBlockers.length,
+    };
     return {
       schemaVersion: 1,
       command: 'init',
@@ -149,9 +171,9 @@ export class WorkflowProject implements WorkflowProjectContract {
         stability: profiles[command.profile].stability,
       },
       files,
-      blockers: uniqueBlockers,
+      blockers: finalBlockers,
       globalCommands: [globalAction, registrationAction],
-      githubLabelMutations: [],
+      githubLabelMutations: [githubAction],
       validations: [
         'Git worktree and GitHub remote recognized',
         'Configuration validates against schema version 1',
@@ -163,8 +185,8 @@ export class WorkflowProject implements WorkflowProjectContract {
         'Remove every file created by the failed operation',
         'Remove empty directories created by the failed operation',
       ],
-      summary,
-      canApply: uniqueBlockers.length === 0,
+      summary: finalSummary,
+      canApply: finalBlockers.length === 0,
       phase: 'phase-4-orca-application',
     };
   }
@@ -175,6 +197,7 @@ export class WorkflowProject implements WorkflowProjectContract {
       type: 'init', path: plan.repository.root, profile: plan.profile.name,
       global: plan.globalCommands.some((action) => action.id === 'install-orchestration-skill' && action.state !== 'suppressed'),
       orcaRegistration: plan.globalCommands.some((action) => action.id === 'register-repository' && action.state !== 'suppressed'),
+      githubMutations: plan.githubLabelMutations.some((action) => action.state !== 'suppressed'),
     });
     validatePlannedActions(plan, freshPlan);
     if (JSON.stringify(freshPlan) !== JSON.stringify(plan)) {
@@ -202,13 +225,41 @@ export class WorkflowProject implements WorkflowProjectContract {
     }
 
     let verified = false;
+    let githubExecutionAllowed = true;
+    const plannedGitHubActions = plan.githubLabelMutations.filter((action) => action.state === 'planned');
+    const refreshGitHubAuthorization = async (): Promise<void> => {
+      if (plannedGitHubActions.length === 0) return;
+      try {
+        const postApplyGitHub = await this.#github.discover(plan.repository.github);
+        const plannedGitHubAction = plannedGitHubActions[0];
+        if (plannedGitHubAction === undefined) {
+          githubExecutionAllowed = false;
+          return;
+        }
+        const postApplyAction = postApplyGitHub.repositoryNodeId === undefined
+          ? undefined
+          : requiredGitHubActions(plan.repository.github, postApplyGitHub.repositoryNodeId)[0];
+        githubExecutionAllowed = postApplyAction !== undefined
+          && isAuthoritativeMissingLabel(postApplyGitHub)
+          && samePlannedGitHubAction(plannedGitHubAction, postApplyAction);
+      } catch {
+        githubExecutionAllowed = false;
+      }
+    };
     const receipt = writes.length === 0 ? { written: [] as string[], cleanupWarnings: [] as string[] } : await new FileTransaction(this.#filesystem).apply(writes, async () => {
-      const verification = await this.plan({ type: 'init', path: plan.repository.root, profile: plan.profile.name, global: false, orcaRegistration: false });
+      const verification = await this.planInternal({ type: 'init', path: plan.repository.root, profile: plan.profile.name, global: false, orcaRegistration: false }, false);
       verified = verification.blockers.length === 0 && verification.files.every((file) => file.action === 'unchanged');
       if (!verified) throw new Error('Post-apply verification failed.');
+      // Keep the remote read as a diagnostic/authorization refresh, but do not
+      // let an unavailable remote invalidate a consistent local transaction.
+      await refreshGitHubAuthorization();
     });
-    if (writes.length === 0) verified = true;
+    if (writes.length === 0) {
+      verified = true;
+      await refreshGitHubAuthorization();
+    }
     const externalActions: { id: string; status: 'executed' | 'failed'; message: string }[] = [];
+    const githubActions: { id: string; status: 'executed' | 'failed'; message: string }[] = [];
     const plannedActions = plan.globalCommands.filter((action) => action.state === 'planned');
     for (const action of plannedActions) {
       let result: { id: string; status: 'executed' | 'failed'; message: string };
@@ -226,14 +277,60 @@ export class WorkflowProject implements WorkflowProjectContract {
         const reason = writes.length > 0
           ? `Local installation is consistent, but ${result.message}`
           : `No local files changed; ${result.message}${later.length === 0 ? '' : ` Later planned action${later.length === 1 ? '' : 's'} ${later.join(', ')} ${later.length === 1 ? 'was' : 'were'} not attempted.`}`;
-        return { applied: writes.length > 0, reason, written: receipt.written.map((filePath) => path.relative(plan.repository.root, filePath).split(path.sep).join('/')), cleanupWarnings: receipt.cleanupWarnings, verified, externalActions };
+        return {
+          applied: writes.length > 0,
+          reason,
+          written: receipt.written.map((filePath) => path.relative(plan.repository.root, filePath).split(path.sep).join('/')),
+          cleanupWarnings: receipt.cleanupWarnings,
+          verified,
+          externalActions,
+          githubActions,
+        };
+      }
+    }
+    for (const action of plannedGitHubActions) {
+      let result: { id: string; status: 'executed' | 'failed'; message: string };
+      if (!githubExecutionAllowed) {
+        result = {
+          id: action.id,
+          status: 'failed',
+          message: `GitHub action ${action.id} was not executed because post-apply GitHub discovery was unavailable or changed.`,
+        };
+      } else {
+        try {
+          const githubResult = await this.#github.execute(action);
+          result = githubResult.status === 'executed'
+            ? { id: action.id, status: 'executed', message: `GitHub action ${action.id} completed.` }
+            : { id: action.id, status: 'failed', message: `GitHub action ${action.id} failed.` };
+        } catch {
+          result = { id: action.id, status: 'failed', message: `GitHub action ${action.id} could not be executed.` };
+        }
+      }
+      githubActions.push(result);
+      if (result.status === 'failed') {
+        const reason = writes.length > 0
+          ? `Local installation is consistent, but ${result.message}`
+          : `No local files changed; ${result.message}`;
+        return {
+          applied: writes.length > 0,
+          reason,
+          written: receipt.written.map((filePath) => path.relative(plan.repository.root, filePath).split(path.sep).join('/')),
+          cleanupWarnings: receipt.cleanupWarnings,
+          verified,
+          externalActions,
+          githubActions,
+        };
       }
     }
     const reason = writes.length > 0
       ? `Applied ${receipt.written.length} local file changes atomically.`
-      : externalActions.length === 0
+      : externalActions.length === 0 && githubActions.length === 0
         ? 'No local files changed; no Orca actions were executed.'
-        : `No local files changed; ${externalActions.length} Orca actions completed successfully: ${externalActions.map((action) => action.id).join(', ')}.`;
+        : githubActions.length === 0
+          ? `No local files changed; ${externalActions.length} Orca actions completed successfully: ${externalActions.map((action) => action.id).join(', ')}.`
+          : externalActions.length === 0
+            ? `No local files changed; ${githubActions.length} GitHub action${githubActions.length === 1 ? '' : 's'} completed successfully: ${githubActions.map((action) => action.id).join(', ')}.`
+            : `No local files changed; ${externalActions.length} Orca action${externalActions.length === 1 ? '' : 's'} and ${githubActions.length} GitHub action${githubActions.length === 1 ? '' : 's'} completed successfully.`;
     return {
       applied: writes.length > 0,
       reason,
@@ -241,6 +338,7 @@ export class WorkflowProject implements WorkflowProjectContract {
       cleanupWarnings: receipt.cleanupWarnings,
       verified,
       externalActions,
+      githubActions,
     };
   }
 
@@ -251,6 +349,13 @@ export class WorkflowProject implements WorkflowProjectContract {
       status: 'PASS',
       message: `GitHub repository recognized as ${repository.github.display}.`,
     }];
+    const github = await this.#github.discover(repository.github);
+    checks.push(
+      doctorGitHubCheck('github-cli', github.cli),
+      doctorGitHubPrerequisiteCheck('github-auth', github.cli, github.auth),
+      doctorGitHubRepositoryCheck(github),
+      doctorGitHubLabelCheck(github),
+    );
     const orca = await this.#orca.discover(repository.root);
     checks.push(
       doctorOrcaCheck('orca-cli', orca.cli, orca.compatibility),
@@ -450,7 +555,6 @@ export class WorkflowProject implements WorkflowProjectContract {
               ? `Local routing configuration for ${parsedConfig.profile} is structurally complete.`
               : `Local routing configuration for ${parsedConfig.profile} is complete; live Claude-worker validation is still pending.`,
       },
-      { id: 'external-github', status: 'SKIP', message: 'GitHub CLI authentication and label checks arrive in Phase 4.' },
     );
     const summary = { PASS: 0, WARN: 0, FAIL: 0, SKIP: 0 } satisfies Record<DoctorStatus, number>;
     for (const check of checks) summary[check.status] += 1;
@@ -699,13 +803,38 @@ function isClaudeCompatibilityPath(relativePath: string): boolean {
 }
 
 function validatePlannedActions(plan: ChangePlan, freshPlan: ChangePlan): void {
-  const expected = freshPlan.globalCommands;
+  if (plan.globalCommands.length !== freshPlan.globalCommands.length || plan.githubLabelMutations.length !== freshPlan.githubLabelMutations.length) {
+    throw new Error('ChangePlan contains an unsupported external action.');
+  }
   for (const action of plan.globalCommands) {
-    const allowed = expected.find((candidate) => candidate.id === action.id);
-    if (allowed === undefined || allowed.argv.length !== action.argv.length || allowed.argv.some((part, index) => part !== action.argv[index])) {
+    const allowed = freshPlan.globalCommands.find((candidate) => candidate.id === action.id);
+    if (allowed === undefined || !samePlannedAction(action, allowed)) {
       throw new Error('ChangePlan contains an unsupported Orca action or argv.');
     }
   }
+  for (const action of plan.githubLabelMutations) {
+    const allowed = freshPlan.githubLabelMutations.find((candidate) => candidate.id === action.id);
+    if (allowed === undefined || !samePlannedGitHubAction(action, allowed)) {
+      throw new Error('ChangePlan contains an unsupported GitHub action, metadata, or argv.');
+    }
+  }
+}
+
+function samePlannedAction(
+  left: ChangePlan['globalCommands'][number],
+  right: ChangePlan['globalCommands'][number],
+): boolean {
+  return left.target === right.target && left.argv.length === right.argv.length
+    && left.argv.every((part, index) => part === right.argv[index]);
+}
+
+function samePlannedGitHubAction(
+  left: ChangePlan['githubLabelMutations'][number],
+  right: ChangePlan['githubLabelMutations'][number] | ReturnType<typeof requiredGitHubActions>[number],
+): boolean {
+  return left.repositoryNodeId === right.repositoryNodeId && left.target === right.target && left.name === right.name && left.color === right.color
+    && left.description === right.description
+    && left.argv.length === right.argv.length && left.argv.every((part, index) => part === right.argv[index]);
 }
 
 function toPlannedAction(
@@ -721,6 +850,62 @@ function toPlannedAction(
   return { ...action, target, state: 'planned', reason: check.message };
 }
 
+function toPlannedGitHubAction(
+  action: ReturnType<typeof requiredGitHubActions>[number],
+  enabled: boolean,
+  discovery: GitHubDiscovery,
+): PlannedGitHubLabelMutation {
+  if (!enabled) return { ...action, state: 'suppressed', reason: 'Disabled by this init invocation.' };
+  if (isAuthoritativeMissingLabel(discovery)) {
+    return { ...action, state: 'planned', reason: discovery.label.message };
+  }
+  if (discovery.labelState === 'exact') {
+    return { ...action, state: 'already-satisfied', reason: discovery.label.message };
+  }
+  if (discovery.labelState === 'drift') {
+    return { ...action, state: 'already-satisfied', reason: discovery.label.message };
+  }
+  return { ...action, state: 'unavailable', reason: discovery.label.message };
+}
+
+function isAuthoritativeMissingLabel(discovery: GitHubDiscovery): boolean {
+  return discovery.cli.status === 'pass'
+    && discovery.auth.status === 'pass'
+    && discovery.repository.status === 'pass'
+    && typeof discovery.repositoryNodeId === 'string'
+    && discovery.repositoryNodeId.length > 0
+    && typeof discovery.repositoryNameWithOwner === 'string'
+    && discovery.labelState === 'missing'
+    && discovery.canCreateLabel;
+}
+
+function githubPrerequisiteBlockers(repositoryDisplay: string, discovery: GitHubDiscovery): PlanBlocker[] {
+  const blockers: PlanBlocker[] = [];
+  if (discovery.cli.status !== 'pass') blockers.push({
+    code: 'github-prerequisite',
+    path: repositoryDisplay,
+    message: discovery.cli.message,
+  });
+  else if (discovery.auth.status !== 'pass') blockers.push({
+    code: 'github-prerequisite',
+    path: repositoryDisplay,
+    message: discovery.auth.message,
+  });
+  else if (discovery.repository.status !== 'pass') blockers.push({
+    code: 'github-prerequisite',
+    path: repositoryDisplay,
+    message: discovery.repository.message,
+  });
+  else if (discovery.label.status !== 'pass'
+    && !(discovery.labelState === 'missing' && discovery.canCreateLabel)
+    && discovery.labelState !== 'drift' && discovery.labelState !== 'exact') blockers.push({
+    code: 'github-prerequisite',
+    path: repositoryDisplay,
+    message: discovery.label.message,
+  });
+  return blockers;
+}
+
 function doctorCheck(id: string, check: OrcaCheck): DoctorCheck {
   return { id, status: check.status === 'pass' ? 'PASS' : check.status === 'fail' ? 'FAIL' : 'SKIP', message: check.message };
 }
@@ -728,6 +913,27 @@ function doctorCheck(id: string, check: OrcaCheck): DoctorCheck {
 function doctorOrcaCheck(id: string, cli: OrcaCheck, compatibility: OrcaCheck): DoctorCheck {
   if (cli.status === 'fail') return doctorCheck(id, cli);
   return doctorCheck(id, compatibility);
+}
+
+function doctorGitHubCheck(id: string, check: GitHubCheck): DoctorCheck {
+  return { id, status: check.status === 'pass' ? 'PASS' : check.status === 'warn' ? 'WARN' : check.status === 'fail' ? 'FAIL' : 'SKIP', message: check.message };
+}
+
+function doctorGitHubPrerequisiteCheck(id: string, prerequisite: GitHubCheck, check: GitHubCheck): DoctorCheck {
+  return prerequisite.status !== 'pass' ? { id, status: 'SKIP', message: `Skipped because the GitHub prerequisite check did not pass: ${prerequisite.message}` } : doctorGitHubCheck(id, check);
+}
+
+function doctorGitHubRepositoryCheck(discovery: GitHubDiscovery): DoctorCheck {
+  if (discovery.cli.status !== 'pass') return { id: 'github-repository', status: 'SKIP', message: 'Skipped because GitHub CLI is unavailable.' };
+  if (discovery.auth.status !== 'pass') return { id: 'github-repository', status: 'SKIP', message: 'Skipped because GitHub authentication did not pass.' };
+  return doctorGitHubCheck('github-repository', discovery.repository);
+}
+
+function doctorGitHubLabelCheck(discovery: GitHubDiscovery): DoctorCheck {
+  if (discovery.cli.status !== 'pass') return { id: 'github-ready-for-agent-label', status: 'SKIP', message: 'Skipped because GitHub CLI is unavailable.' };
+  if (discovery.auth.status !== 'pass') return { id: 'github-ready-for-agent-label', status: 'SKIP', message: 'Skipped because GitHub authentication did not pass.' };
+  if (discovery.repository.status !== 'pass') return { id: 'github-ready-for-agent-label', status: 'SKIP', message: 'Skipped because the GitHub repository could not be verified.' };
+  return doctorGitHubCheck('github-ready-for-agent-label', discovery.label);
 }
 
 function toDoctorStatus(status: HarnessCheckStatus): DoctorStatus {

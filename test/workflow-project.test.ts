@@ -6,6 +6,7 @@ import { InMemoryFileSystem } from '../src/adapters/filesystem/in-memory-filesys
 import { NodeFileSystem } from '../src/adapters/filesystem/node-filesystem.js';
 import { FakeHarnessAdapter } from '../src/adapters/harness/fake-harness.js';
 import { FakeOrcaAdapter } from '../src/adapters/orca/fake-orca.js';
+import { FakeGitHubAdapter } from '../src/adapters/github/fake-github.js';
 import { NodeOrcaAdapter } from '../src/adapters/orca/node-orca.js';
 import type { ClaudeHarnessReport } from '../src/adapters/harness/harness.js';
 import { renderDesiredArtifacts } from '../src/artifacts/render.js';
@@ -16,6 +17,7 @@ import type { RepositoryInspection } from '../src/repository/inspection.js';
 import { sha256 } from '../src/shared/hash.js';
 import { WorkflowProject } from '../src/workflow-project/workflow-project.js';
 import type { OrcaAction, OrcaActionReceipt, OrcaAdapter, OrcaDiscovery } from '../src/adapters/orca/orca.js';
+import type { GitHubActionReceipt, GitHubAdapter, GitHubDiscovery, GitHubLabelAction } from '../src/adapters/github/github.js';
 
 const root = path.resolve('/fixture/repository');
 const inspection: RepositoryInspection = {
@@ -44,6 +46,7 @@ function createWorkflow(
       readiness: { status: 'pass', message: 'fake' }, globalSkill: { status: 'pass', message: 'fake' },
       repository: { status: 'pass', message: 'fake' }, canInstallSkill: true, canRegisterRepository: true,
     }),
+    github: new FakeGitHubAdapter(),
   });
   return { filesystem, workflow };
 }
@@ -62,6 +65,21 @@ function orcaDiscovery(overrides: Partial<OrcaDiscovery> = {}): OrcaDiscovery {
   };
 }
 
+function githubDiscovery(overrides: Partial<GitHubDiscovery> = {}): GitHubDiscovery {
+  const check = { status: 'pass' as const, message: 'fake' };
+  return {
+    cli: check,
+    auth: check,
+    repository: check,
+    repositoryNodeId: 'R_fake_repository',
+    repositoryNameWithOwner: 'DYEWolf/example',
+    label: check,
+    labelState: 'exact',
+    canCreateLabel: false,
+    ...overrides,
+  };
+}
+
 class MutableOrcaAdapter implements OrcaAdapter {
   public actions: OrcaAction[] = [];
   public constructor(public discovery: OrcaDiscovery, private readonly failure?: OrcaAction['id']) {}
@@ -70,6 +88,27 @@ class MutableOrcaAdapter implements OrcaAdapter {
     this.actions.push(action);
     if (action.id === this.failure) return { id: action.id, status: 'failed', message: 'unsafe fake diagnostic secret-sentinel' };
     return { id: action.id, status: 'executed', message: 'unsafe fake success secret-sentinel' };
+  }
+}
+
+class SequencedGitHubAdapter implements GitHubAdapter {
+  public readonly actions: GitHubLabelAction[] = [];
+  public discoveryCalls = 0;
+  private readonly discoveries: readonly GitHubDiscovery[];
+
+  public constructor(...discoveries: readonly GitHubDiscovery[]) {
+    this.discoveries = discoveries;
+  }
+
+  public async discover(_repository: RepositoryInspection['github']): Promise<GitHubDiscovery> {
+    const index = Math.min(this.discoveryCalls, this.discoveries.length - 1);
+    this.discoveryCalls += 1;
+    return this.discoveries[index]!;
+  }
+
+  public async execute(action: GitHubLabelAction): Promise<GitHubActionReceipt> {
+    this.actions.push(action);
+    return { id: action.id, status: 'executed', message: 'fake GitHub action executed' };
   }
 }
 
@@ -86,13 +125,95 @@ describe('WorkflowProject planning', () => {
     expect(first.canApply).toBe(true);
   });
 
+  it('enumerates one missing GitHub label action with exact metadata and supports independent suppression', async () => {
+    const github = new FakeGitHubAdapter(githubDiscovery({
+      label: { status: 'fail', message: 'label missing' },
+      labelState: 'missing',
+      canCreateLabel: true,
+    }));
+    const workflow = new WorkflowProject({
+      filesystem: new InMemoryFileSystem(root),
+      inspect: async () => inspection,
+      orca: new FakeOrcaAdapter(orcaDiscovery()),
+      github,
+    });
+    const plan = await workflow.plan({ type: 'init', path: root, profile: 'codex-only' });
+    expect(plan.githubLabelMutations).toHaveLength(1);
+    expect(plan.githubLabelMutations[0]).toMatchObject({
+      id: 'create-ready-for-agent-label', target: inspection.github.display,
+      name: 'ready-for-agent', color: '0E8A16',
+      description: 'Approved, executable, unblocked implementation issue ready to be claimed.',
+      state: 'planned',
+    });
+    expect(plan.blockers).toEqual([]);
+    const suppressed = await workflow.plan({ type: 'init', path: root, profile: 'codex-only', githubMutations: false });
+    expect(suppressed.githubLabelMutations[0]?.state).toBe('suppressed');
+    expect(suppressed.blockers).toEqual([]);
+  });
+
+  it('executes a missing label after local writes, preserves local writes on remote failure, and stops after Orca failure', async () => {
+    const github = new FakeGitHubAdapter(githubDiscovery({
+      label: { status: 'fail', message: 'label missing' }, labelState: 'missing', canCreateLabel: true,
+    }), ['create-ready-for-agent-label']);
+    const filesystem = new InMemoryFileSystem(root);
+    const workflow = new WorkflowProject({ filesystem, inspect: async () => inspection, orca: new FakeOrcaAdapter(orcaDiscovery({
+      globalSkill: { status: 'pass', message: 'already' }, repository: { status: 'pass', message: 'already' },
+    })), github });
+    const receipt = await workflow.apply(await workflow.plan({ type: 'init', path: root, profile: 'codex-only', global: false, orcaRegistration: false }));
+    expect(receipt).toMatchObject({ applied: true, verified: true, githubActions: [{ id: 'create-ready-for-agent-label', status: 'failed' }] });
+    expect(await filesystem.exists(path.join(root, '.agent-orchestration-kit/config.yaml'))).toBe(true);
+
+    const blockedGithub = new FakeGitHubAdapter(githubDiscovery({
+      label: { status: 'fail', message: 'label missing' }, labelState: 'missing', canCreateLabel: true,
+    }));
+    const stopped = new WorkflowProject({
+      filesystem: new InMemoryFileSystem(root), inspect: async () => inspection,
+      orca: new FakeOrcaAdapter(orcaDiscovery({ globalSkill: { status: 'fail', message: 'skill failed' } }), ['install-orchestration-skill']),
+      github: blockedGithub,
+    });
+    await stopped.apply(await stopped.plan({ type: 'init', path: root, profile: 'codex-only' }));
+    expect(blockedGithub.actions).toEqual([]);
+  });
+
+  it('treats label metadata drift as already satisfied, diagnoses prerequisite failures, and rejects stale GitHub state', async () => {
+    const driftGithub = new FakeGitHubAdapter(githubDiscovery({
+      label: { status: 'warn', message: 'metadata drift' }, labelState: 'drift', canCreateLabel: false,
+    }));
+    const driftWorkflow = new WorkflowProject({ filesystem: new InMemoryFileSystem(root), inspect: async () => inspection, orca: new FakeOrcaAdapter(orcaDiscovery()), github: driftGithub });
+    const driftPlan = await driftWorkflow.plan({ type: 'init', path: root, profile: 'codex-only' });
+    expect(driftPlan.githubLabelMutations[0]?.state).toBe('already-satisfied');
+    expect(driftPlan.blockers).toEqual([]);
+    expect((await driftWorkflow.doctor(root)).checks).toContainEqual(expect.objectContaining({ id: 'github-ready-for-agent-label', status: 'WARN' }));
+
+    const missingGithub = new FakeGitHubAdapter(githubDiscovery({
+      auth: { status: 'fail', message: 'auth failed' }, label: { status: 'skip', message: 'not checked' }, labelState: 'unavailable',
+    }));
+    const missingWorkflow = new WorkflowProject({ filesystem: new InMemoryFileSystem(root), inspect: async () => inspection, orca: new FakeOrcaAdapter(orcaDiscovery()), github: missingGithub });
+    const missingPlan = await missingWorkflow.plan({ type: 'init', path: root, profile: 'codex-only', githubMutations: false });
+    expect(missingPlan.blockers).toContainEqual(expect.objectContaining({ code: 'github-prerequisite' }));
+    expect((await missingWorkflow.doctor(root)).checks).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'github-auth', status: 'FAIL' }),
+      expect.objectContaining({ id: 'github-repository', status: 'SKIP' }),
+      expect.objectContaining({ id: 'github-ready-for-agent-label', status: 'SKIP' }),
+    ]));
+
+    const mutableGithub = new FakeGitHubAdapter(githubDiscovery({
+      label: { status: 'fail', message: 'label missing' }, labelState: 'missing', canCreateLabel: true,
+    }));
+    const mutableWorkflow = new WorkflowProject({ filesystem: new InMemoryFileSystem(root), inspect: async () => inspection, orca: new FakeOrcaAdapter(orcaDiscovery()), github: mutableGithub });
+    const stalePlan = await mutableWorkflow.plan({ type: 'init', path: root, profile: 'codex-only' });
+    mutableGithub.discovery = githubDiscovery();
+    await expect(mutableWorkflow.apply(stalePlan)).rejects.toThrow('ChangePlan is stale; repository state changed after planning.');
+    expect(mutableGithub.actions).toEqual([]);
+  });
+
   it('enumerates global skill and repository registration independently, including disable states', async () => {
     const orca = new FakeOrcaAdapter({
       cli: { status: 'pass', message: 'fake' }, compatibility: { status: 'pass', message: 'fake' }, readiness: { status: 'pass', message: 'fake' },
       globalSkill: { status: 'fail', message: 'skill absent' }, repository: { status: 'fail', message: 'repo absent' }, canInstallSkill: true, canRegisterRepository: true,
     });
     const filesystem = new InMemoryFileSystem(root);
-    const workflow = new WorkflowProject({ filesystem, inspect: async () => inspection, orca });
+    const workflow = new WorkflowProject({ filesystem, inspect: async () => inspection, orca, github: new FakeGitHubAdapter() });
     const plan = await workflow.plan({ type: 'init', path: root, profile: 'codex-only', global: false });
     expect(plan.globalCommands).toEqual([
       expect.objectContaining({ id: 'install-orchestration-skill', state: 'suppressed', argv: ['skills', 'install', '--skill', 'orchestration'] }),
@@ -108,18 +229,55 @@ describe('WorkflowProject planning', () => {
       globalSkill: { status: 'fail', message: 'skill absent' }, repository: { status: 'fail', message: 'repo absent' }, canInstallSkill: true, canRegisterRepository: true,
     }, ['install-orchestration-skill']);
     const filesystem = new InMemoryFileSystem(root);
-    const workflow = new WorkflowProject({ filesystem, inspect: async () => inspection, orca });
+    const workflow = new WorkflowProject({ filesystem, inspect: async () => inspection, orca, github: new FakeGitHubAdapter() });
     const receipt = await workflow.apply(await workflow.plan({ type: 'init', path: root, profile: 'codex-only' }));
     expect(receipt).toMatchObject({ applied: true, verified: true, externalActions: [{ id: 'install-orchestration-skill', status: 'failed' }] });
     expect(orca.actions).toEqual([{ id: 'install-orchestration-skill', argv: ['skills', 'install', '--skill', 'orchestration'] }]);
     expect(await filesystem.exists(path.join(root, '.agent-orchestration-kit/config.yaml'))).toBe(true);
   });
 
+  it('keeps a consistent local installation when post-apply GitHub discovery becomes unavailable', async () => {
+    const missing = githubDiscovery({
+      label: { status: 'fail', message: 'label missing' },
+      labelState: 'missing',
+      canCreateLabel: true,
+    });
+    const unavailable = githubDiscovery({
+      cli: { status: 'fail', message: 'GitHub CLI unavailable' },
+      auth: { status: 'skip', message: 'not checked' },
+      repository: { status: 'skip', message: 'not checked' },
+      label: { status: 'skip', message: 'not checked' },
+      labelState: 'unavailable',
+      canCreateLabel: false,
+    });
+    const github = new SequencedGitHubAdapter(missing, missing, unavailable);
+    const filesystem = new InMemoryFileSystem(root);
+    const workflow = new WorkflowProject({
+      filesystem,
+      inspect: async () => inspection,
+      orca: new FakeOrcaAdapter(orcaDiscovery()),
+      github,
+    });
+    const plan = await workflow.plan({ type: 'init', path: root, profile: 'codex-only', global: false, orcaRegistration: false });
+    const receipt = await workflow.apply(plan);
+
+    expect(receipt).toMatchObject({ applied: true, verified: true });
+    expect(receipt.githubActions).toEqual([{
+      id: 'create-ready-for-agent-label',
+      status: 'failed',
+      message: 'GitHub action create-ready-for-agent-label was not executed because post-apply GitHub discovery was unavailable or changed.',
+    }]);
+    expect(github.discoveryCalls).toBe(3);
+    expect(github.actions).toEqual([]);
+    expect(await filesystem.exists(path.join(root, '.agent-orchestration-kit/config.yaml'))).toBe(true);
+    expect(receipt.reason).toContain('Local installation is consistent');
+  });
+
   it('plans each external action independently as planned or already satisfied', async () => {
     const skillMissing = new MutableOrcaAdapter(orcaDiscovery({
       globalSkill: { status: 'fail', message: 'skill absent' },
     }));
-    const skillWorkflow = new WorkflowProject({ filesystem: new InMemoryFileSystem(root), inspect: async () => inspection, orca: skillMissing });
+    const skillWorkflow = new WorkflowProject({ filesystem: new InMemoryFileSystem(root), inspect: async () => inspection, orca: skillMissing, github: new FakeGitHubAdapter() });
     const skillPlan = await skillWorkflow.plan({ type: 'init', path: root, profile: 'codex-only' });
     expect(skillPlan.globalCommands).toEqual([
       expect.objectContaining({ id: 'install-orchestration-skill', state: 'planned' }),
@@ -129,7 +287,7 @@ describe('WorkflowProject planning', () => {
     const repoMissing = new MutableOrcaAdapter(orcaDiscovery({
       repository: { status: 'fail', message: 'repo absent' },
     }));
-    const repoWorkflow = new WorkflowProject({ filesystem: new InMemoryFileSystem(root), inspect: async () => inspection, orca: repoMissing });
+    const repoWorkflow = new WorkflowProject({ filesystem: new InMemoryFileSystem(root), inspect: async () => inspection, orca: repoMissing, github: new FakeGitHubAdapter() });
     const repoPlan = await repoWorkflow.plan({ type: 'init', path: root, profile: 'codex-only' });
     expect(repoPlan.globalCommands).toEqual([
       expect.objectContaining({ id: 'install-orchestration-skill', state: 'already-satisfied' }),
@@ -143,7 +301,7 @@ describe('WorkflowProject planning', () => {
       globalSkill: { status: 'fail', message: 'skills installed command failed' }, repository: { status: 'fail', message: 'repo absent' },
       canInstallSkill: false, canRegisterRepository: true,
     });
-    const skillFailedWorkflow = new WorkflowProject({ filesystem: new InMemoryFileSystem(root), inspect: async () => inspection, orca: skillReadFailed });
+    const skillFailedWorkflow = new WorkflowProject({ filesystem: new InMemoryFileSystem(root), inspect: async () => inspection, orca: skillReadFailed, github: new FakeGitHubAdapter() });
     const skillFailedPlan = await skillFailedWorkflow.plan({ type: 'init', path: root, profile: 'codex-only' });
     expect(skillFailedPlan.globalCommands.map((action) => action.state)).toEqual(['unavailable', 'planned']);
     await skillFailedWorkflow.apply(skillFailedPlan);
@@ -154,7 +312,7 @@ describe('WorkflowProject planning', () => {
       globalSkill: { status: 'fail', message: 'skill absent' }, repository: { status: 'fail', message: 'repo list returned malformed JSON' },
       canInstallSkill: true, canRegisterRepository: false,
     });
-    const repositoryFailedWorkflow = new WorkflowProject({ filesystem: new InMemoryFileSystem(root), inspect: async () => inspection, orca: repositoryReadFailed });
+    const repositoryFailedWorkflow = new WorkflowProject({ filesystem: new InMemoryFileSystem(root), inspect: async () => inspection, orca: repositoryReadFailed, github: new FakeGitHubAdapter() });
     const repositoryFailedPlan = await repositoryFailedWorkflow.plan({ type: 'init', path: root, profile: 'codex-only' });
     expect(repositoryFailedPlan.globalCommands.map((action) => action.state)).toEqual(['planned', 'unavailable']);
     await repositoryFailedWorkflow.apply(repositoryFailedPlan);
@@ -170,7 +328,7 @@ describe('WorkflowProject planning', () => {
       canInstallSkill: false,
       canRegisterRepository: false,
     }));
-    const workflow = new WorkflowProject({ filesystem: new InMemoryFileSystem(root), inspect: async () => inspection, orca });
+    const workflow = new WorkflowProject({ filesystem: new InMemoryFileSystem(root), inspect: async () => inspection, orca, github: new FakeGitHubAdapter() });
     const plan = await workflow.plan({ type: 'init', path: root, profile: 'codex-only' });
     expect(plan.globalCommands.every((action) => action.state === 'unavailable')).toBe(true);
     const suppressed = await workflow.plan({ type: 'init', path: root, profile: 'codex-only', global: false, orcaRegistration: false });
@@ -182,7 +340,7 @@ describe('WorkflowProject planning', () => {
       globalSkill: { status: 'fail', message: 'skill absent' },
       repository: { status: 'fail', message: 'repo absent' },
     }));
-    const workflow = new WorkflowProject({ filesystem: new InMemoryFileSystem(root), inspect: async () => inspection, orca });
+    const workflow = new WorkflowProject({ filesystem: new InMemoryFileSystem(root), inspect: async () => inspection, orca, github: new FakeGitHubAdapter() });
     const noGlobal = await workflow.plan({ type: 'init', path: root, profile: 'codex-only', global: false });
     expect(noGlobal.globalCommands.map((action) => action.state)).toEqual(['suppressed', 'planned']);
     const noRegistration = await workflow.plan({ type: 'init', path: root, profile: 'codex-only', orcaRegistration: false });
@@ -197,7 +355,7 @@ describe('WorkflowProject planning', () => {
       repository: { status: 'fail', message: 'repo absent' },
     }), 'install-orchestration-skill');
     const filesystem = new InMemoryFileSystem(root);
-    const workflow = new WorkflowProject({ filesystem, inspect: async () => inspection, orca });
+    const workflow = new WorkflowProject({ filesystem, inspect: async () => inspection, orca, github: new FakeGitHubAdapter() });
     const receipt = await workflow.apply(await workflow.plan({ type: 'init', path: root, profile: 'codex-only' }));
     expect(receipt.externalActions).toEqual([
       { id: 'install-orchestration-skill', status: 'failed', message: 'Orca action install-orchestration-skill failed.' },
@@ -216,7 +374,7 @@ describe('WorkflowProject planning', () => {
       repository: { status: 'fail', message: 'repo absent' },
     }));
     const filesystem = new InMemoryFileSystem(root, files);
-    const workflow = new WorkflowProject({ filesystem, inspect: async () => inspection, orca });
+    const workflow = new WorkflowProject({ filesystem, inspect: async () => inspection, orca, github: new FakeGitHubAdapter() });
     const receipt = await workflow.apply(await workflow.plan({ type: 'init', path: root, profile: 'codex-only' }));
     expect(receipt).toMatchObject({ applied: false, written: [], verified: true });
     expect(receipt.externalActions).toEqual([
@@ -238,7 +396,7 @@ describe('WorkflowProject planning', () => {
       repository: { status: 'fail', message: 'repo absent' },
     }), 'install-orchestration-skill');
     const filesystem = new InMemoryFileSystem(root, files);
-    const workflow = new WorkflowProject({ filesystem, inspect: async () => inspection, orca });
+    const workflow = new WorkflowProject({ filesystem, inspect: async () => inspection, orca, github: new FakeGitHubAdapter() });
     const receipt = await workflow.apply(await workflow.plan({ type: 'init', path: root, profile: 'codex-only' }));
     expect(receipt).toMatchObject({ applied: false, written: [], verified: true });
     expect(receipt.externalActions).toEqual([
@@ -271,6 +429,7 @@ describe('WorkflowProject planning', () => {
         filesystem: new NodeFileSystem(),
         inspect: async () => nodeInspection,
         orca,
+        github: new FakeGitHubAdapter(),
       });
       const plan = await workflow.plan({ type: 'init', path: worktreeRoot, profile: 'codex-only' });
       const registration = plan.globalCommands.find((action) => action.id === 'register-repository');
@@ -289,7 +448,7 @@ describe('WorkflowProject planning', () => {
     const orca = new MutableOrcaAdapter(orcaDiscovery({
       globalSkill: { status: 'fail', message: 'skill absent' },
     }));
-    const workflow = new WorkflowProject({ filesystem: new InMemoryFileSystem(root), inspect: async () => inspection, orca });
+    const workflow = new WorkflowProject({ filesystem: new InMemoryFileSystem(root), inspect: async () => inspection, orca, github: new FakeGitHubAdapter() });
     const plan = await workflow.plan({ type: 'init', path: root, profile: 'codex-only' });
     orca.discovery = orcaDiscovery();
     await expect(workflow.apply(plan)).rejects.toThrow('ChangePlan is stale; repository state changed after planning.');
@@ -302,7 +461,7 @@ describe('WorkflowProject planning', () => {
       repository: { status: 'fail', message: 'repo absent' },
     }));
     const filesystem = new InMemoryFileSystem(root);
-    const workflow = new WorkflowProject({ filesystem, inspect: async () => inspection, orca });
+    const workflow = new WorkflowProject({ filesystem, inspect: async () => inspection, orca, github: new FakeGitHubAdapter() });
     const plan = await workflow.plan({ type: 'init', path: root, profile: 'codex-only', global: false });
     const forged = {
       ...plan,
@@ -312,6 +471,103 @@ describe('WorkflowProject planning', () => {
     };
     await expect(workflow.apply(forged)).rejects.toThrow('unsupported Orca action or argv');
     expect(orca.actions).toEqual([]);
+  });
+
+  it('rejects forged, duplicate, or missing GitHub actions before any writes', async () => {
+    const github = new FakeGitHubAdapter(githubDiscovery({
+      label: { status: 'fail', message: 'label missing' }, labelState: 'missing', canCreateLabel: true,
+    }));
+    const filesystem = new InMemoryFileSystem(root);
+    const orca = new MutableOrcaAdapter(orcaDiscovery());
+    const workflow = new WorkflowProject({ filesystem, inspect: async () => inspection, orca, github });
+    const plan = await workflow.plan({ type: 'init', path: root, profile: 'codex-only' });
+    const action = plan.githubLabelMutations[0]!;
+    const forgedPlans = [
+      { ...plan, githubLabelMutations: [{ ...action, repositoryNodeId: 'R_forged' }] },
+      { ...plan, githubLabelMutations: [{ ...action, target: '/secret-sentinel' }] },
+      { ...plan, githubLabelMutations: [{ ...action, name: 'forged' as typeof action.name }] },
+      { ...plan, githubLabelMutations: [{ ...action, color: 'FFFFFF' as typeof action.color }] },
+      { ...plan, githubLabelMutations: [{ ...action, description: 'forged' as typeof action.description }] },
+      { ...plan, githubLabelMutations: [{ ...action, argv: ['label', 'create', 'secret-sentinel'] }] },
+      { ...plan, githubLabelMutations: [{ ...action, state: 'already-satisfied' as const }] },
+      { ...plan, githubLabelMutations: [action, action] },
+      { ...plan, githubLabelMutations: [] },
+    ];
+    for (const forged of forgedPlans) {
+      await expect(workflow.apply(forged)).rejects.toThrow();
+      expect(filesystem.snapshot()).toEqual({});
+      expect(orca.actions).toEqual([]);
+      expect(github.actions).toEqual([]);
+    }
+  });
+
+  it('rejects a changed repository node ID before local or remote mutation', async () => {
+    const missing = githubDiscovery({
+      label: { status: 'fail', message: 'label missing' }, labelState: 'missing', canCreateLabel: true,
+    });
+    const changedId = githubDiscovery({
+      repositoryNodeId: 'R_changed',
+      label: { status: 'fail', message: 'label missing' }, labelState: 'missing', canCreateLabel: true,
+    });
+    const github = new SequencedGitHubAdapter(missing, changedId);
+    const filesystem = new InMemoryFileSystem(root);
+    const workflow = new WorkflowProject({
+      filesystem, inspect: async () => inspection, orca: new FakeOrcaAdapter(orcaDiscovery()), github,
+    });
+    const plan = await workflow.plan({ type: 'init', path: root, profile: 'codex-only', global: false, orcaRegistration: false });
+    await expect(workflow.apply(plan)).rejects.toThrow('unsupported GitHub action');
+    expect(filesystem.snapshot()).toEqual({});
+    expect(github.actions).toEqual([]);
+  });
+
+  it('keeps local success but refuses GitHub mutation after post-apply identity drift', async () => {
+    const missing = githubDiscovery({
+      label: { status: 'fail', message: 'label missing' }, labelState: 'missing', canCreateLabel: true,
+    });
+    const changedId = githubDiscovery({
+      repositoryNodeId: 'R_changed',
+      label: { status: 'fail', message: 'label missing' }, labelState: 'missing', canCreateLabel: true,
+    });
+    const github = new SequencedGitHubAdapter(missing, missing, changedId);
+    const filesystem = new InMemoryFileSystem(root);
+    const workflow = new WorkflowProject({
+      filesystem, inspect: async () => inspection, orca: new FakeOrcaAdapter(orcaDiscovery()), github,
+    });
+    const plan = await workflow.plan({ type: 'init', path: root, profile: 'codex-only', global: false, orcaRegistration: false });
+    const receipt = await workflow.apply(plan);
+    expect(receipt).toMatchObject({ applied: true, verified: true, githubActions: [{ status: 'failed' }] });
+    expect(receipt.reason).toContain('post-apply GitHub discovery was unavailable or changed');
+    expect(github.actions).toEqual([]);
+    expect(await filesystem.exists(path.join(root, '.agent-orchestration-kit/config.yaml'))).toBe(true);
+  });
+
+  it.each([
+    ['renamed repository with same node ID', githubDiscovery({
+      repository: { status: 'fail', reason: 'repository-identity-mismatch', message: 'repository renamed' },
+      repositoryNodeId: 'R_fake_repository',
+      repositoryNameWithOwner: 'DYEWolf/renamed',
+      label: { status: 'skip', message: 'not checked' }, labelState: 'unavailable', canCreateLabel: false,
+    })],
+    ['renamed repository with a different node ID', githubDiscovery({
+      repository: { status: 'fail', reason: 'repository-identity-mismatch', message: 'repository renamed' },
+      repositoryNodeId: 'R_changed',
+      repositoryNameWithOwner: 'DYEWolf/renamed',
+      label: { status: 'skip', message: 'not checked' }, labelState: 'unavailable', canCreateLabel: false,
+    })],
+  ] as const)('refuses GitHub mutation after %s during post-apply discovery', async (_label, renamed) => {
+    const missing = githubDiscovery({
+      label: { status: 'fail', message: 'label missing' }, labelState: 'missing', canCreateLabel: true,
+    });
+    const github = new SequencedGitHubAdapter(missing, missing, renamed);
+    const filesystem = new InMemoryFileSystem(root);
+    const workflow = new WorkflowProject({
+      filesystem, inspect: async () => inspection, orca: new FakeOrcaAdapter(orcaDiscovery()), github,
+    });
+    const receipt = await workflow.apply(await workflow.plan({
+      type: 'init', path: root, profile: 'codex-only', global: false, orcaRegistration: false,
+    }));
+    expect(receipt.githubActions).toEqual([expect.objectContaining({ status: 'failed' })]);
+    expect(github.actions).toEqual([]);
   });
 
   it('uses exactly the four stable Orca Doctor IDs', async () => {
@@ -370,6 +626,7 @@ describe('WorkflowProject planning', () => {
       inspect: async () => inspection,
       harness: codexHarness,
       orca: codexOrca,
+      github: new FakeGitHubAdapter(),
     });
     await codexWorkflow.apply(await codexWorkflow.plan({ type: 'init', path: root, profile: 'codex-only' }));
     const codexReport = await codexWorkflow.doctor(root);
@@ -387,6 +644,7 @@ describe('WorkflowProject planning', () => {
       inspect: async () => inspection,
       harness: claudeHarness,
       orca: claudeOrca,
+      github: new FakeGitHubAdapter(),
     });
     await claudeWorkflow.apply(await claudeWorkflow.plan({ type: 'init', path: root, profile: 'claude-coordinator' }));
     const claudeReport = await claudeWorkflow.doctor(root);
@@ -416,7 +674,7 @@ describe('WorkflowProject planning', () => {
     const harness = new FakeHarnessAdapter({ report });
     const { filesystem } = createWorkflow();
     const orca = new FakeOrcaAdapter(orcaDiscovery());
-    const workflow = new WorkflowProject({ filesystem, inspect: async () => inspection, harness, orca });
+    const workflow = new WorkflowProject({ filesystem, inspect: async () => inspection, harness, orca, github: new FakeGitHubAdapter() });
     await workflow.apply(await workflow.plan({ type: 'init', path: root, profile: 'claude-only' }));
     const doctor = await workflow.doctor(root);
     expect(orca.actions).toEqual([]);
@@ -514,7 +772,7 @@ describe('WorkflowProject planning', () => {
 
     const filesystem = new RedirectingFileSystem(root, { 'docs/agents/domain.md': '# outside\n' });
     const orca = new FakeOrcaAdapter(orcaDiscovery());
-    const workflow = new WorkflowProject({ filesystem, inspect: async () => inspection, orca });
+    const workflow = new WorkflowProject({ filesystem, inspect: async () => inspection, orca, github: new FakeGitHubAdapter() });
     const plan = await workflow.plan({ type: 'init', path: root, profile: 'codex-only' });
     expect(orca.actions).toEqual([]);
     expect(plan.blockers).toContainEqual(expect.objectContaining({
@@ -537,6 +795,7 @@ describe('WorkflowProject planning', () => {
         filesystem: new NodeFileSystem(),
         inspect: async () => nodeInspection,
         orca: new FakeOrcaAdapter(orcaDiscovery()),
+        github: new FakeGitHubAdapter(),
       });
       const plan = await workflow.plan({ type: 'init', path: temporaryRoot, profile: 'codex-only' });
       expect(plan.blockers).toContainEqual(expect.objectContaining({
@@ -565,6 +824,7 @@ describe('WorkflowProject planning', () => {
           filesystem: new NodeFileSystem(),
           inspect: async () => nodeInspection,
           orca: new FakeOrcaAdapter(orcaDiscovery()),
+          github: new FakeGitHubAdapter(),
         });
         const plan = await workflow.plan({ type: 'init', path: candidateRoot, profile: 'codex-only' });
         expect(plan.blockers.some((blocker) => blocker.code === 'collision')).toBe(true);
