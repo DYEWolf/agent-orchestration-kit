@@ -3,7 +3,7 @@
 This directory is the source for the catalog-derived skill bundle. Reviewed
 upstream bodies retain structural Orca overlays, maintainer-side patches, full
 MIT attribution, and exact provenance; first-party skills retain explicit
-`orca-kit` authorship and source/render hashes. The catalog, not a hard-coded
+`agent-orchestration-kit` authorship and source/render hashes. The catalog, not a hard-coded
 inventory, determines generated installation artifacts and discovery wrappers.
 
 `init` must only read package-local snapshots from this directory. It must never

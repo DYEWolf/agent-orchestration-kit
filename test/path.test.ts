@@ -7,8 +7,8 @@ describe('repository path validation', () => {
   const root = path.resolve('/safe/repository');
 
   it('accepts nested relative paths', () => {
-    expect(resolveInsideRepository(root, '.orca-kit/config.yaml')).toBe(
-      path.join(root, '.orca-kit/config.yaml'),
+    expect(resolveInsideRepository(root, '.agent-orchestration-kit/config.yaml')).toBe(
+      path.join(root, '.agent-orchestration-kit/config.yaml'),
     );
   });
 

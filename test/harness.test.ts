@@ -33,7 +33,7 @@ describe('NodeHarnessAdapter', () => {
     ['malformed auth', 'auth-malformed', 'pass', 'none', 'pass', 'none', 'fail', 'malformed'],
     ['auth command failure', 'auth-command-failure', 'pass', 'none', 'pass', 'none', 'fail', 'command-failure'],
   ] as const)('%s is classified without login', async (_name, mode, cli, cliReason, version, versionReason, auth, authReason) => {
-    const directory = await mkdtemp(path.join(tmpdir(), 'orca-kit-fake-claude-'));
+    const directory = await mkdtemp(path.join(tmpdir(), 'agent-orchestration-kit-fake-claude-'));
     const executable = path.join(directory, 'claude');
     try {
       await writeFile(executable, fakeExecutableSource, { encoding: 'utf8', mode: 0o755 });
@@ -52,7 +52,7 @@ describe('NodeHarnessAdapter', () => {
   });
 
   it('distinguishes an absent executable from a command failure', async () => {
-    const directory = await mkdtemp(path.join(tmpdir(), 'orca-kit-fake-claude-'));
+    const directory = await mkdtemp(path.join(tmpdir(), 'agent-orchestration-kit-fake-claude-'));
     try {
       const report = await new NodeHarnessAdapter({
         executable: path.join(directory, 'claude-does-not-exist'),

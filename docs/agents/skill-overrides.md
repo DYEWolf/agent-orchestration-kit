@@ -34,9 +34,9 @@ requires them. The complete attribution and MIT license are in
 
 ## First-party Campaign
 
-`campaign` is an explicit-only first-party orca-kit skill distributed through
+`campaign` is an explicit-only first-party agent-orchestration-kit skill distributed through
 the same catalog and generated-artifact pipeline as upstream skills. Its origin
-records `orca-kit` authorship plus source and render hashes; it is not a Matt
+records `agent-orchestration-kit` authorship plus source and render hashes; it is not a Matt
 Pocock adaptation and never appears in third-party notices. Its
 `agents/openai.yaml` disables implicit invocation, and its focused references
 keep the Campaign Record, preflight, and lifecycle rules out of the entrypoint.
@@ -49,7 +49,7 @@ making these deliberate changes:
 - Orca is the only execution and delegation layer. The coordinator owns the
   conversation, GitHub Issue, Run, Task DAG, gates, worktree placement, and
   integration; workers stay within a bounded Dispatch and report once.
-- GitHub `DYEWolf/orca-kit` is the durable Issue tracker. Cross-Issue blockers
+- GitHub `DYEWolf/agent-orchestration-kit` is the durable Issue tracker. Cross-Issue blockers
   remain GitHub dependencies, while Task dependencies remain inside the one
   Issue-owned execution Run.
 - Adapter-specific invocation wording is replaced with Codex `$skill-name`

@@ -5,7 +5,7 @@ export interface CatalogFileHash {
 
 export interface FirstPartySkillDefinition {
   readonly name: string;
-  readonly author: 'orca-kit';
+  readonly author: 'agent-orchestration-kit';
   readonly sourcePath: string;
 }
 
@@ -13,7 +13,7 @@ export interface FirstPartySkillDefinition {
 export const FIRST_PARTY_SKILL_REGISTRY = [
   {
     name: 'campaign',
-    author: 'orca-kit',
+    author: 'agent-orchestration-kit',
     sourcePath: 'templates/skills/campaign',
   },
 ] as const satisfies readonly FirstPartySkillDefinition[];
@@ -37,7 +37,7 @@ export interface FirstPartyCatalogSkill {
   readonly files: Readonly<Record<string, string>>;
   readonly origin: {
     readonly kind: 'first-party';
-    readonly author: 'orca-kit';
+    readonly author: 'agent-orchestration-kit';
     readonly sourcePath: string;
     readonly sourceContentHash: string;
     readonly renderedContentHash: string;

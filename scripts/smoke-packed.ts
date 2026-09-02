@@ -10,7 +10,7 @@ interface PackResult {
 }
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const temporary = await mkdtemp(path.join(tmpdir(), 'orca-kit-packed-smoke-'));
+const temporary = await mkdtemp(path.join(tmpdir(), 'agent-orchestration-kit-packed-smoke-'));
 const packEnvironment = { ...process.env };
 for (const key of Object.keys(packEnvironment)) {
   if (/^npm_config_dry[-_]run$/i.test(key)) delete packEnvironment[key];
@@ -68,7 +68,7 @@ else process.exit(4);
   await execa('npm', ['install', '--ignore-scripts', '--dry-run=false', '--prefix', installDirectory, tarball], {
     env: packEnvironment,
   });
-  const cli = path.join(installDirectory, 'node_modules/@dyewolf/orca-kit/dist/cli.js');
+  const cli = path.join(installDirectory, 'node_modules/@dyewolf/agent-orchestration-kit/dist/cli.js');
   const run = async (arguments_: readonly string[]) => execa('node', [cli, ...arguments_], {
     env: {
       ...process.env,
@@ -81,7 +81,7 @@ else process.exit(4);
     await execa('git', ['-C', targetRepository, 'init', '--quiet', '-b', 'main']);
     await execa('git', [
       '-C', targetRepository, 'remote', 'add', 'origin',
-      `git@github.com:DYEWolf/orca-kit-packed-smoke-${profile}.git`,
+      `git@github.com:DYEWolf/agent-orchestration-kit-packed-smoke-${profile}.git`,
     ]);
 
     const dryRun = JSON.parse((await run([

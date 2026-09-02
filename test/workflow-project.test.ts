@@ -206,20 +206,20 @@ describe('WorkflowProject planning', () => {
     const files = Object.fromEntries(
       renderDesiredArtifacts(resolveConfig('codex-only')).map((artifact) => [artifact.path, artifact.content]),
     );
-    files['.orca-kit/config.yaml'] = `${files['.orca-kit/config.yaml']}# user edit\n`;
+    files['.agent-orchestration-kit/config.yaml'] = `${files['.agent-orchestration-kit/config.yaml']}# user edit\n`;
     const { workflow } = createWorkflow(files);
     const plan = await workflow.plan({ type: 'init', path: root, profile: 'codex-only' });
-    expect(plan.blockers.some((blocker) => blocker.code === 'drift' && blocker.path === '.orca-kit/config.yaml')).toBe(true);
-    expect(plan.blockers.filter((blocker) => blocker.code === 'drift' && blocker.path === '.orca-kit/config.yaml')).toHaveLength(1);
-    expect(plan.files.find((file) => file.path === '.orca-kit/config.yaml')?.action).toBe('unchanged');
+    expect(plan.blockers.some((blocker) => blocker.code === 'drift' && blocker.path === '.agent-orchestration-kit/config.yaml')).toBe(true);
+    expect(plan.blockers.filter((blocker) => blocker.code === 'drift' && blocker.path === '.agent-orchestration-kit/config.yaml')).toHaveLength(1);
+    expect(plan.files.find((file) => file.path === '.agent-orchestration-kit/config.yaml')?.action).toBe('unchanged');
   });
 
   it('reports an invalid manifest as non-clean diff', async () => {
-    const { workflow } = createWorkflow({ '.orca-kit/manifest.json': '{broken' });
+    const { workflow } = createWorkflow({ '.agent-orchestration-kit/manifest.json': '{broken' });
     const report = await workflow.diff(root);
     expect(report.clean).toBe(false);
     expect(report.items).toContainEqual(expect.objectContaining({
-      path: '.orca-kit/manifest.json',
+      path: '.agent-orchestration-kit/manifest.json',
       status: 'invalid-manifest',
     }));
   });
@@ -244,7 +244,7 @@ describe('WorkflowProject planning', () => {
   });
 
   it('blocks a dangling artifact symlink instead of planning a create through it', async () => {
-    const temporaryRoot = await mkdtemp(path.join(tmpdir(), 'orca-kit-symlink-'));
+    const temporaryRoot = await mkdtemp(path.join(tmpdir(), 'agent-orchestration-kit-symlink-'));
     try {
       await mkdir(path.join(temporaryRoot, 'docs/agents'), { recursive: true });
       await symlink(path.join(temporaryRoot, '..', 'missing-outside'), path.join(temporaryRoot, 'docs/agents/domain.md'));
@@ -268,10 +268,10 @@ describe('WorkflowProject planning', () => {
   });
 
   it('reports incompatible parent-file and target-directory shapes as collisions', async () => {
-    const parentFileRoot = await mkdtemp(path.join(tmpdir(), 'orca-kit-parent-file-'));
-    const targetDirectoryRoot = await mkdtemp(path.join(tmpdir(), 'orca-kit-target-directory-'));
+    const parentFileRoot = await mkdtemp(path.join(tmpdir(), 'agent-orchestration-kit-parent-file-'));
+    const targetDirectoryRoot = await mkdtemp(path.join(tmpdir(), 'agent-orchestration-kit-target-directory-'));
     try {
-      await writeFile(path.join(parentFileRoot, '.orca-kit'), 'user file\n');
+      await writeFile(path.join(parentFileRoot, '.agent-orchestration-kit'), 'user file\n');
       await mkdir(path.join(targetDirectoryRoot, 'docs/agents/domain.md'), { recursive: true });
 
       for (const candidateRoot of [parentFileRoot, targetDirectoryRoot]) {
@@ -350,9 +350,9 @@ describe('WorkflowProject planning', () => {
     const { filesystem, workflow } = createWorkflow();
     await workflow.apply(await workflow.plan({ type: 'init', path: root, profile: 'codex-only' }));
 
-    const configPath = path.join(root, '.orca-kit/config.yaml');
+    const configPath = path.join(root, '.agent-orchestration-kit/config.yaml');
     const agentsPath = path.join(root, 'AGENTS.md');
-    const manifestPath = path.join(root, '.orca-kit/manifest.json');
+    const manifestPath = path.join(root, '.agent-orchestration-kit/manifest.json');
     const forgedConfig = (await filesystem.readFile(configPath)).replace(
       'maxImplementationWorkers: 3',
       'maxImplementationWorkers: 4',
@@ -364,7 +364,7 @@ describe('WorkflowProject planning', () => {
     const manifest = JSON.parse(await filesystem.readFile(manifestPath)) as {
       files: { path: string; hash: string }[];
     };
-    const configEntry = manifest.files.find((entry) => entry.path === '.orca-kit/config.yaml');
+    const configEntry = manifest.files.find((entry) => entry.path === '.agent-orchestration-kit/config.yaml');
     const agentsEntry = manifest.files.find((entry) => entry.path === 'AGENTS.md');
     const forgedBlock = inspectManagedBlock(forgedAgents);
     expect(configEntry).toBeDefined();
@@ -390,9 +390,9 @@ describe('WorkflowProject planning', () => {
     const plan = await workflow.plan({ type: 'init', path: root, profile: 'claude-only' });
     expect(plan.canApply).toBe(false);
     expect(plan.blockers).toEqual(expect.arrayContaining([
-      expect.objectContaining({ code: 'drift', path: '.orca-kit/config.yaml' }),
+      expect.objectContaining({ code: 'drift', path: '.agent-orchestration-kit/config.yaml' }),
       expect.objectContaining({ code: 'drift', path: 'AGENTS.md' }),
-      expect.objectContaining({ code: 'drift', path: '.orca-kit/manifest.json' }),
+      expect.objectContaining({ code: 'drift', path: '.agent-orchestration-kit/manifest.json' }),
     ]));
     expect(filesystem.snapshot()).toEqual(before);
   });

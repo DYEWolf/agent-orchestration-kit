@@ -47,7 +47,7 @@ Two-axis review of the diff between `HEAD` and a fixed point the user supplies:
 
 Both axes run as **parallel sub-agents** so they don't pollute each other's context, then this skill aggregates their findings.
 
-The issue tracker should have been provided to you. If `docs/agents/issue-tracker.md` is missing, follow `docs/agents/issue-tracker.md`; if it is missing, report an incomplete orca-kit installation.
+The issue tracker should have been provided to you. If `docs/agents/issue-tracker.md` is missing, follow `docs/agents/issue-tracker.md`; if it is missing, report an incomplete agent-orchestration-kit installation.
 
 ## Process
 

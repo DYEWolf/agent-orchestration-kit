@@ -21,7 +21,7 @@ doxxing, threats, and sustained disruption are not tolerated.
 ## Enforcement
 
 Report conduct concerns privately through the repository's
-[private reporting form](https://github.com/DYEWolf/orca-kit/security/advisories/new).
+[private reporting form](https://github.com/DYEWolf/agent-orchestration-kit/security/advisories/new).
 Do not include secrets that are unrelated to the report. Maintainers may remove, edit, or reject contributions and
 may temporarily or permanently ban participants whose behavior is inappropriate.
 

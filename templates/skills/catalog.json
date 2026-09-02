@@ -16,7 +16,7 @@
         "upstreamPath": "skills/engineering/ask-matt/SKILL.md",
         "originalContentHash": "b25d86fb36b1d294eeead5d7db529f86135f9671f2afcd607579a63bb2213769",
         "overlayVersion": "1",
-        "renderedContentHash": "38afc6b53d5ef27977a8316b960cca835c7b3e528eff3a65b40dfe3838cb05ec",
+        "renderedContentHash": "bf210d351d155ffa61d52dd2049bb81a5d99c2ecbcf95611ac413ec9b55b414e",
         "supportFiles": [],
         "patch": {
           "kind": "replacement",
@@ -29,7 +29,7 @@
       "name": "campaign",
       "origin": {
         "kind": "first-party",
-        "author": "orca-kit",
+        "author": "agent-orchestration-kit",
         "sourcePath": "templates/skills/campaign",
         "sourceContentHash": "892c0983c0856ff1adea742090716a6f573d4bf64ec660abb9f5ecc2db9a4b54",
         "renderedContentHash": "892c0983c0856ff1adea742090716a6f573d4bf64ec660abb9f5ecc2db9a4b54",
@@ -60,7 +60,7 @@
         "upstreamPath": "skills/engineering/code-review/SKILL.md",
         "originalContentHash": "47f4e52c21694def9c7c11cbfbf891ca35eac7a93e395797515be3c8a409ae50",
         "overlayVersion": "1",
-        "renderedContentHash": "0b295c7cdb138455b93a1145ed7d70ce53c8caabff4254b8cd01bdd955bd1a32",
+        "renderedContentHash": "7f82c3ef52680c1daa553bf62ce75c59a5ce7a37e25e405647fcff77975a406f",
         "supportFiles": [],
         "patch": {
           "kind": "mechanical",
@@ -340,7 +340,7 @@
         "upstreamPath": "skills/engineering/to-spec/SKILL.md",
         "originalContentHash": "43ad9cf318e5e7d3d1fa360253a37021796dc87a0c2e595ad262661a10f85088",
         "overlayVersion": "1",
-        "renderedContentHash": "f84e44c456287d3b0566d27ab2d53af56bb512bb67dfe329eaba4a204bdc6bbb",
+        "renderedContentHash": "c919dac95f6bae44f259ddc5bbee8aaebf7a176763e8dcb9dff8f72ec68889aa",
         "supportFiles": [],
         "patch": {
           "kind": "mechanical",
@@ -358,7 +358,7 @@
         "upstreamPath": "skills/engineering/to-tickets/SKILL.md",
         "originalContentHash": "5c9fba69845c2519b9b35b9af42ae5142c21f8ca15ac2123dc2722002c8058ae",
         "overlayVersion": "1",
-        "renderedContentHash": "01a2457ea4de5e49eb0f654e9f047772e10ecbd478c79fae263751a2172cdabb",
+        "renderedContentHash": "93a4a2839cafb8d9fc349b2e8ed4ff85f46e0605925be17e714c2cfe0120a630",
         "supportFiles": [],
         "patch": {
           "kind": "mechanical",
@@ -376,7 +376,7 @@
         "upstreamPath": "skills/engineering/wayfinder/SKILL.md",
         "originalContentHash": "fee6e1d0c50f0e736b4ef8a599060c959afae904c9a97d82c97f049fcc3aa0f1",
         "overlayVersion": "1",
-        "renderedContentHash": "96bd079cd23f07e1411ea7fbf000a32794b5defebd3e6e3093920506f4232d7d",
+        "renderedContentHash": "6430570d51c292e638f4e635fbf1f8fc8ad19ed51cfacf7eac6fa62a16f4eb75",
         "supportFiles": [],
         "patch": {
           "kind": "mechanical",

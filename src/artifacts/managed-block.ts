@@ -1,5 +1,5 @@
-export const MANAGED_BLOCK_START = '<!-- orca-kit:start version="1" -->';
-export const MANAGED_BLOCK_END = '<!-- orca-kit:end -->';
+export const MANAGED_BLOCK_START = '<!-- agent-orchestration-kit:start version="1" -->';
+export const MANAGED_BLOCK_END = '<!-- agent-orchestration-kit:end -->';
 
 export interface ManagedBlockResult {
   readonly status: 'absent' | 'valid' | 'malformed';
@@ -26,7 +26,7 @@ export function inspectManagedBlock(source: string): ManagedBlockResult {
 export function insertOrReplaceManagedBlock(source: string, block: string): string {
   const inspected = inspectManagedBlock(source);
   if (inspected.status === 'malformed') {
-    throw new Error('AGENTS.md contains malformed orca-kit managed markers.');
+    throw new Error('AGENTS.md contains malformed agent-orchestration-kit managed markers.');
   }
   if (inspected.status === 'valid') {
     return `${source.slice(0, inspected.start)}${block}${source.slice(inspected.end)}`;

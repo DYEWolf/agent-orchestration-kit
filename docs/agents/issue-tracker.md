@@ -1,8 +1,8 @@
 # Issue tracker: GitHub
 
-This workflow uses GitHub Issues in `DYEWolf/orca-kit` as durable human work
+This workflow uses GitHub Issues in `DYEWolf/agent-orchestration-kit` as durable human work
 units. Use the authenticated `gh` CLI for all Issue operations; infer the
-repository explicitly when needed with `--repo DYEWolf/orca-kit`. Orca owns
+repository explicitly when needed with `--repo DYEWolf/agent-orchestration-kit`. Orca owns
 execution state inside a Run, while GitHub preserves the durable contract,
 ownership, comments, labels, and dependencies.
 
@@ -17,7 +17,7 @@ complete acceptance and verification criteria, and resolution of its blockers.
 The first write for an implementation Issue is the claim:
 
 ```bash
-gh issue edit <number> --repo DYEWolf/orca-kit --add-assignee @me
+gh issue edit <number> --repo DYEWolf/agent-orchestration-kit --add-assignee @me
 ```
 
 Immediately after claiming, bind or create exactly one Issue-owned Orca
@@ -67,9 +67,9 @@ Create an Issue only when the active skill and user-authorized phase call for
 it:
 
 ```bash
-gh issue create --repo DYEWolf/orca-kit --title "<title>" --body-file <body.md>
-gh issue view <number> --repo DYEWolf/orca-kit --comments
-gh issue list --repo DYEWolf/orca-kit --state open --json number,title,body,labels,assignees,comments
+gh issue create --repo DYEWolf/agent-orchestration-kit --title "<title>" --body-file <body.md>
+gh issue view <number> --repo DYEWolf/agent-orchestration-kit --comments
+gh issue list --repo DYEWolf/agent-orchestration-kit --state open --json number,title,body,labels,assignees,comments
 ```
 
 Read the full body, comments, labels, assignees, and linked dependencies before
@@ -86,10 +86,10 @@ Operational comments begin with one durable tag:
 - `[resolution]` — final outcome, verification, and deferred work before close.
 
 ```bash
-gh issue comment <number> --repo DYEWolf/orca-kit --body "[progress] ..."
-gh issue edit <number> --repo DYEWolf/orca-kit --add-assignee @me
-gh issue edit <number> --repo DYEWolf/orca-kit --remove-assignee @me
-gh issue close <number> --repo DYEWolf/orca-kit --comment "[resolution] ..."
+gh issue comment <number> --repo DYEWolf/agent-orchestration-kit --body "[progress] ..."
+gh issue edit <number> --repo DYEWolf/agent-orchestration-kit --add-assignee @me
+gh issue edit <number> --repo DYEWolf/agent-orchestration-kit --remove-assignee @me
+gh issue close <number> --repo DYEWolf/agent-orchestration-kit --comment "[resolution] ..."
 ```
 
 Assignees express human ownership; labels express triage metadata. An open
@@ -134,9 +134,9 @@ non-implementation, but it is not required by the workflow. Wayfinder types are
 body metadata, not labels.
 
 ```bash
-gh issue edit <number> --repo DYEWolf/orca-kit --add-label "ready-for-agent"
-gh issue edit <number> --repo DYEWolf/orca-kit --remove-label "ready-for-agent"
-gh label list --repo DYEWolf/orca-kit
+gh issue edit <number> --repo DYEWolf/agent-orchestration-kit --add-label "ready-for-agent"
+gh issue edit <number> --repo DYEWolf/agent-orchestration-kit --remove-label "ready-for-agent"
+gh label list --repo DYEWolf/agent-orchestration-kit
 ```
 
 Do not create or depend on `wayfinder:*` labels. Do not invent labels in a Task
@@ -150,9 +150,9 @@ native dependency API with the blocker's numeric database ID, not its Issue
 number:
 
 ```bash
-blocker_id=$(gh api repos/DYEWolf/orca-kit/issues/<blocker> --jq .id)
+blocker_id=$(gh api repos/DYEWolf/agent-orchestration-kit/issues/<blocker> --jq .id)
 gh api --method POST \
-  repos/DYEWolf/orca-kit/issues/<child>/dependencies/blocked_by \
+  repos/DYEWolf/agent-orchestration-kit/issues/<child>/dependencies/blocked_by \
   -F issue_id="$blocker_id"
 ```
 

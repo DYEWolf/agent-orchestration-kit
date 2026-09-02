@@ -11,7 +11,7 @@ or GitHub, and it does not generate Claude compatibility artifacts.
 ## Installed contract
 
 - Managed block in `AGENTS.md`, preserving every byte outside the markers.
-- `.orca-kit/config.yaml` and `.orca-kit/manifest.json`.
+- `.agent-orchestration-kit/config.yaml` and `.agent-orchestration-kit/manifest.json`.
 - Four documents under `docs/agents/`.
 - Complete MIT attribution under `.agents/THIRD_PARTY_NOTICES.md`.
 - A catalog-derived mixed-origin skill bundle under `.agents/skills/`, including
@@ -21,7 +21,7 @@ or GitHub, and it does not generate Claude compatibility artifacts.
 The bundle is pinned to Matt Pocock's skills repository at commit
 `6654f6b60cd9d5be8b54c6fafe44346dabeb3b76`, with Orca overlay version 1.
 `ask-matt` is patched to route only to the installed vocabulary.
-Campaign is explicitly authored by orca-kit, is excluded from third-party
+Campaign is explicitly authored by agent-orchestration-kit, is excluded from third-party
 notices, and never claims Matt Pocock provenance.
 
 ## Transaction invariant
@@ -38,10 +38,10 @@ No remote or global action participates in this transaction.
 ## Commands
 
 ```bash
-orca-kit init [path] --profile codex-only --dry-run
-orca-kit init [path] --profile codex-only [--yes]
-orca-kit doctor [path] [--json]
-orca-kit diff [path] [--json]
+agent-orchestration-kit init [path] --profile codex-only --dry-run
+agent-orchestration-kit init [path] --profile codex-only [--yes]
+agent-orchestration-kit doctor [path] [--json]
+agent-orchestration-kit diff [path] [--json]
 ```
 
 `init` always computes the ChangePlan first. It refuses collisions, malformed

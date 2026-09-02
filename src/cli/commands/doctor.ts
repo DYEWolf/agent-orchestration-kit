@@ -6,7 +6,7 @@ interface DoctorOptions { readonly json?: boolean }
 export function registerDoctorCommand(program: Command): void {
   program
     .command('doctor')
-    .description('Diagnose the local orca-kit installation')
+    .description('Diagnose the local agent-orchestration-kit installation')
     .argument('[path]', 'repository path', '.')
     .option('--json', 'emit stable machine-readable JSON')
     .action(async (path: string, options: DoctorOptions) => {

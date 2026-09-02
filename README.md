@@ -1,7 +1,8 @@
-# orca-kit
+# agent-orchestration-kit
 
-`@dyewolf/orca-kit` is an open-source npm CLI for configuring an existing GitHub
-repository with an opinionated Orca coordinator/worker engineering workflow.
+`@dyewolf/agent-orchestration-kit` is an open-source npm CLI for configuring an
+existing GitHub repository with an opinionated agent-orchestration workflow
+compatible with the external Orca runtime.
 
 The project is currently under development. Phase 3 supports deterministic
 planning and safe local application for all four approved routing profiles:

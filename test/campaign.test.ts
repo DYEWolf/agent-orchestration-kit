@@ -52,7 +52,7 @@ function completeAcceptedIssue(overrides = {}) {
     integrationCommitOwner: 'coordinator',
     integrationCommitLocation: 'authorized-remote-target',
     targetIdentityRevalidated: true,
-    revalidatedTargetRemote: 'git@github.com:DYEWolf/orca-kit.git',
+    revalidatedTargetRemote: 'git@github.com:DYEWolf/agent-orchestration-kit.git',
     revalidatedTargetBranch: 'main',
     containedInRemoteTarget: true,
     ...overrides,

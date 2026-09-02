@@ -2,7 +2,7 @@ import type { ChangePlan } from '../workflow-project/change-plan.js';
 
 export function formatPlan(plan: ChangePlan): string {
   const lines = [
-    `orca-kit init plan (${plan.phase})`,
+    `agent-orchestration-kit init plan (${plan.phase})`,
     `Repository: ${plan.repository.github.display}`,
     `Path: ${plan.repository.root}`,
     `Profile: ${plan.profile.name} [${plan.profile.stability}]`,

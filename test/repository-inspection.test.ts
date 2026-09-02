@@ -3,9 +3,9 @@ import { parseGitHubRemote } from '../src/repository/inspection.js';
 
 describe('GitHub remote parsing', () => {
   it.each([
-    ['https://github.com/DYEWolf/orca-kit.git', 'github.com/DYEWolf/orca-kit'],
-    ['git@github.com:DYEWolf/orca-kit.git', 'github.com/DYEWolf/orca-kit'],
-    ['ssh://git@acme.ghe.com/DYEWolf/orca-kit.git', 'acme.ghe.com/DYEWolf/orca-kit'],
+    ['https://github.com/DYEWolf/agent-orchestration-kit.git', 'github.com/DYEWolf/agent-orchestration-kit'],
+    ['git@github.com:DYEWolf/agent-orchestration-kit.git', 'github.com/DYEWolf/agent-orchestration-kit'],
+    ['ssh://git@acme.ghe.com/DYEWolf/agent-orchestration-kit.git', 'acme.ghe.com/DYEWolf/agent-orchestration-kit'],
   ])('parses %s without exposing credentials', (url, display) => {
     expect(parseGitHubRemote({ name: 'origin', url })?.display).toBe(display);
   });

@@ -55,7 +55,7 @@ The map is a single issue on this repo's issue tracker, identified by `Type: way
 
 The map is an **index**, not a store. It lists the decisions made and points at the tickets that hold their detail; a decision lives in exactly one place, its ticket, so the map never restates it, only gists it and links.
 
-**Where the map, its child tickets, blocking, and frontier queries physically live is tracker-specific.** The issue tracker should have been provided to you. If not, follow `docs/agents/issue-tracker.md`; if it is missing, report an incomplete orca-kit installation. Consult the tracker doc's "Wayfinding operations" section for how _this_ repo expresses them. If the tracker document is missing, stop and report an incomplete orca-kit installation.
+**Where the map, its child tickets, blocking, and frontier queries physically live is tracker-specific.** The issue tracker should have been provided to you. If not, follow `docs/agents/issue-tracker.md`; if it is missing, report an incomplete agent-orchestration-kit installation. Consult the tracker doc's "Wayfinding operations" section for how _this_ repo expresses them. If the tracker document is missing, stop and report an incomplete agent-orchestration-kit installation.
 
 ### The map body
 

@@ -8,7 +8,7 @@ const cliArguments = ['--import', 'tsx', 'src/cli.ts'];
 
 describe('local CLI installation lifecycle', () => {
   it('dry-runs, applies, verifies, no-ops, and refuses drift', async () => {
-    const repository = await mkdtemp(path.join(tmpdir(), 'orca-kit-cli-integration-'));
+    const repository = await mkdtemp(path.join(tmpdir(), 'agent-orchestration-kit-cli-integration-'));
     try {
       await execa('git', ['-C', repository, 'init', '--quiet', '-b', 'main']);
       await execa('git', ['-C', repository, 'remote', 'add', 'origin', 'git@github.com:DYEWolf/fixture.git']);
@@ -52,7 +52,7 @@ describe('local CLI installation lifecycle', () => {
   it.each(['codex-only', 'claude-coordinator', 'claude-only', 'codex-coordinator'] as const)(
     'supports the %s profile through CLI dry-run, apply, verify, and no-op',
     async (profile) => {
-      const repository = await mkdtemp(path.join(tmpdir(), `orca-kit-cli-${profile}-`));
+      const repository = await mkdtemp(path.join(tmpdir(), `agent-orchestration-kit-cli-${profile}-`));
       try {
         await execa('git', ['-C', repository, 'init', '--quiet', '-b', 'main']);
         await execa('git', ['-C', repository, 'remote', 'add', 'origin', `git@github.com:DYEWolf/${profile}.git`]);
@@ -79,8 +79,8 @@ describe('local CLI installation lifecycle', () => {
   );
 
   it('runs deterministic Claude Doctor checks through a fake executable', async () => {
-    const repository = await mkdtemp(path.join(tmpdir(), 'orca-kit-cli-claude-'));
-    const fakeBin = await mkdtemp(path.join(tmpdir(), 'orca-kit-fake-bin-'));
+    const repository = await mkdtemp(path.join(tmpdir(), 'agent-orchestration-kit-cli-claude-'));
+    const fakeBin = await mkdtemp(path.join(tmpdir(), 'agent-orchestration-kit-fake-bin-'));
     try {
       await execa('git', ['-C', repository, 'init', '--quiet', '-b', 'main']);
       await execa('git', ['-C', repository, 'remote', 'add', 'origin', 'git@github.com:DYEWolf/fake-claude.git']);

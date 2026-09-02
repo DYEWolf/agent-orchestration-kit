@@ -1,6 +1,6 @@
 # Contributing
 
-Thank you for helping improve `orca-kit`.
+Thank you for helping improve `agent-orchestration-kit`.
 
 1. Open an Issue before substantial work so scope and acceptance criteria are clear.
 2. Use Node.js 22 or newer and install dependencies with `npm ci`.

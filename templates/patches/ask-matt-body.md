@@ -1,6 +1,6 @@
 # Ask Matt
 
-Route work only through the skills installed by orca-kit. Name skills neutrally;
+Route work only through the skills installed by agent-orchestration-kit. Name skills neutrally;
 the active harness decides the invocation syntax.
 
 ## Main product flow

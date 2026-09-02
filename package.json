@@ -1,10 +1,10 @@
 {
-  "name": "@dyewolf/orca-kit",
+  "name": "@dyewolf/agent-orchestration-kit",
   "version": "0.1.0",
-  "description": "Configure an existing GitHub repository with an opinionated Orca coordinator/worker workflow.",
+  "description": "Independent CLI for configuring an agent-orchestration workflow compatible with the external Orca runtime; not affiliated with Orca or its maintainers.",
   "type": "module",
   "bin": {
-    "orca-kit": "./dist/cli.js"
+    "agent-orchestration-kit": "./dist/cli.js"
   },
   "files": [
     "dist",
@@ -19,17 +19,20 @@
   "scripts": {
     "build": "tsup",
     "bundle:validate": "tsx scripts/validate-bundle.ts",
-    "check": "npm run typecheck && npm run bundle:validate && npm test && npm run build && npm run smoke:packed",
+    "check": "npm run identity:validate && npm run typecheck && npm run bundle:validate && npm test && npm run build && npm run smoke:packed",
     "dev": "tsx src/cli.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "smoke:packed": "tsx scripts/smoke-packed.ts",
     "smoke:claude": "tsx scripts/smoke-claude-wrapper.ts --live",
+    "identity:validate": "tsx scripts/validate-identity.ts",
     "typecheck": "tsc --noEmit",
     "upstream:sync": "tsx scripts/upstream-sync.ts",
     "prepack": "npm run check"
   },
   "keywords": [
+    "agent-orchestration-kit",
+    "agent-orchestration",
     "orca",
     "codex",
     "claude",
@@ -41,12 +44,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/DYEWolf/orca-kit.git"
+    "url": "git+https://github.com/DYEWolf/agent-orchestration-kit.git"
   },
   "bugs": {
-    "url": "https://github.com/DYEWolf/orca-kit/issues"
+    "url": "https://github.com/DYEWolf/agent-orchestration-kit/issues"
   },
-  "homepage": "https://github.com/DYEWolf/orca-kit#readme",
+  "homepage": "https://github.com/DYEWolf/agent-orchestration-kit#readme",
   "publishConfig": {
     "access": "public",
     "provenance": true

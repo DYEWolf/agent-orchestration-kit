@@ -13,7 +13,7 @@ describe('managed AGENTS.md block', () => {
   it('preserves all pre-existing bytes when appending a first block', () => {
     fc.assert(
       fc.property(
-        fc.string().filter((value) => !value.includes('<!-- orca-kit:')),
+        fc.string().filter((value) => !value.includes('<!-- agent-orchestration-kit:')),
         (source) => {
           const result = insertOrReplaceManagedBlock(source, block);
           expect(result.slice(0, source.length)).toBe(source);
@@ -26,8 +26,8 @@ describe('managed AGENTS.md block', () => {
   it('preserves bytes outside an existing managed block', () => {
     fc.assert(
       fc.property(
-        fc.string().filter((value) => !value.includes('<!-- orca-kit:')),
-        fc.string().filter((value) => !value.includes('<!-- orca-kit:')),
+        fc.string().filter((value) => !value.includes('<!-- agent-orchestration-kit:')),
+        fc.string().filter((value) => !value.includes('<!-- agent-orchestration-kit:')),
         (prefix, suffix) => {
           const original = `${prefix}${MANAGED_BLOCK_START}\nold\n${MANAGED_BLOCK_END}${suffix}`;
           const result = insertOrReplaceManagedBlock(original, block);

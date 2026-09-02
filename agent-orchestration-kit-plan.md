@@ -64,7 +64,7 @@
 
        'wayfinder:(map|research|prototype|grilling|task)|wayfinder:&lt;type&gt;|--label wayfinder' .
 
-  7. Actualiza, según existan en orca-kit:
+  7. Actualiza, según existan en agent-orchestration-kit:
 
       - .agents/skills/wayfinder/[SKILL.md](http://SKILL.md)
 
@@ -86,7 +86,7 @@
 
       - /Users/chris/Documents/dev/vesti/.agents/skills/setup-matt-pocock-skills/[issue-tracker-local.md](http://issue-tracker-local.md)
 
-     Conserva nombres, rutas y particularidades propias de orca-kit; no copies texto específico de Vesti que no aplique.
+     Conserva nombres, rutas y particularidades propias de agent-orchestration-kit; no copies texto específico de Vesti que no aplique.
 
   8. No crees las cinco labels Wayfinder remotamente. Conserva ready-for-agent, que ya existe.
 

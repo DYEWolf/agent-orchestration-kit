@@ -40,8 +40,8 @@ export class FileTransaction {
         const suffix = randomUUID();
         const entry: LedgerEntry = {
           target: write.path,
-          temporary: path.join(path.dirname(write.path), `.${path.basename(write.path)}.orca-kit-tmp-${suffix}`),
-          backup: path.join(path.dirname(write.path), `.${path.basename(write.path)}.orca-kit-backup-${suffix}`),
+          temporary: path.join(path.dirname(write.path), `.${path.basename(write.path)}.agent-orchestration-kit-tmp-${suffix}`),
+          backup: path.join(path.dirname(write.path), `.${path.basename(write.path)}.agent-orchestration-kit-backup-${suffix}`),
           targetMoved: false,
           targetInstalled: false,
         };

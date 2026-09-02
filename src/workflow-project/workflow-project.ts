@@ -87,7 +87,7 @@ export class WorkflowProject implements WorkflowProjectContract {
     if (manifest !== undefined && manifest.cliVersion !== CLI_VERSION) {
       blockers.push({
         code: 'foreign-version',
-        path: '.orca-kit/manifest.json',
+        path: '.agent-orchestration-kit/manifest.json',
         message: `Installed CLI version ${manifest.cliVersion} differs from ${CLI_VERSION}; v1 does not support updates.`,
       });
     }
@@ -221,7 +221,7 @@ export class WorkflowProject implements WorkflowProjectContract {
     };
     const { manifest, manifestBlockers } = await this.readManifest(repository.root);
     if (manifest === undefined || manifestBlockers.length > 0) {
-      checks.push({ id: 'manifest', status: 'FAIL', message: manifestBlockers[0]?.message ?? 'No orca-kit installation manifest exists.' });
+      checks.push({ id: 'manifest', status: 'FAIL', message: manifestBlockers[0]?.message ?? 'No agent-orchestration-kit installation manifest exists.' });
     } else {
       checks.push({ id: 'manifest', status: 'PASS', message: `Manifest schema 1 from CLI ${manifest.cliVersion} is valid.` });
     }
@@ -229,11 +229,11 @@ export class WorkflowProject implements WorkflowProjectContract {
     let parsedConfig: ReturnType<typeof workflowConfigSchema.parse> | undefined;
     let canonicalConfig: ReturnType<typeof workflowConfigSchema.parse> | undefined;
     let configMatches = false;
-    const configPath = await resolveDoctorPath('config', '.orca-kit/config.yaml');
+    const configPath = await resolveDoctorPath('config', '.agent-orchestration-kit/config.yaml');
     if (configPath === undefined) {
       // resolveDoctorPath already recorded the failure.
     } else if (!(await this.#filesystem.exists(configPath))) {
-      checks.push({ id: 'config', status: 'FAIL', message: 'Missing .orca-kit/config.yaml.' });
+      checks.push({ id: 'config', status: 'FAIL', message: 'Missing .agent-orchestration-kit/config.yaml.' });
     } else {
       try {
         parsedConfig = workflowConfigSchema.parse(parseYaml(await this.#filesystem.readFile(configPath)));
@@ -255,7 +255,7 @@ export class WorkflowProject implements WorkflowProjectContract {
     }
 
     if (manifest !== undefined && canonicalConfig !== undefined) {
-      const desiredManifest = renderDesiredArtifacts(canonicalConfig).find((artifact) => artifact.path === '.orca-kit/manifest.json');
+      const desiredManifest = renderDesiredArtifacts(canonicalConfig).find((artifact) => artifact.path === '.agent-orchestration-kit/manifest.json');
       const expectedManifest = desiredManifest === undefined ? undefined : manifestSchema.parse(JSON.parse(desiredManifest.content));
       const contractMatches = expectedManifest !== undefined && JSON.stringify(manifest) === JSON.stringify(expectedManifest);
       checks.push({
@@ -411,7 +411,7 @@ export class WorkflowProject implements WorkflowProjectContract {
       return {
         installation: 'invalid',
         items: [{
-          path: '.orca-kit/manifest.json',
+          path: '.agent-orchestration-kit/manifest.json',
           status: 'invalid-manifest',
           expectedHash: '',
         }],
@@ -420,7 +420,7 @@ export class WorkflowProject implements WorkflowProjectContract {
     }
     if (manifest === undefined) return {
       installation: 'missing',
-      items: [{ path: '.orca-kit/manifest.json', status: 'missing', expectedHash: '' }],
+      items: [{ path: '.agent-orchestration-kit/manifest.json', status: 'missing', expectedHash: '' }],
       clean: false,
     };
     return computeDrift(this.#filesystem, repository.root, manifest);
@@ -431,13 +431,13 @@ export class WorkflowProject implements WorkflowProjectContract {
   ): Promise<{ manifest?: Manifest; manifestBlockers: PlanBlocker[] }> {
     let manifestPath: string;
     try {
-      manifestPath = await resolveSafeTarget(this.#filesystem, repositoryRoot, '.orca-kit/manifest.json');
+      manifestPath = await resolveSafeTarget(this.#filesystem, repositoryRoot, '.agent-orchestration-kit/manifest.json');
     } catch (error) {
       if (!(error instanceof UnsafePathError) && !(error instanceof PathShapeError)) throw error;
       return {
         manifestBlockers: [{
           code: error instanceof UnsafePathError ? 'unsafe-path' : 'collision',
-          path: '.orca-kit/manifest.json',
+          path: '.agent-orchestration-kit/manifest.json',
           message: error instanceof UnsafePathError
             ? 'The manifest path resolves outside the selected repository.'
             : 'The manifest path has an incompatible file/directory shape.',
@@ -452,8 +452,8 @@ export class WorkflowProject implements WorkflowProjectContract {
       return {
         manifestBlockers: [{
           code: 'invalid-manifest',
-          path: '.orca-kit/manifest.json',
-          message: 'The existing orca-kit manifest is not valid schema version 1 JSON.',
+          path: '.agent-orchestration-kit/manifest.json',
+          message: 'The existing agent-orchestration-kit manifest is not valid schema version 1 JSON.',
         }],
       };
     }
@@ -505,7 +505,7 @@ export class WorkflowProject implements WorkflowProjectContract {
           blocker: {
             code: 'collision',
             path: artifact.path,
-            message: `${artifact.path} already exists and is not managed by orca-kit.`,
+            message: `${artifact.path} already exists and is not managed by agent-orchestration-kit.`,
           },
         };
       }
@@ -528,7 +528,7 @@ export class WorkflowProject implements WorkflowProjectContract {
           blocker: {
             code: 'collision',
             path: artifact.path,
-            message: `The Claude skill directory for ${artifact.path} already exists and is not managed by orca-kit.`,
+            message: `The Claude skill directory for ${artifact.path} already exists and is not managed by agent-orchestration-kit.`,
           },
         };
       }
@@ -560,7 +560,7 @@ export class WorkflowProject implements WorkflowProjectContract {
           blocker: {
             code: 'malformed-managed-block',
             path: artifact.path,
-            message: 'AGENTS.md has incomplete, duplicated, or out-of-order orca-kit markers.',
+            message: 'AGENTS.md has incomplete, duplicated, or out-of-order agent-orchestration-kit markers.',
           },
         };
       }
@@ -601,7 +601,7 @@ export class WorkflowProject implements WorkflowProjectContract {
           path: artifact.path,
           message: isOwned
             ? 'The managed AGENTS.md block differs from the desired content.'
-            : 'AGENTS.md already contains orca-kit markers without an installation manifest.',
+            : 'AGENTS.md already contains agent-orchestration-kit markers without an installation manifest.',
         },
       };
     }
@@ -630,7 +630,7 @@ export class WorkflowProject implements WorkflowProjectContract {
         code: manifest === undefined ? 'collision' : 'drift',
         path: artifact.path,
         message: manifest === undefined
-          ? `${artifact.path} already exists and is not managed by orca-kit.`
+          ? `${artifact.path} already exists and is not managed by agent-orchestration-kit.`
           : `${artifact.path} differs from the installed manifest.`,
       },
     };

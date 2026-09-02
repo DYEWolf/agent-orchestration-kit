@@ -1,6 +1,6 @@
 # Third-party notices
 
-orca-kit redistributes reviewed and modified snapshots from Matt Pocock's skills repository.
+agent-orchestration-kit redistributes reviewed and modified snapshots from Matt Pocock's skills repository.
 
 Upstream repository: https://github.com/mattpocock/skills
 Pinned commit: 6654f6b60cd9d5be8b54c6fafe44346dabeb3b76

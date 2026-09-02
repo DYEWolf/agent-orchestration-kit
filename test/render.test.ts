@@ -19,12 +19,12 @@ describe('desired artifact rendering', () => {
     'writes a valid manifest for every owned artifact except the manifest itself (%s)',
     (profile) => {
       const artifacts = renderDesiredArtifacts(resolveConfig(profile));
-      const manifestArtifact = artifacts.find((artifact) => artifact.path === '.orca-kit/manifest.json');
+      const manifestArtifact = artifacts.find((artifact) => artifact.path === '.agent-orchestration-kit/manifest.json');
       expect(manifestArtifact).toBeDefined();
       const manifest = manifestSchema.parse(JSON.parse(manifestArtifact?.content ?? ''));
       expect(manifest.files.map((file) => file.path)).toEqual(
         artifacts
-          .filter((artifact) => artifact.path !== '.orca-kit/manifest.json')
+          .filter((artifact) => artifact.path !== '.agent-orchestration-kit/manifest.json')
           .map((artifact) => artifact.path)
           .sort((a, b) => a.localeCompare(b)),
       );
@@ -56,7 +56,7 @@ describe('desired artifact rendering', () => {
         .toContain('Campaign is a bounded runtime authorization');
       const provenance = artifacts.find((artifact) => artifact.path === '.agents/skills/campaign/PROVENANCE.json')?.content ?? '';
       expect(provenance).toContain('"kind": "first-party"');
-      expect(provenance).toContain('"author": "orca-kit"');
+      expect(provenance).toContain('"author": "agent-orchestration-kit"');
       expect(provenance).not.toContain('mattpocock');
       if (profile === 'codex-only') {
         expect(artifacts.some((artifact) => artifact.path === '.claude/skills/campaign/SKILL.md')).toBe(false);
@@ -104,7 +104,7 @@ describe('desired artifact rendering', () => {
       },
       origin: {
         kind: 'first-party' as const,
-        author: 'orca-kit' as const,
+        author: 'agent-orchestration-kit' as const,
         sourcePath: 'templates/skills/arbitrary-first-party',
         sourceContentHash: 'c'.repeat(64),
         renderedContentHash: 'd'.repeat(64),

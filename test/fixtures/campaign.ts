@@ -32,7 +32,7 @@ export function campaignPlanFixture(overrides: Partial<CampaignPlanInput> = {}):
     issues: [futureIssue16()],
     records: [],
     repository: {
-      remote: 'git@github.com:DYEWolf/orca-kit.git',
+      remote: 'git@github.com:DYEWolf/agent-orchestration-kit.git',
       targetBranch: 'main',
       baseBranch: 'main',
       baseRevision: 'abc123',

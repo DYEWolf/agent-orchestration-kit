@@ -17,7 +17,7 @@ interface InitOptions {
 export function registerInitCommand(program: Command): void {
   program
     .command('init')
-    .description('Configure an existing GitHub repository with the local Orca workflow')
+    .description('Configure an existing GitHub repository with the local agent-orchestration workflow')
     .argument('[path]', 'repository path', '.')
     .option('--profile <profile>', 'routing profile', 'codex-only')
     .option('--dry-run', 'show the ChangePlan without writing')

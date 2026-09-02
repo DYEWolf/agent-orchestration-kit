@@ -202,7 +202,7 @@ It also contains these reusable procedures:
 - `resolving-merge-conflicts`
 
 It also includes first-party `campaign`, an explicit-only authorization for a
-fixed Issue set. Campaign has `orca-kit` authorship and source/render hashes;
+fixed Issue set. Campaign has `agent-orchestration-kit` authorship and source/render hashes;
 it never claims Matt Pocock provenance and is excluded from third-party notices.
 
 `setup-matt-pocock-skills` and unrelated upstream skills are excluded.
@@ -443,9 +443,9 @@ publishing, and publish 1.0.0 through OIDC.
   `daedhriel` can manage packages in the `dyewolf` organization, and
   `@dyewolf/agent-orchestration-kit` remains unpublished.
 - Naming-risk decision resolved on 2026-08-27: use the descriptive identity
-  `agent-orchestration-kit`, remove `orca-kit` from public and internal owned
-  identifiers, and reserve “Orca” for truthful references to the external
-  runtime. See `docs/research/orca-kit-name-risk.md`.
+  `agent-orchestration-kit`, remove superseded provisional names from public and
+  internal owned identifiers, and reserve “Orca” for truthful references to the external
+  runtime. See the preserved naming-risk research record.
 - GitHub label metadata resolved on 2026-08-27: create `ready-for-agent` with
   color `0E8A16` and description “Approved, executable, unblocked implementation
   issue ready to be claimed.” Missing is Doctor `FAIL`; existing metadata drift

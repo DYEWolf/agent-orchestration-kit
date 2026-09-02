@@ -16,7 +16,7 @@ const upstreamOriginSchema = z.strictObject({
 
 const firstPartyOriginSchema = z.strictObject({
   kind: z.literal('first-party'),
-  author: z.literal('orca-kit'),
+  author: z.literal('agent-orchestration-kit'),
   sourcePath: z.string().min(1),
   sourceContentHash: hashSchema,
   renderedContentHash: hashSchema,

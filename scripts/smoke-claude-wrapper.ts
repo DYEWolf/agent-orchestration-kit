@@ -51,12 +51,12 @@ async function main(): Promise<void> {
     return;
   }
 
-  const temporary = await mkdtemp(path.join(tmpdir(), 'orca-kit-claude-smoke-'));
+  const temporary = await mkdtemp(path.join(tmpdir(), 'agent-orchestration-kit-claude-smoke-'));
   try {
     const fixture = path.join(temporary, 'fixture');
     await mkdir(fixture, { recursive: true });
     await execa('git', ['-C', fixture, 'init', '--quiet', '-b', 'main']);
-    await execa('git', ['-C', fixture, 'remote', 'add', 'origin', 'git@github.com:DYEWolf/orca-kit-claude-smoke.git']);
+    await execa('git', ['-C', fixture, 'remote', 'add', 'origin', 'git@github.com:DYEWolf/agent-orchestration-kit-claude-smoke.git']);
 
     const init = await execa('node', [
       '--import',

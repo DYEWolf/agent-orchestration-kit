@@ -7,8 +7,8 @@ import { CLI_VERSION } from './version.js';
 export function createProgram(): Command {
   const program = new Command();
   program
-    .name('orca-kit')
-    .description('Configure a repository for an Orca coordinator/worker workflow')
+    .name('agent-orchestration-kit')
+    .description('Configure a repository for an agent-orchestration workflow compatible with Orca')
     .version(CLI_VERSION)
     .showHelpAfterError();
   registerInitCommand(program);
@@ -42,7 +42,7 @@ main().catch((error: unknown) => {
   process.stderr.write(
     jsonRequested
       ? `${JSON.stringify({ error: { message } })}\n`
-      : `orca-kit: ${message}\n`,
+      : `agent-orchestration-kit: ${message}\n`,
   );
   process.exitCode = 1;
 });

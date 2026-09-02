@@ -12,7 +12,7 @@ export interface UpstreamSkillProvenance {
 
 export interface FirstPartySkillProvenance {
   readonly kind: 'first-party';
-  readonly author: 'orca-kit';
+  readonly author: 'agent-orchestration-kit';
   readonly sourcePath: string;
   readonly sourceContentHash: string;
   readonly renderedContentHash: string;
