@@ -3,6 +3,8 @@ import type { FileSystemAdapter } from '../adapters/filesystem/filesystem.js';
 import { NodeFileSystem } from '../adapters/filesystem/node-filesystem.js';
 import { NodeHarnessAdapter } from '../adapters/harness/node-harness.js';
 import type { HarnessAdapter, HarnessCheckStatus } from '../adapters/harness/harness.js';
+import { NodeOrcaAdapter } from '../adapters/orca/node-orca.js';
+import { requiredOrcaActions, type OrcaAdapter, type OrcaCheck } from '../adapters/orca/orca.js';
 import { insertOrReplaceManagedBlock, inspectManagedBlock } from '../artifacts/managed-block.js';
 import { renderDesiredArtifacts, type DesiredArtifact } from '../artifacts/render.js';
 import { profiles, resolveConfig } from '../config/profiles.js';
@@ -26,6 +28,8 @@ export interface InitWorkflowCommand {
   readonly type: 'init';
   readonly path: string;
   readonly profile: ProfileName;
+  readonly global?: boolean;
+  readonly orcaRegistration?: boolean;
 }
 
 export type WorkflowCommand = InitWorkflowCommand;
@@ -36,6 +40,7 @@ export interface ApplyReceipt {
   readonly written: readonly string[];
   readonly cleanupWarnings: readonly string[];
   readonly verified: boolean;
+  readonly externalActions: readonly { readonly id: string; readonly status: 'executed' | 'failed'; readonly message: string }[];
 }
 
 export type DoctorStatus = 'PASS' | 'WARN' | 'FAIL' | 'SKIP';
@@ -64,24 +69,30 @@ export interface WorkflowProjectDependencies {
   readonly filesystem?: FileSystemAdapter;
   readonly inspect?: (path: string) => Promise<RepositoryInspection>;
   readonly harness?: HarnessAdapter;
+  readonly orca?: OrcaAdapter;
 }
 
 export class WorkflowProject implements WorkflowProjectContract {
   readonly #filesystem: FileSystemAdapter;
   readonly #inspect: (path: string) => Promise<RepositoryInspection>;
   readonly #harness: HarnessAdapter;
+  readonly #orca: OrcaAdapter;
 
   public constructor(dependencies: WorkflowProjectDependencies = {}) {
     this.#filesystem = dependencies.filesystem ?? new NodeFileSystem();
     this.#inspect = dependencies.inspect ?? inspectRepository;
     this.#harness = dependencies.harness ?? new NodeHarnessAdapter();
+    this.#orca = dependencies.orca ?? new NodeOrcaAdapter();
   }
 
   public async plan(command: WorkflowCommand): Promise<ChangePlan> {
     const repository = await this.#inspect(command.path);
+    const repositoryRoot = await this.#filesystem.realpath(repository.root);
     const config = resolveConfig(command.profile);
+    const globalEnabled = command.global !== false;
+    const registrationEnabled = command.orcaRegistration !== false;
     const artifacts = renderDesiredArtifacts(config);
-    const { manifest, manifestBlockers } = await this.readManifest(repository.root);
+    const { manifest, manifestBlockers } = await this.readManifest(repositoryRoot);
     const blockers: PlanBlocker[] = [...manifestBlockers];
 
     if (manifest !== undefined && manifest.cliVersion !== CLI_VERSION) {
@@ -93,7 +104,7 @@ export class WorkflowProject implements WorkflowProjectContract {
     }
 
     if (manifest !== undefined) {
-      const drift = await computeDrift(this.#filesystem, repository.root, manifest);
+      const drift = await computeDrift(this.#filesystem, repositoryRoot, manifest);
       for (const item of drift.items) {
         blockers.push({
           code: 'drift',
@@ -105,7 +116,7 @@ export class WorkflowProject implements WorkflowProjectContract {
 
     const files: PlannedFileChange[] = [];
     for (const artifact of artifacts) {
-      const result = await this.planArtifact(repository.root, artifact, manifest);
+      const result = await this.planArtifact(repositoryRoot, artifact, manifest);
       files.push(result.file);
       if (result.blocker !== undefined) blockers.push(result.blocker);
     }
@@ -122,17 +133,24 @@ export class WorkflowProject implements WorkflowProjectContract {
       blocked: uniqueBlockers.length,
     };
 
+    const discovery = await this.#orca.discover(repositoryRoot);
+    const external = requiredOrcaActions(discovery.repositoryTarget ?? repositoryRoot);
+    const coreAvailable = discovery.cli.status === 'pass'
+      && discovery.compatibility.status === 'pass'
+      && discovery.readiness.status === 'pass';
+    const globalAction = toPlannedAction(external[0]!, globalEnabled, discovery.globalSkill, coreAvailable && discovery.canInstallSkill);
+    const registrationAction = toPlannedAction(external[1]!, registrationEnabled, discovery.repository, coreAvailable && discovery.canRegisterRepository);
     return {
       schemaVersion: 1,
       command: 'init',
-      repository: { root: repository.root, github: repository.github },
+      repository: { root: repositoryRoot, github: repository.github },
       profile: {
         name: command.profile,
         stability: profiles[command.profile].stability,
       },
       files,
       blockers: uniqueBlockers,
-      globalCommands: [],
+      globalCommands: [globalAction, registrationAction],
       githubLabelMutations: [],
       validations: [
         'Git worktree and GitHub remote recognized',
@@ -147,13 +165,18 @@ export class WorkflowProject implements WorkflowProjectContract {
       ],
       summary,
       canApply: uniqueBlockers.length === 0,
-      phase: 'phase-2-local-application',
+      phase: 'phase-4-orca-application',
     };
   }
 
   public async apply(plan: ChangePlan): Promise<ApplyReceipt> {
     if (!plan.canApply || plan.blockers.length > 0) throw new Error('ChangePlan has blockers and cannot be applied.');
-    const freshPlan = await this.plan({ type: 'init', path: plan.repository.root, profile: plan.profile.name });
+    const freshPlan = await this.plan({
+      type: 'init', path: plan.repository.root, profile: plan.profile.name,
+      global: plan.globalCommands.some((action) => action.id === 'install-orchestration-skill' && action.state !== 'suppressed'),
+      orcaRegistration: plan.globalCommands.some((action) => action.id === 'register-repository' && action.state !== 'suppressed'),
+    });
+    validatePlannedActions(plan, freshPlan);
     if (JSON.stringify(freshPlan) !== JSON.stringify(plan)) {
       throw new Error('ChangePlan is stale; repository state changed after planning.');
     }
@@ -178,22 +201,46 @@ export class WorkflowProject implements WorkflowProjectContract {
       writes.push({ path: absolutePath, content });
     }
 
-    if (writes.length === 0) {
-      return { applied: false, reason: 'Installation already matches the desired state.', written: [], cleanupWarnings: [], verified: true };
-    }
-
     let verified = false;
-    const receipt = await new FileTransaction(this.#filesystem).apply(writes, async () => {
-      const verification = await this.plan({ type: 'init', path: plan.repository.root, profile: plan.profile.name });
+    const receipt = writes.length === 0 ? { written: [] as string[], cleanupWarnings: [] as string[] } : await new FileTransaction(this.#filesystem).apply(writes, async () => {
+      const verification = await this.plan({ type: 'init', path: plan.repository.root, profile: plan.profile.name, global: false, orcaRegistration: false });
       verified = verification.blockers.length === 0 && verification.files.every((file) => file.action === 'unchanged');
       if (!verified) throw new Error('Post-apply verification failed.');
     });
+    if (writes.length === 0) verified = true;
+    const externalActions: { id: string; status: 'executed' | 'failed'; message: string }[] = [];
+    const plannedActions = plan.globalCommands.filter((action) => action.state === 'planned');
+    for (const action of plannedActions) {
+      let result: { id: string; status: 'executed' | 'failed'; message: string };
+      try {
+        const externalResult = await this.#orca.execute({ id: action.id, argv: action.argv });
+        result = externalResult.status === 'executed'
+          ? { id: action.id, status: 'executed', message: `Orca action ${action.id} completed.` }
+          : { id: action.id, status: 'failed', message: `Orca action ${action.id} failed.` };
+      } catch {
+        result = { id: action.id, status: 'failed', message: `Orca action ${action.id} could not be executed.` };
+      }
+      externalActions.push(result);
+      if (result.status === 'failed') {
+        const later = plannedActions.slice(externalActions.length).map((candidate) => candidate.id);
+        const reason = writes.length > 0
+          ? `Local installation is consistent, but ${result.message}`
+          : `No local files changed; ${result.message}${later.length === 0 ? '' : ` Later planned action${later.length === 1 ? '' : 's'} ${later.join(', ')} ${later.length === 1 ? 'was' : 'were'} not attempted.`}`;
+        return { applied: writes.length > 0, reason, written: receipt.written.map((filePath) => path.relative(plan.repository.root, filePath).split(path.sep).join('/')), cleanupWarnings: receipt.cleanupWarnings, verified, externalActions };
+      }
+    }
+    const reason = writes.length > 0
+      ? `Applied ${receipt.written.length} local file changes atomically.`
+      : externalActions.length === 0
+        ? 'No local files changed; no Orca actions were executed.'
+        : `No local files changed; ${externalActions.length} Orca actions completed successfully: ${externalActions.map((action) => action.id).join(', ')}.`;
     return {
-      applied: true,
-      reason: `Applied ${receipt.written.length} local file changes atomically.`,
+      applied: writes.length > 0,
+      reason,
       written: receipt.written.map((filePath) => path.relative(plan.repository.root, filePath).split(path.sep).join('/')),
       cleanupWarnings: receipt.cleanupWarnings,
       verified,
+      externalActions,
     };
   }
 
@@ -204,6 +251,13 @@ export class WorkflowProject implements WorkflowProjectContract {
       status: 'PASS',
       message: `GitHub repository recognized as ${repository.github.display}.`,
     }];
+    const orca = await this.#orca.discover(repository.root);
+    checks.push(
+      doctorOrcaCheck('orca-cli', orca.cli, orca.compatibility),
+      doctorCheck('orca-readiness', orca.readiness),
+      doctorCheck('orca-global-skill', orca.globalSkill),
+      doctorCheck('orca-repository-registration', orca.repository),
+    );
     const resolveDoctorPath = async (id: string, relativePath: string): Promise<string | undefined> => {
       try {
         return await resolveSafeTarget(this.#filesystem, repository.root, relativePath);
@@ -396,7 +450,6 @@ export class WorkflowProject implements WorkflowProjectContract {
               ? `Local routing configuration for ${parsedConfig.profile} is structurally complete.`
               : `Local routing configuration for ${parsedConfig.profile} is complete; live Claude-worker validation is still pending.`,
       },
-      { id: 'external-orca', status: 'SKIP', message: 'Orca runtime and repository registration checks arrive in Phase 4.' },
       { id: 'external-github', status: 'SKIP', message: 'GitHub CLI authentication and label checks arrive in Phase 4.' },
     );
     const summary = { PASS: 0, WARN: 0, FAIL: 0, SKIP: 0 } satisfies Record<DoctorStatus, number>;
@@ -643,6 +696,38 @@ function isClaudeWrapperPath(relativePath: string): boolean {
 
 function isClaudeCompatibilityPath(relativePath: string): boolean {
   return relativePath === 'CLAUDE.md' || isClaudeWrapperPath(relativePath);
+}
+
+function validatePlannedActions(plan: ChangePlan, freshPlan: ChangePlan): void {
+  const expected = freshPlan.globalCommands;
+  for (const action of plan.globalCommands) {
+    const allowed = expected.find((candidate) => candidate.id === action.id);
+    if (allowed === undefined || allowed.argv.length !== action.argv.length || allowed.argv.some((part, index) => part !== action.argv[index])) {
+      throw new Error('ChangePlan contains an unsupported Orca action or argv.');
+    }
+  }
+}
+
+function toPlannedAction(
+  action: { readonly id: 'install-orchestration-skill' | 'register-repository'; readonly argv: readonly string[] },
+  enabled: boolean,
+  check: OrcaCheck,
+  available: boolean,
+): ChangePlan['globalCommands'][number] {
+  const target = action.id === 'install-orchestration-skill' ? 'global orchestration skill' : action.argv[action.argv.length - 1]!;
+  if (!enabled) return { ...action, target, state: 'suppressed', reason: 'Disabled by this init invocation.' };
+  if (!available || check.status === 'skip') return { ...action, target, state: 'unavailable', reason: check.message };
+  if (check.status === 'pass') return { ...action, target, state: 'already-satisfied', reason: check.message };
+  return { ...action, target, state: 'planned', reason: check.message };
+}
+
+function doctorCheck(id: string, check: OrcaCheck): DoctorCheck {
+  return { id, status: check.status === 'pass' ? 'PASS' : check.status === 'fail' ? 'FAIL' : 'SKIP', message: check.message };
+}
+
+function doctorOrcaCheck(id: string, cli: OrcaCheck, compatibility: OrcaCheck): DoctorCheck {
+  if (cli.status === 'fail') return doctorCheck(id, cli);
+  return doctorCheck(id, compatibility);
 }
 
 function toDoctorStatus(status: HarnessCheckStatus): DoctorStatus {

@@ -1,0 +1,14 @@
+#!/usr/bin/env node
+const args = process.argv.slice(2).join(' ');
+const emit = (result) => process.stdout.write(`${JSON.stringify({ ok: true, result })}\n`);
+const commands = [
+  ['agent-context', ['json']], ['status', ['json']], ['skills installed', ['json']],
+  ['repo list', ['json']], ['skills install', ['skill', 'dry-run']], ['repo add', ['path']],
+].map(([command, flags]) => ({ path: command.split(' '), flags, argumentMode: 'parsed' }));
+if (args === 'agent-context --json') process.stdout.write(`${JSON.stringify({ schemaVersion: 1, commandCount: commands.length, commands })}\n`);
+else if (args === 'status --json') emit({ runtime: { state: 'ready', reachable: true, appVersion: '1.4.190', capabilities: ['runtime.status.compat.v1', 'orchestration.contract.v1'] }, graph: { state: 'ready' } });
+else if (args === 'skills installed --json') emit({ skills: process.env.AOK_ORCA_SKILLS === 'absent' ? [] : [{ name: 'orchestration' }] });
+else if (args === 'repo list --json') emit({ repos: process.env.AOK_ORCA_REPOS === 'none' ? [] : [{ path: process.env.AOK_ORCA_REPO }] });
+else if (args === 'skills install --skill orchestration') process.exit(process.env.AOK_ORCA_FAIL_ACTION === 'install' ? 9 : 0);
+else if (args.startsWith('repo add --path ')) process.exit(process.env.AOK_ORCA_FAIL_ACTION === 'register' ? 9 : 0);
+else process.exit(9);

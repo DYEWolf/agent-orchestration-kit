@@ -1,5 +1,6 @@
 import type { ProfileName } from '../config/schema.js';
 import type { GitHubRepositoryIdentity } from '../repository/inspection.js';
+import type { OrcaAction } from '../adapters/orca/orca.js';
 
 export type PlannedFileAction = 'create' | 'update' | 'unchanged';
 
@@ -23,6 +24,14 @@ export interface PlanBlocker {
   readonly message: string;
 }
 
+export interface PlannedExternalAction {
+  readonly id: OrcaAction['id'];
+  readonly target: string;
+  readonly argv: readonly string[];
+  readonly state: 'planned' | 'already-satisfied' | 'suppressed' | 'unavailable';
+  readonly reason: string;
+}
+
 export interface ChangePlan {
   readonly schemaVersion: 1;
   readonly command: 'init';
@@ -36,7 +45,7 @@ export interface ChangePlan {
   };
   readonly files: readonly PlannedFileChange[];
   readonly blockers: readonly PlanBlocker[];
-  readonly globalCommands: readonly [];
+  readonly globalCommands: readonly PlannedExternalAction[];
   readonly githubLabelMutations: readonly [];
   readonly validations: readonly string[];
   readonly rollbackActions: readonly string[];
@@ -47,5 +56,5 @@ export interface ChangePlan {
     readonly blocked: number;
   };
   readonly canApply: boolean;
-  readonly phase: 'phase-2-local-application';
+  readonly phase: 'phase-4-orca-application';
 }

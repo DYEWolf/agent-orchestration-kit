@@ -28,6 +28,7 @@ try {
     ...profiles.map((profile) => mkdir(path.join(temporary, `repository-${profile}`))),
   ]);
   const fakeClaude = path.join(fakeBinDirectory, 'claude');
+  const fakeOrca = path.join(fakeBinDirectory, 'orca');
   await writeFile(fakeClaude, `#!/usr/bin/env node
 const args = process.argv.slice(2);
 if (args.length === 1 && args[0] === '--version') process.stdout.write('2.1.236\\n');
@@ -35,6 +36,18 @@ else if (args.length === 3 && args[0] === 'auth' && args[1] === 'status' && args
 else process.exit(4);
 `, { encoding: 'utf8', mode: 0o755 });
   await chmod(fakeClaude, 0o755);
+  await writeFile(fakeOrca, `#!/usr/bin/env node
+const args = process.argv.slice(2).join(' ');
+const emit = (result) => process.stdout.write(\`${'${JSON.stringify({ ok: true, result })}'}\\n\`);
+const commands = [['agent-context', ['json']], ['status', ['json']], ['skills installed', ['json']], ['repo list', ['json']], ['skills install', ['skill', 'dry-run']], ['repo add', ['path']]].map(([command, flags]) => ({ path: command.split(' '), flags, argumentMode: 'parsed' }));
+if (args === 'agent-context --json') process.stdout.write(\`${'${JSON.stringify({ schemaVersion: 1, commandCount: commands.length, commands })}'}\\n\`);
+else if (args === 'status --json') emit({ runtime: { state: 'ready', reachable: true, appVersion: '1.4.190', capabilities: ['runtime.status.compat.v1', 'orchestration.contract.v1'] }, graph: { state: 'ready' } });
+else if (args === 'skills installed --json') emit({ skills: [{ name: 'orchestration' }] });
+else if (args === 'repo list --json') emit({ repos: [{ path: process.env.AOK_ORCA_REPO }] });
+else if (args === 'skills install --skill orchestration' || args.startsWith('repo add --path ')) process.exit(0);
+else process.exit(9);
+`, { encoding: 'utf8', mode: 0o755 });
+  await chmod(fakeOrca, 0o755);
 
   const packed = await execa('npm', [
     'pack',
@@ -73,6 +86,7 @@ else process.exit(4);
     env: {
       ...process.env,
       PATH: `${fakeBinDirectory}${path.delimiter}${process.env['PATH'] ?? ''}`,
+      AOK_ORCA_REPO: arguments_[1] ?? '',
     },
   });
 

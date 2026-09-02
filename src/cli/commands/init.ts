@@ -21,7 +21,7 @@ export function registerInitCommand(program: Command): void {
     .argument('[path]', 'repository path', '.')
     .option('--profile <profile>', 'routing profile', 'codex-only')
     .option('--dry-run', 'show the ChangePlan without writing')
-    .option('--yes', 'accept the enumerated local mutations')
+    .option('--yes', 'accept only the complete enumerated ChangePlan, including its enumerated Orca actions')
     .option('--no-global', 'disable global mutations')
     .option('--no-orca-registration', 'disable Orca repository registration')
     .option('--no-github-mutations', 'disable GitHub mutations')
@@ -29,7 +29,11 @@ export function registerInitCommand(program: Command): void {
     .action(async (path: string, options: InitOptions) => {
       const profile = profileNameSchema.parse(options.profile) as ProfileName;
       const workflow = new WorkflowProject();
-      const plan = await workflow.plan({ type: 'init', path, profile });
+      const plan = await workflow.plan({
+        type: 'init', path, profile,
+        global: options.global !== false,
+        orcaRegistration: options.orcaRegistration !== false,
+      });
       if (options.dryRun === true) {
         process.stdout.write(options.json === true ? `${JSON.stringify(plan, null, 2)}\n` : formatPlan(plan));
         if (plan.blockers.length > 0) process.exitCode = 2;
@@ -45,17 +49,25 @@ export function registerInitCommand(program: Command): void {
       }
       if (options.json !== true) process.stdout.write(formatPlan(plan));
       if (options.yes !== true) {
-        const accepted = await confirm({ message: 'Apply exactly this local ChangePlan?' });
+        const accepted = await confirm({ message: 'Apply exactly this ChangePlan, including its enumerated Orca actions?' });
         if (isCancel(accepted) || accepted !== true) {
           process.stdout.write('Cancelled; no files were changed.\n');
           return;
         }
       }
       const receipt = await workflow.apply(plan);
+      if (receipt.externalActions.some((action) => action.status === 'failed')) process.exitCode = 2;
       process.stdout.write(
         options.json === true
           ? `${JSON.stringify({ plan, receipt }, null, 2)}\n`
-          : `${receipt.reason}\nVerification: ${receipt.verified ? 'PASS' : 'FAIL'}\n`,
+          : [
+              receipt.reason,
+              `Verification: ${receipt.verified ? 'PASS' : 'FAIL'}`,
+              ...receipt.externalActions.map((action) =>
+                `Orca action ${action.id}: ${action.status.toUpperCase()} — ${action.message}`,
+              ),
+              '',
+            ].join('\n'),
       );
     });
 }

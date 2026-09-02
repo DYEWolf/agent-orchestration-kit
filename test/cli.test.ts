@@ -12,4 +12,13 @@ describe('CLI error contract', () => {
       error: { message: "error: unknown option '--unknown'" },
     });
   });
+
+  it('documents that --yes accepts the complete enumerated plan, including Orca actions', async () => {
+    const result = await execa('node', ['--import', 'tsx', 'src/cli.ts', 'init', '--help'], {
+      reject: false,
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toMatch(/--yes\s+accept only the complete enumerated ChangePlan,\s+including its enumerated Orca actions/u);
+    expect(result.stdout).not.toContain('enumerated local mutations');
+  });
 });
