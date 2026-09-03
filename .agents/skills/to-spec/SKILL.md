@@ -5,7 +5,7 @@ description: Turn an understood conversation into a complete, approved, non-exec
 
 # To Spec
 
-Sol owns the conversation and synthesizes what has already been discussed. This skill does not conduct a new interview, dispatch workers, or route implementation work. If a fact is still missing, the coordinator may create a bounded Orca evidence Task and must integrate its report before presenting the draft; see `docs/agents/orca-execution.md`.
+The coordinator owns the conversation and synthesizes what has already been discussed. This skill does not conduct a new interview, dispatch workers, or route implementation work. If a fact is still missing, the coordinator may create a bounded Orca evidence Task and must integrate its report before presenting the draft; see `docs/agents/orca-execution.md`.
 
 Read `docs/agents/issue-tracker.md` for the publication mechanism. The specification is a durable project boundary, not an executable worker task.
 

@@ -4,7 +4,7 @@
   "upstreamCommit": "6654f6b60cd9d5be8b54c6fafe44346dabeb3b76",
   "originalContentHash": "2c20617f87ec8af6a434859f381b2f061a69b530444e74eb39e78bb016a6d1e2",
   "overlayVersion": "1",
-  "renderedContentHash": "a3efcfa6b4a57db862b4ecd96f858dfdbb6ffc6bf3c4b7c7c6d244c3c6a04c02",
+  "renderedContentHash": "17a415702855c634f9ba42195b9d41dfa2401e57bb71613acda643458abc54a3",
   "supportFiles": [
     {
       "path": "skills/engineering/codebase-design/DEEPENING.md",
@@ -20,7 +20,8 @@
     "changes": [
       "generic Orca ownership and lifecycle adaptation",
       "Codex $skill-name references",
-      "manual removal of product and alternate-adapter content"
+      "manual removal of product and alternate-adapter content",
+      "single-source policy references, coordinator naming, routing moved to docs/agents/routing.md"
     ]
   }
 }

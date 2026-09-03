@@ -4,7 +4,7 @@
   "upstreamCommit": "6654f6b60cd9d5be8b54c6fafe44346dabeb3b76",
   "originalContentHash": "6d3fd9e83b8f36e5213854779db49b256a457a7ebb4a503e53fa7dcff696adc3",
   "overlayVersion": "1",
-  "renderedContentHash": "7547196a2e312a64310f8c7acf6f19fcd06afbe24774d0376ebb16dc842208e6",
+  "renderedContentHash": "9897208ffb7a7b7c12910f1e97c48f3317b4848c260362e8bc8836c9b3a2f93a",
   "supportFiles": [],
   "patch": {
     "kind": "manual",
@@ -12,7 +12,8 @@
       "generic Orca ownership and lifecycle adaptation",
       "Codex $skill-name references",
       "manual removal of product and alternate-adapter content",
-      "safe post-integration resource reconciliation and Campaign frontier advance"
+      "safe post-integration resource reconciliation and Campaign frontier advance",
+      "single-source policy references, coordinator naming, routing moved to docs/agents/routing.md"
     ]
   }
 }

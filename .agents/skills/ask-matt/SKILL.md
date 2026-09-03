@@ -1,13 +1,13 @@
 ---
 name: ask-matt
-description: Route an explicitly invoked request to the installed planning, implementation, diagnosis, review, or handoff flow while Sol retains conversation ownership.
+description: Route an explicitly invoked request to the installed planning, implementation, diagnosis, review, or handoff flow while the coordinator retains conversation ownership.
 ---
 
 # Ask Matt
 
 This is a router and decision aid, not an autonomous dispatcher. Classify shape,
 risk, uncertainty, and locality with `docs/agents/execution-policy.md` before
-selecting a workflow. Sol asks the user questions only when a material decision
+selecting a workflow. The coordinator asks the user questions only when a material decision
 is genuinely unresolved, records decisions, and authorizes phase transitions. A
 worker receives only a coordinator-created, bounded Orca Task and returns
 evidence; it never owns the conversation, asks the user, makes an unassigned
@@ -31,9 +31,9 @@ product decision, creates another Task, or silently advances the flow. See
 
 Use this path when the user has an idea they want built:
 
-1. **Sharpen and document** — `$grill-with-docs`. Sol interviews one decision at a time, using `$grilling` and `$domain-modeling`. Facts may be gathered through coordinator-created Orca evidence Tasks. The phase ends with shared understanding and recorded decisions.
-2. **Specify** — explicitly invoke `$to-spec`. Sol drafts the complete specification, obtains explicit approval of the full document, and publishes one non-executable umbrella/spec issue. The issue is not ready for implementation.
-3. **Split durable work** — explicitly invoke `$to-tickets`. Sol drafts outcome-based implementation issues, including acceptance, constraints, risks, verification, and genuine blocking edges; the user explicitly approves the breakdown before publication. Only implementation issues ready to execute receive `ready-for-agent`.
+1. **Sharpen and document** — `$grill-with-docs`. The coordinator interviews one decision at a time, using `$grilling` and `$domain-modeling`. Facts may be gathered through coordinator-created Orca evidence Tasks. The phase ends with shared understanding and recorded decisions.
+2. **Specify** — explicitly invoke `$to-spec`. The coordinator drafts the complete specification, obtains explicit approval of the full document, and publishes one non-executable umbrella/spec issue. The issue is not ready for implementation.
+3. **Split durable work** — explicitly invoke `$to-tickets`. The coordinator drafts outcome-based implementation issues, including acceptance, constraints, risks, verification, and genuine blocking edges; the user explicitly approves the breakdown before publication. Only implementation issues ready to execute receive `ready-for-agent`.
 4. **Implement** — explicitly invoke `$implement` for an approved implementation issue. The coordinator owns runtime dispatch through Orca; the issue remains the durable contract and contains no model or routing instructions.
 5. **Review and verify** — use `$code-review` when the risk policy requires it or the user requests it. Accept, correct, or escalate based on the exact candidate and deterministic verification.
 
@@ -50,8 +50,8 @@ the next phase.
 
 - **Something is broken or regressed** → `$diagnosing-bugs`. Establish a tight failing feedback loop, then repair it with a regression test.
 - **Test-first implementation** → `$tdd`. Use issue/Task-approved seams and keep the red-green loop inside the active implementation contract.
-- **A module boundary or public seam is unclear** → `$codebase-design`. Use its vocabulary directly; if alternatives need independent analysis, Sol creates sibling Orca Tasks and synthesizes the decision.
-- **A bounded factual question needs primary-source evidence** → `$research`. Run it directly or as a read-only Orca evidence Task; the report returns to Sol.
+- **A module boundary or public seam is unclear** → `$codebase-design`. Use its vocabulary directly; if alternatives need independent analysis, the coordinator creates sibling Orca Tasks and synthesizes the decision.
+- **A bounded factual question needs primary-source evidence** → `$research`. Run it directly or as a read-only Orca evidence Task; the report returns to the coordinator.
 - **A risky interaction or design assumption needs a disposable artifact** → `$prototype`. Gate the question first, let the coordinator present the artifact, and capture only the approved result.
 - **The destination is too foggy to plan** → `$wayfinder`. Resolve decision work until a buildable direction exists, then explicitly return to `$to-spec`.
 - **Codebase health** → `$improve-codebase-architecture`. Use it to surface deepening opportunities; take a selected opportunity into `$grill-with-docs` explicitly.
@@ -61,7 +61,7 @@ the next phase.
 - **The work must move to another harness, directory, or colleague** → `$handoff`, and only at the corresponding phase boundary.
 - **Explicitly start, inspect, pause, resume, or cancel a fixed set of approved implementation Issues** → `$campaign`.
 
-If no installed flow fits, keep Sol in the conversation and use a coordinator-created Orca evidence Task only for a bounded fact-finding need. Do not invent a route or present runtime worker selection as a user-facing workflow.
+If no installed flow fits, keep the coordinator in the conversation and use a coordinator-created Orca evidence Task only for a bounded fact-finding need. Do not invent a route or present runtime worker selection as a user-facing workflow.
 
 ## Routing rules
 

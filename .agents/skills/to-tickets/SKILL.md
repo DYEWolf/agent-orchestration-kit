@@ -5,7 +5,7 @@ description: Break an explicitly approved umbrella specification into durable im
 
 # To Tickets
 
-Turn an approved umbrella/spec issue into a set of durable implementation issues. Sol remains the conversational owner: the coordinator may use Orca Tasks for bounded repository evidence, but workers do not interview the user, create nested Tasks, or decide the breakdown. Follow `docs/agents/orca-execution.md` for evidence and lifecycle details.
+Turn an approved umbrella/spec issue into a set of durable implementation issues. The coordinator remains the conversational owner: the coordinator may use Orca Tasks for bounded repository evidence, but workers do not interview the user, create nested Tasks, or decide the breakdown. Follow `docs/agents/orca-execution.md` for evidence and lifecycle details.
 
 Read `docs/agents/issue-tracker.md` for the configured tracker. On this project, GitHub issues are the durable boundary for the approved specification and its implementation work.
 
@@ -36,39 +36,17 @@ Present the proposed breakdown as a numbered list. For each issue show its title
 
 ### 4. Publish the approved issues
 
-Create issues in dependency order so blockers have identifiers first. Keep the approved umbrella/spec issue open and unchanged. Use native GitHub blocking dependencies when available; otherwise include a `Blocked by` section with issue references. Apply `ready-for-agent` only to implementation issues whose acceptance criteria, constraints, risks, and verification are complete. Do not apply that label to umbrella, investigation, or decision issues.
+Create issues in dependency order so blockers have identifiers first, using the
+durable Issue body defined in `docs/agents/issue-tracker.md`; it is the single
+template for implementation Issues and the one Campaign preflight validates.
+Keep the approved umbrella/spec issue open and unchanged. Record each blocker
+both as a native GitHub dependency and in the body's `Blocked by` section.
+Apply `ready-for-agent` only to implementation issues whose required sections
+are complete. Do not apply it to umbrella, investigation, or decision issues.
 
-After publication, stop. Dispatching and model selection are runtime coordinator actions, not ticket transitions. They occur only when the user explicitly starts implementation or an explicitly authorized end-to-end flow includes implementation.
-
-## Issue template
-
-## Parent
-
-Reference the approved umbrella/spec issue.
-
-## What to build
-
-The end-to-end behavior this issue makes work, from the user's perspective.
-
-## Acceptance criteria
-
-- [ ] Observable criterion 1
-- [ ] Observable criterion 2
-
-## Constraints and non-goals
-
-State interfaces, invariants, compatibility requirements, and explicit exclusions.
-
-## Risks and mitigations
-
-Identify material risks and how implementation or verification will address them.
-
-## Verification
-
-List deterministic checks that establish the acceptance criteria, including relevant tests, typechecks, builds, migrations, or manual checks.
-
-## Blocked by
-
-Reference each genuine blocking issue, or state `None (can start immediately)`.
-
-Do not put model names, effort levels, worker routing, context-window assumptions, or session-management instructions in tickets.
+After publication, stop. Dispatching and model selection are runtime
+coordinator actions, not ticket transitions. They occur only when the user
+explicitly starts implementation, invokes `$campaign`, or an explicitly
+authorized end-to-end flow includes implementation. Do not put model names,
+effort levels, worker routing, context-window assumptions, or
+session-management instructions in tickets.

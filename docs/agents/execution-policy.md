@@ -63,9 +63,10 @@ Issue independently.
 - Start at most one implementation worker for bounded work.
 - Create a Task DAG only when ownership and verification are genuinely
   separable; parallel Tasks must remain non-overlapping.
-- Use Luna for clear exploration and implementation, Terra when local judgment
-  is material, and Sol for architectural decisions and fresh high-risk review.
-- Do not use `xhigh` or `max` by default. State the difficulty that warrants it.
+- Default maximum: three active implementation workers inside one Issue, and
+  only when their Tasks are genuinely independent.
+- Select model and effort per role from `docs/agents/routing.md`; do not use
+  `xhigh` or `max` by default, and record the difficulty that warrants it.
 - A worker retry needs new evidence or a changed contract. Repeating the same
   request is not a recovery strategy.
 - Two equivalent blocking review rounds pause the Issue for a coordinator

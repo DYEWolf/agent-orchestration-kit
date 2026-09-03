@@ -5,73 +5,50 @@ description: Start, inspect, pause, resume, or cancel an explicitly authorized f
 
 # Campaign
 
-Campaign is a bounded runtime authorization, not a permanent execution mode,
-backlog runner, or replacement for Issue-owned Runs. It never starts implicitly.
-Use it only for the user's natural-language intent to start, inspect/status,
-pause, resume, or cancel a Campaign.
+Campaign is a bounded runtime authorization over an explicit, ordered, fixed
+set of approved implementation Issues. It is not a permanent mode, a backlog
+runner, or a replacement for Issue-owned Runs, and it never starts implicitly:
+`$to-tickets` publishes and stops, and manual `$implement` remains the default.
+Use this skill only for the user's natural-language intent to start, inspect,
+pause, resume, or cancel a Campaign. The invariants in `AGENTS.md` and the
+rules in `docs/agents/execution-policy.md` apply unchanged inside a Campaign.
 
 ## Start
 
-Ask for an explicit ordered list of implementation Issues. Run read-only,
-atomic preflight before asking any optional permission: each member must be an
-approved, executable Issue with complete acceptance and verification; a blocked
-member may remain a fixed future member. Reject the entire proposal for any
-invalid, duplicate, conflicted, or incomplete member, with no effects.
-
-On success, present the complete proposed authorization and ordered frontier.
-Choose the record anchor from the read-only parent/umbrella facts: a common
-existing umbrella is the default, otherwise the first member is the default.
-An explicit alternate is valid only when it is one of the provided relevant
-existing anchors; it need not be a member. Ask only for relevant optional
-Preauthorized Mutations: pushing integration commits, creating/updating
-branches, creating/updating/merging pull requests when the pull-request route
-is selected, and triggering/rerunning remote workflows only when a selected
-Issue requires one. Reject irrelevant permission requests before any effect.
-After the final needed answer, append the immutable Campaign Record comment to
-the anchor Issue and immediately start the authorized work; do not ask a second
-confirmation. Read [preflight and record details](references/preflight-and-record.md)
-when constructing or validating that proposal.
+1. Ask for the explicit ordered list of implementation Issues.
+2. Run the read-only, atomic preflight in
+   [preflight-and-record.md](references/preflight-and-record.md). Any invalid,
+   duplicate, conflicted, incomplete, or already-owned member rejects the whole
+   proposal with no effects.
+3. Present the proposed authorization and ordered frontier, with the record
+   anchor chosen by the rules in that reference.
+4. Ask only for the relevant optional Preauthorized Mutations listed there.
+   Protected Mutations are never preauthorized.
+5. After the last needed answer, append the immutable Campaign Record comment
+   to the anchor Issue and start the first eligible member immediately. Do not
+   ask a second confirmation. Membership is fixed from this point.
 
 ## Operate
 
-Reconstruct status from GitHub and Orca; do not mutate a Campaign status ledger.
-Advance one Campaign Issue at a time, while each Issue preserves its own single
-execution Run and its minimum Task DAG. Classify each Issue independently with
-`docs/agents/execution-policy.md`; Campaign membership does not require review or
-raise model effort. Write a bounded coordinator checkpoint at every Issue
-boundary so a fresh physical session can continue the same logical ownership.
-Read [lifecycle details](references/lifecycle.md) before handling a gate, failure,
-review result, acceptance, pause, resume, or cancel request.
+Follow [lifecycle.md](references/lifecycle.md) for every gate, failure, review
+result, acceptance, pause, resume, and cancel. The short form:
 
-Acceptance is a two-phase boundary: first prove the approved candidate is
-integrated and contained, then reconcile every Issue-owned execution resource
-under the repository execution policy. Record each worker terminal, worktree,
-and temporary branch as `removed`, `retained`, or `not-created`. Never discard
-unique bytes or uncertain ownership merely to advance the Campaign.
+- Reconstruct status from GitHub and Orca; there is no mutable status ledger.
+- One active Issue at a time; each keeps its own single execution Run and its
+  minimum Task DAG, classified independently by the execution policy.
+- Acceptance is two-phase: prove the candidate is integrated and contained in
+  the authorized remote target, then reconcile every Issue-owned resource and
+  record its disposition. Never discard unique bytes to advance.
+- After acceptance, immediately execute the frontier's `add-ready-for-agent`
+  and `start-issue` actions for the next eligible member. Ask for a new prompt
+  only at an explicit user boundary, an Issue/Campaign Pause, a Protected
+  Mutation, exhausted authorization, or when no eligible member remains.
+- Write the coordinator checkpoint at every Issue boundary.
 
-Protected Mutations always require immediate confirmation, even during an active
-Campaign. Keep an outstanding Protected Mutation pause tied to exactly the
-pending mutation; a later confirmation cannot revive a cancelled or completed
-Campaign. An Issue-local `RETHINK` creates an Issue Pause, while a transversal
-`RETHINK` creates a Campaign Pause; neither is retried. Internal Task
-dispatch is limited only inside the active Issue by the inherited worker limit,
-and does not gate starting the next Issue when no Issue is active.
+## Pause, resume, cancel
 
-Cancellation stops new work, marks every unaccepted member cancelled, releases
-Campaign-owned terminals and child-worktree resources, unassigns unaccepted
-Issues, and records incomplete progress/evidence. Accepted commits/evidence are
-preserved and no rollback is performed. Isolated execution uses fresh worker
-terminals and child worktrees by default; use the current worktree only when
-exact shared state or shared verification requires it. Acceptance requires
-candidate-bound verification, required candidate-bound `SHIP`, exactly one
-coordinator-owned integration commit, revalidated target identity, and
-containment in the authorized remote target branch, followed by safe resource
-reconciliation; local-only or temporary-branch commits do not qualify. After
-recording acceptance, immediately execute the emitted `add-ready-for-agent` and
-`start-issue` actions for the next eligible fixed member. Do not ask for a new
-prompt between members unless the user explicitly requested a boundary, a
-pause/Protected Mutation applies, authorization is exhausted, or the Campaign
-has no eligible member.
-
-Manual Issue execution remains the default; `$to-tickets` publishes issues and
-stops, and `$campaign` is the only route that starts Campaign work.
+Issue Pause blocks one member and lets an independent member run; Campaign
+Pause stops everything. Resume reuses the immutable record and existing Runs.
+Cancel stops new work, releases Campaign-owned resources, unassigns unaccepted
+members, records incomplete evidence, preserves accepted evidence, and never
+rolls back. Details and event names are in the lifecycle reference.

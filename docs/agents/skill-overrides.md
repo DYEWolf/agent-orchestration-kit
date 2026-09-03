@@ -80,6 +80,15 @@ making these deliberate changes:
   worktrees, and temporary branches receive a proven `removed`, `retained`, or
   `not-created` disposition before close; Campaign then advances its fixed
   frontier automatically unless an explicit boundary or pause applies.
+- Each rule has exactly one canonical home. `AGENTS.md` holds invariants and
+  worker/coordinator role rules; `docs/agents/execution-policy.md` holds the
+  rules; `docs/agents/orca-execution.md` holds checklists and record formats;
+  `docs/agents/issue-tracker.md` holds the single durable Issue body that
+  `to-tickets` publishes and Campaign preflight validates. Skills reference
+  these documents instead of restating them.
+- Model and effort defaults live only in `docs/agents/routing.md`. The
+  constitution and skills refer to "the coordinator" and to roles, never to a
+  model name, so the same text is portable to a Claude-hosted coordinator.
 - Native Codex metadata disables implicit invocation only for `ask-matt`,
   `campaign`,
   `grill-with-docs`, `handoff`, `implement`, `improve-codebase-architecture`,

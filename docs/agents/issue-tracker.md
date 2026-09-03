@@ -32,7 +32,9 @@ claimed implementation Issue; a Planning Run remains separate.
 
 ## Durable Issue body
 
-Keep the body as the stable executable contract. Put changing progress,
+This is the single Issue body template for implementation Issues. `$to-tickets`
+publishes with it, `$implement` reads it, and Campaign preflight validates it.
+Keep the body as the stable executable contract; put changing progress,
 decisions, verification output, review findings, and handoff evidence in
 comments.
 
@@ -41,32 +43,36 @@ comments.
 <!-- Approved umbrella/spec Issue or durable decision source. -->
 
 ## Objective
-<!-- One concise outcome. -->
+<!-- The end-to-end behavior this Issue makes work, from the user's perspective. -->
 
 ## Context
-<!-- Facts needed to act. -->
+<!-- Facts and evidence pointers needed to act. -->
 
 ## Scope
 <!-- Owned files/modules and explicit exclusions. -->
 
-## Constraints
-<!-- Interfaces, invariants, and decisions that must not change. -->
-
-## Non-goals
-<!-- Behavior this Issue deliberately does not own. -->
+## Constraints and non-goals
+<!-- Interfaces, invariants, compatibility requirements, and behavior this Issue does not own. -->
 
 ## Acceptance criteria
-<!-- Externally verifiable outcomes. -->
-
-## Verification
-<!-- Exact commands, QA, and review gates. -->
+- [ ] <!-- Externally verifiable outcome -->
 
 ## Risks and review
-<!-- Material blast radius, mitigation, and independent-review need. -->
+<!-- Material blast radius, mitigations, and whether independent review is required. -->
 
-## Dependencies
-<!-- GitHub Issues that block this Issue, if any. -->
+## Verification
+<!-- Exact deterministic commands, QA, and review gates. -->
+
+## Blocked by
+<!-- Each genuine blocking Issue, or `None (can start immediately)`. -->
 ```
+
+Required for executability and Campaign preflight: `Objective`, `Acceptance
+criteria`, `Constraints and non-goals`, `Risks and review`, `Verification`, and
+`Blocked by`. `Context` and `Scope` may be short but must not be omitted.
+Issues published before this template are read with `What to build` as
+`Objective`, `Risks and mitigations` as `Risks and review`, and `Dependencies`
+as `Blocked by`; do not rewrite their bodies solely to rename headings.
 
 Create an Issue only when the active skill and user-authorized phase call for
 it:
@@ -114,26 +120,18 @@ workflow is not by itself proof that a worktree is disposable.
 
 ## Campaign Record
 
-Only an explicit `$campaign` start appends a Campaign Record. After successful
-read-only atomic preflight and the relevant authorization answers, append one
-immutable anchor-Issue comment beginning exactly:
+Only an explicit `$campaign` start appends a Campaign Record, as exactly one
+immutable comment on the anchor Issue beginning:
 
 ```markdown
 [decision] Campaign Record
 <!-- orca-campaign-record:v1 -->
 ```
 
-Record the stable Campaign identity, fixed ordered membership/anchor, repository remote and target branch,
-base and local mutations, selected relevant Preauthorized Mutations, Protected
-Mutation policy, cross-Issue concurrency of one, inherited worker limit,
-integration route, pause/stopping conditions, and creation time. Do not update
-it with a mutable Campaign status. Reconstruct status from Issues and Orca Runs;
-use the existing tagged comments above for evidence and resolution. A blocked
-but otherwise complete Issue may be a future member without `ready-for-agent`,
-while an unblocked member must carry it; it never expands membership later.
-Choose a common umbrella anchor when parent/umbrella facts identify one,
-otherwise the first member; an explicit alternate must be a provided relevant
-existing Issue and need not be membership.
+Its required contents, anchor selection, and membership rules are defined in
+`.agents/skills/campaign/references/preflight-and-record.md`. It is an
+authorization, never a mutable status ledger: reconstruct status from Issues
+and Orca Runs and use the tagged comments above for later evidence.
 
 ## Labels
 

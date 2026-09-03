@@ -4,14 +4,15 @@
   "upstreamCommit": "6654f6b60cd9d5be8b54c6fafe44346dabeb3b76",
   "originalContentHash": "b25d86fb36b1d294eeead5d7db529f86135f9671f2afcd607579a63bb2213769",
   "overlayVersion": "1",
-  "renderedContentHash": "6d60b7e7d1d485679e9f84bf187e68b07ffc726033037e3b65316eca996ed403",
+  "renderedContentHash": "8c6c77ccb6d47e600150cfe7eebbbe3d63e82a7d1d0858bac1ebca77519cd5b2",
   "supportFiles": [],
   "patch": {
     "kind": "manual",
     "changes": [
       "generic Orca ownership and lifecycle adaptation",
       "Codex $skill-name references",
-      "manual removal of product and alternate-adapter content"
+      "manual removal of product and alternate-adapter content",
+      "single-source policy references, coordinator naming, routing moved to docs/agents/routing.md"
     ]
   }
 }

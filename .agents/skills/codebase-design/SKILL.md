@@ -110,7 +110,7 @@ Good interfaces make testing natural:
 
 ## Orca ownership
 
-Read `AGENTS.md` and, when present, `docs/agents/orca-execution.md` before routing design work. Sol/coordinator owns the design conversation and decisions. A worker may investigate or draft only within a coordinator-created Orca Task; it does not ask the user, create another Task, publish a decision, or commit a design.
+Read `AGENTS.md` and, when present, `docs/agents/orca-execution.md` before routing design work. The coordinator owns the design conversation and decisions. A worker may investigate or draft only within a coordinator-created Orca Task; it does not ask the user, create another Task, publish a decision, or commit a design.
 
 ## Going deeper
 

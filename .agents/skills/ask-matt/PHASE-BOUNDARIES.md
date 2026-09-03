@@ -1,12 +1,12 @@
 # Phase boundaries
 
-A phase is a coherent chunk of work inside a logically Sol-owned conversation:
+A phase is a coherent chunk of work inside a logically coordinator-owned conversation:
 grilling, specification, ticket drafting, implementation, or review. A phase
 boundary is the gap between two such chunks. Make the transition decision at the
 boundary; do not let completion of one skill silently invoke another. A direct
 trivial route need not enter this phase pipeline.
 
-The boundary never transfers logical conversational ownership. Sol remains
+The boundary never transfers logical conversational ownership. The coordinator remains
 responsible for user questions, decisions, approvals, and phase transitions,
 but a new physical coordinator session may resume that ownership from a durable
 checkpoint. Orca workers supply bounded evidence to the coordinator; they are
@@ -17,9 +17,9 @@ read `docs/agents/execution-policy.md` and `docs/agents/orca-execution.md`.
 
 | Option | Meaning |
 | --- | --- |
-| **Continue** | Stay in the current Sol conversation only while its context remains bounded and useful. |
+| **Continue** | Stay in the current coordinator conversation only while its context remains bounded and useful. |
 | **Explicit transition** | Invoke the named next skill only after its entry criteria are met and the user requests it or an explicitly authorized end-to-end flow includes it. |
-| **Orca evidence Task** | Ask the coordinator to create one bounded, read-oriented Task when a fact or probe is needed. The worker returns a report to Sol; this is not a conversation handoff or a nested dispatch. |
+| **Orca evidence Task** | Ask the coordinator to create one bounded, read-oriented Task when a fact or probe is needed. The worker returns a report to the coordinator; this is not a conversation handoff or a nested dispatch. |
 | **Checkpoint and replace** | Record the bounded coordinator checkpoint defined by the execution policy, then resume the same logical ownership and Run in a fresh session. |
 | **`$handoff`** | Write a portable summary only when work is moving to another harness, directory, or colleague. It is a transport boundary, not an automatic workflow step. |
 | **Clear or compact** | Use session-management controls only after durable decisions, evidence, or issue links are recorded. They do not determine issue sizing or worker routing. |
@@ -32,7 +32,7 @@ Work top to bottom at the boundary; the first applicable answer wins.
    boundary, or entering repeated review?** Write a coordinator checkpoint and
    replace the physical session.
 2. **Does the next activity need the remaining bounded context as its primary
-   source?** Continue under the same logical Sol ownership.
+   source?** Continue under the same logical coordinator ownership.
 3. **Is a bounded fact or probe missing?** Have the coordinator create an Orca
    evidence Task, then return to the same phase with its report. Workers do not
    ask the user or decide whether to advance.
