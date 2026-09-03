@@ -18,6 +18,7 @@ import { sha256 } from '../src/shared/hash.js';
 import { WorkflowProject } from '../src/workflow-project/workflow-project.js';
 import type { OrcaAction, OrcaActionReceipt, OrcaAdapter, OrcaDiscovery } from '../src/adapters/orca/orca.js';
 import type { GitHubActionReceipt, GitHubAdapter, GitHubDiscovery, GitHubLabelAction } from '../src/adapters/github/github.js';
+import { writePortableFixtureTool } from './helpers/portable-launcher.js';
 
 const root = path.resolve('/fixture/repository');
 const inspection: RepositoryInspection = {
@@ -422,7 +423,7 @@ describe('WorkflowProject planning', () => {
         gitDirectory: path.join(mainRoot, '.git', 'worktrees', 'linked'),
       };
       const orca = new NodeOrcaAdapter({
-        executable: path.resolve('test/fixtures/orca'),
+        executable: await writePortableFixtureTool(temporary, 'orca'),
         env: { ...process.env, AOK_ORCA_SKILLS: 'installed', AOK_ORCA_REPOS: 'none', AOK_ORCA_REPO: worktreeRoot },
       });
       const workflow = new WorkflowProject({
@@ -613,7 +614,7 @@ describe('WorkflowProject planning', () => {
       expect(secondReceipt).toMatchObject({ applied: false, verified: true, written: [] });
 
       const claudeArtifacts = Object.keys(filesystem.snapshot()).filter((filePath) =>
-        filePath.includes('/.claude/skills/') || filePath.endsWith('/CLAUDE.md'));
+        filePath.includes(path.join('.claude', 'skills') + path.sep) || path.basename(filePath) === 'CLAUDE.md');
       expect(claudeArtifacts).toHaveLength(profile === 'codex-only' ? 0 : skillBundleCatalog.skills.length + 1);
     },
   );

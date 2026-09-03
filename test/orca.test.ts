@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { describe, expect, it } from 'vitest';
 import { NodeOrcaAdapter } from '../src/adapters/orca/node-orca.js';
 import { ORCA_MINIMUM_VERSION, compareOrcaVersions, requiredOrcaActions } from '../src/adapters/orca/orca.js';
+import { writePortableTool } from './helpers/portable-launcher.js';
 
 const requiredCommands: readonly (readonly [string, readonly string[]])[] = [
   ['agent-context', ['json']],
@@ -13,6 +14,10 @@ const requiredCommands: readonly (readonly [string, readonly string[]])[] = [
   ['skills install', ['skill', 'dry-run']],
   ['repo add', ['path']],
 ];
+
+const absentCommandMessage = process.platform === 'win32'
+  ? 'Orca agent-context command failed.'
+  : 'Orca CLI was not found on PATH.';
 
 const fakeSource = `#!/usr/bin/env node
 const fs = require('node:fs');
@@ -111,7 +116,7 @@ describe('Orca adapter', () => {
   ] as const)('sanitizes %s discovery diagnostics', async (_label, mode, message) => {
     if (mode === 'missing') {
       const discovery = await new NodeOrcaAdapter({ executable: path.join(tmpdir(), 'does-not-exist-orca') }).discover('/missing');
-      expect(discovery.cli.message).toBe(message);
+      expect(discovery.cli.message).toBe(absentCommandMessage);
       expect(JSON.stringify(discovery)).not.toContain('/missing');
       return;
     }
@@ -363,11 +368,9 @@ async function withFakeOrca(
   timeoutMs = 2_000,
 ): Promise<void> {
   const temporary = await mkdtemp(path.join(tmpdir(), 'aok-orca-'));
-  const executable = path.join(temporary, 'orca');
+  const executable = await writePortableTool(temporary, 'orca', fakeSource);
   const root = path.join(temporary, 'repository');
-  await writeFile(executable, fakeSource, { mode: 0o755 });
   await mkdir(root, { recursive: true });
-  await chmod(executable, 0o755);
   const repos = environment['AOK_REPOS'] === 'ROOT' ? JSON.stringify([root]) : environment['AOK_REPOS'];
   const logPath = environment['AOK_LOG'] === 'argv.log' ? path.join(temporary, 'argv.log') : environment['AOK_LOG'];
   const adapter = new NodeOrcaAdapter({ executable, timeoutMs, env: { ...process.env, ...environment, ...(repos === undefined ? {} : { AOK_REPOS: repos }), ...(logPath === undefined ? {} : { AOK_LOG: logPath }) } });

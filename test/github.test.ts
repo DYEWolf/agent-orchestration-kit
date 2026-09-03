@@ -1,10 +1,11 @@
 import path from 'node:path';
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { describe, expect, it } from 'vitest';
 import { NodeGitHubAdapter } from '../src/adapters/github/node-github.js';
 import { READY_FOR_AGENT_LABEL, requiredGitHubActions } from '../src/adapters/github/github.js';
 import type { GitHubLabelAction } from '../src/adapters/github/github.js';
+import { writePortableTool } from './helpers/portable-launcher.js';
 
 const repository = {
   host: 'github.com',
@@ -14,6 +15,8 @@ const repository = {
   display: 'github.com/DYEWolf/fixture',
 } as const;
 const repositoryNodeId = 'R_fixture';
+
+const absentCommandReason = process.platform === 'win32' ? 'command-failure' : 'missing';
 
 const fakeSource = `#!/usr/bin/env node
 const fs = require('node:fs');
@@ -55,7 +58,7 @@ if (args.length === 1 && args[0] === '--version') {
   } } });
 } else if (args[0] === 'api' && args[1] === 'graphql' && query.includes('node(id:')) {
   if (mode === 'label-fail') process.exit(7);
-  if (mode === 'read-timeout') setTimeout(() => {}, 30_000);
+  if (mode === 'read-timeout') setTimeout(() => {}, 1_000);
   if (mode === 'label-errors-non-array') emit({ data: { node: { label: null } }, errors: { message: 'secret-sentinel' } });
   else if (mode === 'label-errors-array') emit({ data: { node: { label: null } }, errors: [{ message: 'secret-sentinel' }] });
   else if (mode === 'label-top-level-array') emit([]);
@@ -74,7 +77,7 @@ if (args.length === 1 && args[0] === '--version') {
   else emit({ data: { node: { label: { name: 'ready-for-agent', color: '0e8a16', description: ${JSON.stringify(READY_FOR_AGENT_LABEL.description)} } } } });
 } else if (args[0] === 'api' && args[1] === 'graphql' && query.includes('mutation(')) {
   if (process.env.AOK_GH_LOG) fs.appendFileSync(process.env.AOK_GH_LOG, 'create\\n');
-  if (mode === 'mutation-timeout' || mode === 'missing-mutation-timeout') setTimeout(() => {}, 30_000);
+  if (mode === 'mutation-timeout' || mode === 'missing-mutation-timeout') setTimeout(() => {}, 1_000);
   if (mode === 'create-fail' || mode === 'missing-create-fail') process.exit(9);
   if (mode === 'mutation-malformed-json') process.stdout.write('{malformed secret-sentinel\\n');
   else if (mode === 'mutation-errors-non-array') emit({ data: { createLabel: { label: null } }, errors: { message: 'secret-sentinel' } });
@@ -291,12 +294,12 @@ describe('GitHub adapter', () => {
     });
   });
 
-  it('classifies a genuinely missing executable as ENOENT and never creates from it', async () => {
+  it('classifies an absent executable according to whether launch reports ENOENT', async () => {
     const temporary = await mkdtemp(path.join(tmpdir(), 'agent-orchestration-kit-gh-missing-executable-'));
     try {
       const adapter = new NodeGitHubAdapter({ executable: path.join(temporary, 'does-not-exist') });
       const discovery = await adapter.discover(repository);
-      expect(discovery).toMatchObject({ cli: { status: 'fail', reason: 'missing' }, canCreateLabel: false, labelState: 'unavailable' });
+      expect(discovery).toMatchObject({ cli: { status: 'fail', reason: absentCommandReason }, canCreateLabel: false, labelState: 'unavailable' });
       const receipt = await adapter.execute(requiredGitHubActions(repository, repositoryNodeId)[0]!);
       expect(receipt).toEqual({ id: 'create-ready-for-agent-label', status: 'failed', message: 'GitHub action is unsupported or is not authorized by the latest verified discovery.' });
       expect(JSON.stringify(discovery)).not.toContain('ENOENT');
@@ -331,16 +334,14 @@ describe('GitHub adapter', () => {
       expect(receipt).toMatchObject({ status: 'failed' });
       expect(receipt.message).toContain('timed out');
     }, { timeoutMs: 250 });
-  });
+  }, 10_000);
 });
 
 async function withFakeGitHub(mode: string, callback: (context: { adapter: NodeGitHubAdapter; executable: string; log: string }) => Promise<void>, options: { timeoutMs?: number } = {}): Promise<void> {
   const temporary = await mkdtemp(path.join(tmpdir(), 'agent-orchestration-kit-gh-test-'));
-  const executable = path.join(temporary, 'gh');
+  const executable = await writePortableTool(temporary, 'gh', fakeSource);
   const log = path.join(temporary, 'argv.log');
   try {
-    await writeFile(executable, fakeSource, { encoding: 'utf8', mode: 0o755 });
-    await chmod(executable, 0o755);
     await writeFile(log, '');
     await callback({ adapter: new NodeGitHubAdapter({
       executable,

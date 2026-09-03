@@ -32,7 +32,9 @@ async function writePortableFakeTool(directory: string, name: string, source: st
 }
 
 async function archiveEntries(tarball: string): Promise<Set<string>> {
-  const listing = await execa('tar', ['-tzf', tarball]);
+  const listing = await execa('tar', ['-tzf', path.basename(tarball)], {
+    cwd: path.dirname(tarball),
+  });
   return new Set(
     listing.stdout
       .split(/\r?\n/u)

@@ -3,10 +3,22 @@ import { chmod, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:f
 import { tmpdir } from 'node:os';
 import { execa } from 'execa';
 import { describe, expect, it } from 'vitest';
+import { writePortableFixtureTool, writePortableTool } from './helpers/portable-launcher.js';
 
 const cliArguments = ['--import', 'tsx', 'src/cli.ts'];
 
 describe('local CLI installation lifecycle', () => {
+  it('uses a temporary launcher selected for the current platform', async () => {
+    const fakeBin = await mkdtemp(path.join(tmpdir(), 'agent-orchestration-kit-portable-launcher-'));
+    try {
+      const executable = await writePortableFixtureTool(fakeBin, 'orca');
+      expect(path.basename(executable)).toBe(process.platform === 'win32' ? 'orca.cmd' : 'orca');
+      await expect(execa(executable, ['status', '--json'])).resolves.toMatchObject({ exitCode: 0 });
+    } finally {
+      await rm(fakeBin, { recursive: true, force: true });
+    }
+  });
+
   it('dry-runs, applies, verifies, no-ops, and refuses drift', async () => {
     const repository = await mkdtemp(path.join(tmpdir(), 'agent-orchestration-kit-cli-integration-'));
     try {
@@ -223,14 +235,11 @@ describe('local CLI installation lifecycle', () => {
     try {
       await execa('git', ['-C', repository, 'init', '--quiet', '-b', 'main']);
       await execa('git', ['-C', repository, 'remote', 'add', 'origin', 'git@github.com:DYEWolf/fake-claude.git']);
-      const fakeClaude = path.join(fakeBin, 'claude');
-      await writeFile(fakeClaude, `#!/usr/bin/env node
-const args = process.argv.slice(2);
+      await writePortableTool(fakeBin, 'claude', `const args = process.argv.slice(2);
 if (args.length === 1 && args[0] === '--version') process.stdout.write('2.1.236\\n');
 else if (args.length === 3 && args[0] === 'auth' && args[1] === 'status' && args[2] === '--json') process.stdout.write('{"loggedIn":true}\\n');
 else process.exit(4);
-`, { encoding: 'utf8', mode: 0o755 });
-      await chmod(fakeClaude, 0o755);
+`);
       const environment = {
         ...process.env,
         PATH: `${fakeBin}${path.delimiter}${process.env['PATH'] ?? ''}`,
@@ -453,16 +462,22 @@ else process.exit(4);
 });
 
 async function runCli(arguments_: string[], reject = true, env?: NodeJS.ProcessEnv) {
-  return execa('node', [...cliArguments, ...arguments_], {
-    cwd: path.resolve('.'),
-    reject,
-    env: {
-      ...process.env,
-      ...(env ?? {}),
-      AOK_ORCA_REPO: env?.['AOK_ORCA_REPO'] ?? arguments_[1] ?? '',
-      PATH: `${path.resolve('test/fixtures')}${path.delimiter}${env?.['PATH'] ?? process.env['PATH'] ?? ''}`,
-    },
-  });
+  const fakeBin = await mkdtemp(path.join(tmpdir(), 'agent-orchestration-kit-cli-launchers-'));
+  try {
+    await Promise.all([writePortableFixtureTool(fakeBin, 'gh'), writePortableFixtureTool(fakeBin, 'orca')]);
+    return await execa('node', [...cliArguments, ...arguments_], {
+      cwd: path.resolve('.'),
+      reject,
+      env: {
+        ...process.env,
+        ...(env ?? {}),
+        AOK_ORCA_REPO: env?.['AOK_ORCA_REPO'] ?? arguments_[1] ?? '',
+        PATH: `${fakeBin}${path.delimiter}${env?.['PATH'] ?? process.env['PATH'] ?? ''}`,
+      },
+    });
+  } finally {
+    await rm(fakeBin, { recursive: true, force: true });
+  }
 }
 
 function parseHumanArgv(line: string): string[] {

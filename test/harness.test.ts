@@ -1,8 +1,9 @@
-import { chmod, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { tmpdir } from 'node:os';
 import { describe, expect, it } from 'vitest';
 import { NodeHarnessAdapter } from '../src/adapters/harness/node-harness.js';
+import { writePortableTool } from './helpers/portable-launcher.js';
 
 const fakeExecutableSource = `#!/usr/bin/env node
 const args = process.argv.slice(2);
@@ -23,6 +24,8 @@ if (args.length === 1 && args[0] === '--version') {
 }
 `;
 
+const absentCommandReason = process.platform === 'win32' ? 'command-failure' : 'missing';
+
 describe('NodeHarnessAdapter', () => {
   it.each([
     ['installed and authenticated', 'ok', 'pass', 'none', 'pass', 'none', 'pass', 'none'],
@@ -34,10 +37,8 @@ describe('NodeHarnessAdapter', () => {
     ['auth command failure', 'auth-command-failure', 'pass', 'none', 'pass', 'none', 'fail', 'command-failure'],
   ] as const)('%s is classified without login', async (_name, mode, cli, cliReason, version, versionReason, auth, authReason) => {
     const directory = await mkdtemp(path.join(tmpdir(), 'agent-orchestration-kit-fake-claude-'));
-    const executable = path.join(directory, 'claude');
+    const executable = await writePortableTool(directory, 'claude', fakeExecutableSource);
     try {
-      await writeFile(executable, fakeExecutableSource, { encoding: 'utf8', mode: 0o755 });
-      await chmod(executable, 0o755);
       const report = await new NodeHarnessAdapter({ executable, env: { FAKE_CLAUDE_MODE: mode } }).checkClaude();
       expect(report.cli.status).toBe(cli);
       expect(report.cli.reason ?? 'none').toBe(cliReason);
@@ -55,11 +56,30 @@ describe('NodeHarnessAdapter', () => {
     const directory = await mkdtemp(path.join(tmpdir(), 'agent-orchestration-kit-fake-claude-'));
     try {
       const report = await new NodeHarnessAdapter({
-        executable: path.join(directory, 'claude-does-not-exist'),
+        executable: 'agent-orchestration-kit-claude-does-not-exist',
+        env: { PATH: directory },
       }).checkClaude();
-      expect(report.cli).toMatchObject({ status: 'fail', reason: 'missing' });
-      expect(report.version).toMatchObject({ status: 'fail', reason: 'missing' });
+      expect(report.cli).toMatchObject({ status: 'fail', reason: absentCommandReason });
+      expect(report.version).toMatchObject({ status: 'fail', reason: absentCommandReason });
       expect(report.authentication).toMatchObject({ status: 'skip', reason: 'not-checked' });
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it('launches a bare executable through Execa with an ambiguous PATH-related environment', async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), 'agent-orchestration-kit-bare-claude-'));
+    try {
+      await writePortableTool(directory, 'claude', fakeExecutableSource);
+      const environment = {
+        FAKE_CLAUDE_MODE: 'ok',
+        PATH: `${directory}${path.delimiter}${path.delimiter}${process.env['PATH'] ?? ''}`,
+        ...(process.platform === 'win32' ? { PATHEXT: '.CMD;.EXE' } : {}),
+      };
+      const report = await new NodeHarnessAdapter({ executable: 'claude', env: environment }).checkClaude();
+      expect(report).toMatchObject({
+        cli: { status: 'pass' }, version: { status: 'pass' }, authentication: { status: 'pass' },
+      });
     } finally {
       await rm(directory, { recursive: true, force: true });
     }

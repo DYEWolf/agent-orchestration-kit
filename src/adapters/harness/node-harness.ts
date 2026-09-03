@@ -60,17 +60,23 @@ export class NodeHarnessAdapter implements HarnessAdapter {
   }
 
   private async run(arguments_: readonly string[]): Promise<CommandOutput> {
-    const result = await execa(this.#executable, arguments_, {
-      ...(this.#env === undefined ? {} : { env: this.#env }),
-      reject: false,
-      stdin: 'ignore',
-      stdout: 'pipe',
-      stderr: 'ignore',
-      timeout: this.#timeoutMs,
-    });
-    if (isMissingExecutable(result)) return { kind: 'missing', stdout: '' };
-    if (result.failed || result.exitCode !== 0) return { kind: 'command-failure', stdout: '' };
-    return { kind: 'success', stdout: typeof result.stdout === 'string' ? result.stdout : '' };
+    try {
+      const result = await execa(this.#executable, arguments_, {
+        ...(this.#env === undefined ? {} : { env: this.#env }),
+        reject: false,
+        stdin: 'ignore',
+        stdout: 'pipe',
+        stderr: 'ignore',
+        timeout: this.#timeoutMs,
+      });
+      if (isMissingExecutable(result)) return { kind: 'missing', stdout: '' };
+      if (result.failed || result.exitCode !== 0) return { kind: 'command-failure', stdout: '' };
+      return { kind: 'success', stdout: typeof result.stdout === 'string' ? result.stdout : '' };
+    } catch (error) {
+      return isMissingExecutable(error)
+        ? { kind: 'missing', stdout: '' }
+        : { kind: 'command-failure', stdout: '' };
+    }
   }
 
   private classifyCli(command: CommandOutput): HarnessCheck {
@@ -152,8 +158,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function isMissingExecutable(result: { readonly code?: string | undefined }): boolean {
-  return result.code === 'ENOENT';
+function isMissingExecutable(result: unknown): boolean {
+  return isRecord(result) && result['code'] === 'ENOENT';
 }
 
 export { CLAUDE_MINIMUM_VERSION } from './harness.js';
