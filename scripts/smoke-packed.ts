@@ -122,11 +122,27 @@ else process.exitCode = 9;
   const includedPaths = new Set(packResult.files.map((file) => file.path));
   const tarball = path.join(packageDirectory, packResult.filename);
   const actualArchiveEntries = await archiveEntries(tarball);
+  const allowedPackedPath = (entry: string) => entry === 'package.json'
+    || entry === 'LICENSE'
+    || entry === 'README.md'
+    || entry === 'CONTRIBUTING.md'
+    || entry === 'SECURITY.md'
+    || entry === 'THIRD_PARTY_NOTICES.md'
+    || entry.startsWith('dist/')
+    || entry.startsWith('templates/')
+    || entry.startsWith('docs/');
+  for (const entry of actualArchiveEntries) {
+    if (!allowedPackedPath(entry)) throw new Error(`Packed tar archive contains an unexpected entry: ${entry}`);
+  }
   for (const required of [
     'LICENSE',
     'README.md',
+    'CONTRIBUTING.md',
+    'SECURITY.md',
     'THIRD_PARTY_NOTICES.md',
     'dist/cli.js',
+    'docs/approved-specification.md',
+    'docs/phases/phase-5.md',
     'templates/skills/catalog.json',
     'templates/skills/ask-matt/upstream/SKILL.md',
   ]) {
@@ -140,12 +156,17 @@ else process.exitCode = 9;
   const cli = process.platform === 'win32'
     ? path.join(installDirectory, 'node_modules/.bin/agent-orchestration-kit.cmd')
     : path.join(installDirectory, 'node_modules/.bin/agent-orchestration-kit');
-  const run = async (arguments_: readonly string[], extraEnvironment: NodeJS.ProcessEnv = {}) => execa(cli, arguments_, {
+  const run = async (
+    arguments_: readonly string[],
+    extraEnvironment: NodeJS.ProcessEnv = {},
+    cwd?: string,
+  ) => execa(cli, arguments_, {
+    ...(cwd === undefined ? {} : { cwd }),
     env: {
       ...process.env,
       ...extraEnvironment,
       PATH: `${fakeBinDirectory}${path.delimiter}${process.env['PATH'] ?? ''}`,
-      AOK_ORCA_REPO: arguments_[1] ?? '',
+      AOK_ORCA_REPO: cwd ?? arguments_[1] ?? '',
     },
   });
 
@@ -163,6 +184,14 @@ else process.exitCode = 9;
     const fakeLog = path.join(temporary, `github-log-${profile}`);
     await writeFile(fakeLog, '', 'utf8');
     const fakeGitHubEnvironment = { AOK_GH_STATE: fakeState, AOK_GH_LOG: fakeLog };
+
+    if (profile === 'codex-only') {
+      const defaultPathDryRun = JSON.parse((await run([
+        'init', '--dry-run', '--json',
+      ], fakeGitHubEnvironment, targetRepository)).stdout) as { canApply: boolean };
+      if (!defaultPathDryRun.canApply) throw new Error('Packed default-path quickstart dry-run failed.');
+      if (await readFile(path.join(targetRepository, 'AGENTS.md'), 'utf8') !== preseededAgents) throw new Error('Packed default-path quickstart dry-run changed CRLF content.');
+    }
 
     const dryRun = JSON.parse((await run([
       'init', targetRepository, '--profile', profile, '--dry-run', '--json',
