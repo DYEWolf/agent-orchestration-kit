@@ -59,7 +59,10 @@ equivalent blocking review rounds or three same-context execution failures, and
 never retry `RETHINK`. Campaign membership does not require review. Close only
 after candidate-bound verification, candidate-bound `SHIP` when required,
 exactly one coordinator-owned integration commit, target identity revalidation,
-and remote-target containment.
+remote-target containment, and safe resource reconciliation. Once an Issue is
+accepted, execute the next lifecycle actions emitted for the fixed frontier
+(`add-ready-for-agent`, then `start-issue`) without another prompt unless an
+explicit stop boundary or pause condition applies.
 
 ## Issue-to-Run transition
 
@@ -75,7 +78,10 @@ and remote-target containment.
 [ ] Dispatch only ready Tasks and wait for completion, questions, or escalations.
 [ ] Run implementation, verification, and risk-required review gates.
 [ ] Revalidate candidate identity and its receipt.
-[ ] Integrate, commit, and update the Issue with evidence; close at the final gate.
+[ ] Integrate and prove containment in the authorized target.
+[ ] Reconcile Issue-owned workers, terminals, worktrees, and temporary branches.
+[ ] Record resource disposition, update the Issue with evidence, and close it.
+[ ] In Campaign, execute the emitted next-member actions unless a stop applies.
 ```
 
 Record the transition in the Run:
@@ -140,6 +146,8 @@ retains settled workers deliberately. Workers do not create new project work.
 | Verification repeats the same deterministic finding | Preserve its stable ID and increment the same-context counter. | Do not rerun unchanged bytes; pause at the recorded recurrence limit. |
 | Review returns `FIX_FIRST` | Keep integration blocked, preserve stable finding IDs, and create a correction Task in the same execution Run. | Re-run affected checks and use delta review when the correction stays confined to those IDs; full review when scope/risk expands. Pause after two equivalent blocking rounds. |
 | Worker escalates architecture | Pause the dependent path and record the coordinator's decision. | Update the contract before redispatching or canceling work. |
+| Accepted candidate is contained in the target | Reconcile every Issue-owned worker, terminal, worktree, and temporary branch using the execution-policy proof rules. | Remove only proven disposable resources; retain and pause on unique bytes or uncertain ownership. |
+| Issue resources are reconciled | Record `removed`, `retained`, or `not-created`, then close the Issue. | In an active Campaign, immediately execute `add-ready-for-agent` and `start-issue` for the next eligible fixed member unless a stop condition applies. |
 
 Moving into a new product phase is automatic only when the user explicitly
 authorized the corresponding end-to-end flow. Otherwise complete the current
@@ -156,7 +164,7 @@ Issue: #<number>   Run: <run-id>   Task(s): <task-id(s)>
 Candidate: <commit-and-tree or WIP snapshot SHA-256>
 Evidence: <commands, report paths, or review link>
 Result: PASS | BLOCKED | FAIL
-Next action: <dispatch, correction Task, escalation, integration, or re-plan>
+Next action: <dispatch, correction Task, escalation, integration, resource reconciliation, frontier advance, or re-plan>
 ```
 
 Pre-dispatch confirms the correct Run type, Issue claim, bounded contracts,
@@ -165,7 +173,9 @@ each report and out-of-contract decision. Verification runs exact commands and
 separates environment limitations from failures. Review checks the exact
 candidate against the Issue and repository standards. Integration recomputes
 candidate identity and records final evidence before closing the Issue. A
-mismatch invalidates affected verification and review evidence.
+mismatch invalidates affected verification and review evidence. Finalization
+then records the exact disposition of every Issue-owned resource; integration
+success alone does not satisfy this gate.
 
 ## Verification and completion
 
@@ -231,7 +241,7 @@ receipt and recomputes identity immediately before integration.
 Before replacing or compacting a materially full coordinator context, record a
 bounded durable checkpoint containing Issue/Run, objective and route, settled
 decisions, completed/pending Tasks, candidate identity, open finding IDs,
-verification state, next action, and known risks. Always checkpoint at a
+verification state, resource disposition, next action, and known risks. Always checkpoint at a
 Campaign Issue boundary. Resume the same logical ownership and Run from the
 checkpoint and canonical artifacts, never from a copied transcript.
 
@@ -270,8 +280,15 @@ Reason: <dependency, isolation, or base-branch rationale>
 Path: <absolute path>
 Branch: <branch>
 Integration owner: <coordinator/integrator>
+Final disposition: removed | retained | not-created
 ```
 
 The coordinator/integrator owns staging, commits, merges, cherry-picks, pushes,
-and conflict continuation. After integration, attach verification and
-resolution evidence to the Issue and close it only when the final gate is green.
+and conflict continuation. After integration, inspect the exact Issue-owned
+resources. Remove an Orca-created worktree only when its workers are settled,
+the accepted tree is contained in the target, and the worktree is clean or has
+no bytes differing from that accepted tree. Retain and report anything unique
+or uncertain. Delete a local temporary branch only after its worktree is safely
+removed; a remote branch requires separate authorization. Attach verification,
+resource disposition, and resolution evidence to the Issue and close it only
+when the final gate is green.

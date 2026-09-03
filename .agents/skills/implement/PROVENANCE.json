@@ -4,14 +4,15 @@
   "upstreamCommit": "6654f6b60cd9d5be8b54c6fafe44346dabeb3b76",
   "originalContentHash": "6d3fd9e83b8f36e5213854779db49b256a457a7ebb4a503e53fa7dcff696adc3",
   "overlayVersion": "1",
-  "renderedContentHash": "b0966962bb44a079515717cf18f6a7f0408b7ca45c057bee28b961f7e9d0aa39",
+  "renderedContentHash": "7547196a2e312a64310f8c7acf6f19fcd06afbe24774d0376ebb16dc842208e6",
   "supportFiles": [],
   "patch": {
     "kind": "manual",
     "changes": [
       "generic Orca ownership and lifecycle adaptation",
       "Codex $skill-name references",
-      "manual removal of product and alternate-adapter content"
+      "manual removal of product and alternate-adapter content",
+      "safe post-integration resource reconciliation and Campaign frontier advance"
     ]
   }
 }

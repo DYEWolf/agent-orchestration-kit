@@ -35,9 +35,9 @@ or replacement Run.
 
 Orca is the execution source of truth. One coordinator owns the user
 conversation, the Issue-owned Run, Task DAG, Dispatches, gates, worktree
-placement, integration, and final acceptance. Workers are bounded executors or
-reviewers and never create another Run, Task, Dispatch, worktree, or delegated
-hierarchy.
+placement, integration, resource reconciliation, and final acceptance. Workers
+are bounded executors or reviewers and never create another Run, Task,
+Dispatch, worktree, or delegated hierarchy.
 
 ### Roles and routing
 
@@ -104,7 +104,8 @@ checkout state, read-only investigation, or shared verification. Use an Orca
 child worktree for isolated or stacked implementation, and a new top-level
 worktree for independent work from the repository default base. The execution
 Run owner records the choice; the coordinator owns cherry-picks, merges,
-conflict resolution, pushes, and integration commits.
+conflict resolution, pushes, integration commits, and the final disposition of
+every Issue-owned terminal, worktree, and temporary branch.
 
 ## Orca lifecycle
 
@@ -179,8 +180,12 @@ decision.
 
 The coordinator accepts work only after every Task meets its criteria, required
 checks pass, escalations are resolved, required review passes, the final diff
-stays in scope, and settled workers are released, reused, or intentionally
-retained. Verification and review receipts bind to an exact candidate; any
+stays in scope, settled workers are released, reused, or intentionally retained,
+and every Issue-owned worktree and temporary branch has a recorded disposition.
+Automatically remove an Orca-created resource only after proving that its
+candidate is contained in the integration target and that it holds no unique
+bytes or live/dependent owner; otherwise retain it and report the blocker.
+Verification and review receipts bind to an exact candidate; any
 candidate change invalidates affected evidence until it is rerun. Record
 progress, decisions, candidate identity, verification, review, and resolution
 in the Issue using `docs/agents/issue-tracker.md` conventions.
@@ -213,8 +218,13 @@ unassigns unaccepted Issues, records incomplete evidence, preserves accepted
 evidence, and performs no rollback. An Issue is accepted only after
 verification, `SHIP` when review is required, exactly one coordinator-owned
 integration commit, trustworthy revalidated target identity, and containment in
-the authorized remote target branch; local-only or temporary-branch commits do
-not qualify.
+the authorized remote target branch, followed by safe resource reconciliation;
+local-only or temporary-branch commits do not qualify. Record each resource as
+`removed`, `retained`, or `not-created` before closing the Issue. After an Issue
+is accepted, an active Campaign immediately selects the next eligible fixed
+member, adds `ready-for-agent` when needed, and starts it. Stop instead only at
+an explicit user boundary, Campaign/Issue pause, Protected Mutation, exhausted
+authorization, or when no eligible member remains.
 
 ## Canonical references
 

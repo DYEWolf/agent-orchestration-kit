@@ -193,6 +193,7 @@ verification state
 continuation-envelope budget remaining
 next action
 known risks or blockers
+resource disposition: removed | retained | not-created
 ```
 
 Checkpoint at every Campaign Issue boundary and before continuing when the host
@@ -234,6 +235,37 @@ review:
 
 The coordinator owns the receipt and delivery decision. A reviewer reports
 evidence for its candidate but cannot authorize a later candidate.
+
+## Resource reconciliation and finalization
+
+Integration and Issue finalization are separate gates. After the approved tree
+is contained in the authorized target, reconcile every Issue-owned worker
+terminal, worktree, and temporary branch before closing the Issue or advancing
+a Campaign frontier. Record one disposition for each expected resource:
+
+```text
+removed | retained | not-created
+```
+
+Automatic removal is allowed only when all of these facts are proven:
+
+- every owning worker or Dispatch is settled and no terminal is live;
+- the accepted candidate is contained in the authorized integration target;
+- the resource was created for this Issue by Orca;
+- its worktree is clean, or its complete tracked and untracked bytes match the
+  accepted tree and therefore contain no unique work;
+- no dependent child, active process, or explicit retention request owns it.
+
+Remove the exact Orca worktree through Orca before deleting its local temporary
+branch. Do not infer safety from a branch name, a closed Issue, or a successful
+push. Remote branch deletion requires its own explicit or preauthorized
+mutation. If any unique bytes, uncertain ownership, dependency, or liveness
+remain, retain the resource, record the reason and recovery action, and pause
+finalization rather than deleting it.
+
+Add the resource disposition to the Issue resolution and Campaign boundary
+checkpoint. This gate cleans execution resources; it never rolls back accepted
+commits or evidence.
 
 ## Correction and delta review
 

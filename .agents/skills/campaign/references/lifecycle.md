@@ -60,7 +60,27 @@ starting the next member.
 An Issue becomes accepted only after candidate-bound verification,
 candidate-bound `SHIP` when review is required, exactly one coordinator-owned
 integration commit, trustworthy revalidated target identity, and containment in
-the authorized remote target branch before closing the Issue. Any candidate
-identity change invalidates affected evidence. Local-only or temporary-branch
-commits do not qualify. A Protected Mutation pauses the Campaign and requests
-confirmation immediately before that mutation.
+the authorized remote target branch. Any candidate identity change invalidates
+affected evidence. Local-only or temporary-branch commits do not qualify.
+
+After containment, finalize the Issue in this order:
+
+1. Confirm all Issue-owned Dispatches are settled and release, reuse, or
+   explicitly retain their worker terminals.
+2. Inspect every Issue-owned Orca worktree and temporary branch. Remove the
+   exact worktree only when it is Orca-created, has no live/dependent owner, and
+   is clean or its complete tracked and untracked bytes match the accepted tree.
+3. Delete its local temporary branch only after safe worktree removal. Delete a
+   remote branch only when that mutation was explicitly authorized.
+4. If unique bytes or uncertain ownership remain, retain the resource, record
+   its exact identity and recovery action, and pause Issue finalization.
+5. Record `removed`, `retained`, or `not-created` in the resolution evidence,
+   close the Issue, and record Campaign acceptance.
+6. Execute the next actions emitted by the fixed frontier: add
+   `ready-for-agent` to the next newly eligible member when needed, then start
+   that Issue. Do not wait for another prompt unless the user explicitly set a
+   boundary or a normal pause/authorization condition applies.
+
+A Protected Mutation pauses the Campaign and requests confirmation immediately
+before that mutation. Resource reconciliation never rolls back accepted commits
+or evidence and never treats successful integration alone as deletion proof.

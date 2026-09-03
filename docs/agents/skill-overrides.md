@@ -76,6 +76,10 @@ making these deliberate changes:
   harness corrections can stay coordinator-direct, and remote verification
   expands from the smallest available probe to the required final matrix while
   loading only representative failure logs.
+- V3 separates integration from resource finalization. Issue-owned terminals,
+  worktrees, and temporary branches receive a proven `removed`, `retained`, or
+  `not-created` disposition before close; Campaign then advances its fixed
+  frontier automatically unless an explicit boundary or pause applies.
 - Native Codex metadata disables implicit invocation only for `ask-matt`,
   `campaign`,
   `grill-with-docs`, `handoff`, `implement`, `improve-codebase-architecture`,

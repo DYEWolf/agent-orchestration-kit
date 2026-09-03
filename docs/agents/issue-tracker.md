@@ -91,7 +91,7 @@ Operational comments begin with one durable tag:
 - `[review]` — full or delta mode, exact candidate identity, `SHIP`,
   `FIX_FIRST`, or `RETHINK`, stable finding IDs, evidence, and follow-up.
 - `[resolution]` — final candidate identity, outcome, verification, review when
-  required, and deferred work before close.
+  required, resource disposition, and deferred work before close.
 
 ```bash
 gh issue comment <number> --repo DYEWolf/agent-orchestration-kit --body "[progress] ..."
@@ -104,6 +104,13 @@ Assignees express human ownership; labels express triage metadata. An open
 assigned planning Issue remains planning. An open assigned implementation Issue
 is claimed only when its execution Run is also bound or created. Closing an
 Orca Task does not close an Issue.
+
+Before closing an implementation Issue, record every expected execution
+resource as `removed`, `retained`, or `not-created`. A retained resource must
+name the exact path/identity, the unique or uncertain state that prevents safe
+removal, and the recovery action. Do not close and advance a Campaign while
+that finalization blocker remains. A closed Issue, merged branch, or successful
+workflow is not by itself proof that a worktree is disposable.
 
 ## Campaign Record
 

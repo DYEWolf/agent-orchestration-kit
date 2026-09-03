@@ -43,6 +43,12 @@ boundary so a fresh physical session can continue the same logical ownership.
 Read [lifecycle details](references/lifecycle.md) before handling a gate, failure,
 review result, acceptance, pause, resume, or cancel request.
 
+Acceptance is a two-phase boundary: first prove the approved candidate is
+integrated and contained, then reconcile every Issue-owned execution resource
+under the repository execution policy. Record each worker terminal, worktree,
+and temporary branch as `removed`, `retained`, or `not-created`. Never discard
+unique bytes or uncertain ownership merely to advance the Campaign.
+
 Protected Mutations always require immediate confirmation, even during an active
 Campaign. Keep an outstanding Protected Mutation pause tied to exactly the
 pending mutation; a later confirmation cannot revive a cancelled or completed
@@ -59,8 +65,13 @@ terminals and child worktrees by default; use the current worktree only when
 exact shared state or shared verification requires it. Acceptance requires
 candidate-bound verification, required candidate-bound `SHIP`, exactly one
 coordinator-owned integration commit, revalidated target identity, and
-containment in the authorized remote target branch; local-only or
-temporary-branch commits do not qualify.
+containment in the authorized remote target branch, followed by safe resource
+reconciliation; local-only or temporary-branch commits do not qualify. After
+recording acceptance, immediately execute the emitted `add-ready-for-agent` and
+`start-issue` actions for the next eligible fixed member. Do not ask for a new
+prompt between members unless the user explicitly requested a boundary, a
+pause/Protected Mutation applies, authorization is exhausted, or the Campaign
+has no eligible member.
 
 Manual Issue execution remains the default; `$to-tickets` publishes issues and
 stops, and `$campaign` is the only route that starts Campaign work.

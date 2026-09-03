@@ -120,6 +120,16 @@ After verification and any required review:
 3. The coordinator owns staging and integration commits on the coordinator branch. Do
    not ask a worker to commit on the coordinator's behalf. Push or publish only when the
    user explicitly requested that external action.
+4. After proving that the accepted tree is contained in the authorized target, reconcile
+   every Issue-owned terminal, worktree, and temporary branch before closing the Issue.
+   Remove an exact Orca-created resource only when its workers are settled, no dependent
+   owner remains, and the worktree is clean or contains no bytes unique from the accepted
+   tree. Delete the local temporary branch only after safe worktree removal; remote branch
+   deletion needs separate authorization. Otherwise retain the resource and record the
+   blocker and recovery action.
+5. Record each expected resource as `removed`, `retained`, or `not-created`. In an active
+   Campaign, close and record acceptance only after this gate, then execute the next
+   eligible member actions without another prompt unless an explicit stop or pause applies.
 
 ## Worker mode
 
