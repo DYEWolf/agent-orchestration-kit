@@ -5,6 +5,11 @@ repository's agent-orchestration workflow.
 
 ## Language
 
+**Living Fixture**:
+A repository-local canonical artifact whose exact content defines the
+corresponding fresh-install output and detects generator drift.
+_Avoid_: Golden copy, duplicate template
+
 **Campaign**:
 A bounded execution authorization over an explicit, fixed set of approved
 implementation Issues. It advances those Issues toward acceptance without
