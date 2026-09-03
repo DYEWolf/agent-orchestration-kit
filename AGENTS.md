@@ -156,6 +156,17 @@ exact deterministic checks and distinguish environment limits from product
 failures. At integration, confirm the approved diff, final checks, and issue
 evidence.
 
+A failed gate is diagnosed before choosing whether to continue. A newly exposed
+downstream failure is not a retry of the finding that previously blocked that
+stage. Within an explicitly recorded continuation envelope, the coordinator may
+repair new deterministic, low-risk test/build/CI harness defects directly,
+without manufacturing a correction Task or reviewer. Pause when the same
+finding recurs, the envelope is exhausted, or the correction would cross into
+product behavior, architecture, dependencies, security, or another excluded
+surface. Direct correction must not remove coverage, weaken required evidence,
+or relax acceptance criteria. Use the progressive remote-verification and
+log-reading rules in `docs/agents/execution-policy.md`.
+
 Review is risk-based. High-risk changes require a fresh independent review;
 routine bounded changes can use deterministic checks and coordinator review. A
 reviewer returns exactly one of `SHIP`, `FIX_FIRST`, or `RETHINK` and never
@@ -188,10 +199,10 @@ Each Issue still owns exactly one execution Run. Review remains independently
 risk-classified; Campaign membership never makes review mandatory. Use fresh
 worker terminals and child worktrees by default unless exact shared state
 requires the current worktree; workers never commit. Corrections stay in the
-same Run, failures are
-investigated rather than blindly retried, two equivalent blocking review rounds
-or three same-context execution failures pause the Issue, and `RETHINK` is never
-retried.
+same Run, failures are investigated rather than blindly retried, two equivalent
+blocking review rounds or three recurrences of the same execution finding pause
+the Issue, and `RETHINK` is never retried. Sequentially exposed findings with
+different causes do not share a recurrence counter.
 
 Protected Mutations always need immediate confirmation: publishing,
 deployment/protected environments, secrets/credentials, branch or environment

@@ -30,8 +30,14 @@ discovered Issue can join.
 - Internal Task concurrency is enforced only for `task-ready` dispatches on the
   active Issue. Worker capacity never gates starting a next Issue when none is
   active.
-- A worker failure is investigated rather than blindly retried. Three failures
-  in the same context pause that Issue for a coordinator decision.
+- A worker or verification failure is investigated rather than blindly retried.
+  Three recurrences of the same stable execution finding pause that Issue for a
+  coordinator decision. A different failure in a newly reached downstream
+  stage receives a new ID and does not inherit the resolved finding's counter.
+  When the Campaign Record or later explicit decision provides a bounded
+  continuation envelope, the coordinator may repair new deterministic,
+  low-risk test/build/CI harness defects directly within its named surfaces and
+  budgets; this creates no correction Task or implementation worker.
 - `FIX_FIRST` creates a bounded correction Task in that Issue's existing Run.
   Preserve stable finding IDs and use delta review when the correction remains
   confined to them; expand to full review if scope or risk changes. Two

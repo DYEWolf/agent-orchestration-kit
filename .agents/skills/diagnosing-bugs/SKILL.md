@@ -25,6 +25,13 @@ evidence collection or an authorized correction. Answer a worker question in its
 Dispatch, or handle an escalation by narrowing the contract, creating a correction Task,
 or making an architectural decision; record the outcome in the Run/issue.
 
+When `docs/agents/execution-policy.md` records a continuation envelope, a coordinator may
+directly repair a new deterministic, low-risk test/build/CI harness defect inside its
+named surfaces and budgets. This is not authority to alter product behavior or to bypass
+a recurrence limit, remove coverage, weaken evidence, or relax acceptance. Give a
+different causal failure in a newly reached pipeline stage a new finding ID; do not count
+it as another occurrence of the resolved blocker.
+
 In worker mode, inspect only the dispatched scope. Use the Dispatch to ask when a
 requirement, repro, or permission to fix is unclear; escalate before changing scope,
 architecture, a public interface, persistent data, or a security assumption. Do not
@@ -60,6 +67,11 @@ and increase reproduction rate while retaining deterministic verdicts. Do not pr
 theory until one command has run once, is red-capable, agent-runnable, and fast enough to
 iterate.
 
+For a sequential build or CI pipeline, record the furthest successful stage and target
+the first failing stage. When multiple matrix jobs show the same error signature, inspect
+one representative log deeply and confirm the other jobs from concise status/signature
+evidence. Do not load every complete log into context.
+
 If no loop can be built, stop with the attempted approaches and request one of: access
 to the reproducing environment, a redacted HAR/log/core/screen capture with timestamps,
 or explicit authorization for temporary production instrumentation.
@@ -76,7 +88,10 @@ other measurement before changing code. Measure one variable at a time.
 
 ## Phase 3: rank falsifiable hypotheses
 
-Write three to five ranked hypotheses before probing. Each must state a prediction:
+When multiple plausible causes remain, write three to five ranked hypotheses before
+probing. For a deterministic failure whose cause is already directly evidenced by the
+error, source, and a falsifiable command, one explicit hypothesis is sufficient. Each
+hypothesis must state a prediction:
 “If X causes the bug, changing Y will make the symptom disappear or changing Z will make
 it worse.” Show the list to the user or coordinator when their domain context can re-rank
 it, then proceed with the current ranking if they are unavailable. Discard vibes that
@@ -96,6 +111,12 @@ regression test from the minimized repro, watch it fail, apply the smallest fix,
 pass, and rerun the original unminimized loop. If no correct seam exists, document that
 architecture prevents a trustworthy regression test and escalate that finding instead of
 adding a shallow test.
+
+After the fix, expand verification progressively. Prefer a representative remote canary
+or affected cells before a complete matrix when the repository supports that selection.
+If a changed candidate reveals a different deterministic harness defect inside the
+continuation envelope, diagnose and continue within its remaining budget. Rerun unchanged
+bytes only for evidenced infrastructure or intermittent failures.
 
 Diagnosis-only work stops with evidence, ranked hypotheses, likely cause, and a proposed
 next Task. It does not opportunistically fix adjacent code.

@@ -70,6 +70,12 @@ making these deliberate changes:
   rounds pause rather than launching an unbounded correction loop. The local
   `.agents/scripts/candidate-id.mjs` helper computes reproducible committed or
   WIP identities without staging the worktree.
+- Authorized continuation uses an explicit envelope of surfaces, correction and
+  remote-execution budgets, external actions, and stop conditions. Newly exposed
+  downstream failures are distinct from recurrences; deterministic low-risk
+  harness corrections can stay coordinator-direct, and remote verification
+  expands from the smallest available probe to the required final matrix while
+  loading only representative failure logs.
 - Native Codex metadata disables implicit invocation only for `ask-matt`,
   `campaign`,
   `grill-with-docs`, `handoff`, `implement`, `improve-codebase-architecture`,

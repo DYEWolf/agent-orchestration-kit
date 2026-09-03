@@ -71,6 +71,45 @@ Issue independently.
 - Two equivalent blocking review rounds pause the Issue for a coordinator
   decision. They do not trigger a third correction/review cycle automatically.
 
+## Continuation envelopes
+
+When the user authorizes an end-to-end outcome or resumes a failed gate, record
+a bounded continuation envelope instead of asking again after every new
+mechanical failure:
+
+```text
+Owned surfaces: <product | tests | build | CI harness | docs>
+Allowed corrections: <classes that may proceed without another decision>
+Budgets: direct corrections <n>; workers <n>; remote executions <n>
+Authorized external actions: <push/workflow/PR actions or none>
+Stop when: <recurrence, scope expansion, ambiguity, protected mutation, budget>
+```
+
+The envelope never grants blanket retry authority or expands the user's
+requested outcome. It only avoids artificial pauses for low-risk corrections
+whose class, surfaces, external effects, and limits were already authorized.
+
+Classify a failed gate before spending another Task or remote run:
+
+- **Recurrence:** the same stable finding or causal mechanism failed again.
+  Increment its counter and pause at the configured limit.
+- **New downstream finding:** a later stage became reachable after the previous
+  blocker was fixed and failed for a different cause. Give it a new stable ID;
+  do not count it as recurrence of the resolved finding.
+- **Infrastructure failure:** the candidate did not cause a trustworthy product
+  verdict. Rerun unchanged bytes only when the evidence supports this class.
+- **Scope expansion:** the correction would cross the recorded surfaces or
+  change product behavior, architecture, dependencies, security assumptions, or
+  a public/persistent contract. Pause for a new decision.
+
+Inside an Issue-owned Run, the coordinator may directly repair a new,
+deterministic test/build/CI harness defect when the continuation envelope names
+that surface, the change is low-risk and mechanical, and no product behavior is
+altered. The correction must preserve required coverage, evidence, and
+acceptance criteria. Do not create a Task, worker, or reviewer solely to apply
+such a fix. Candidate-changing corrections still invalidate affected evidence
+and consume the recorded correction and remote-execution budgets.
+
 ## Verification scope
 
 Verification scales with impact, not ceremony:
@@ -85,6 +124,31 @@ Verification scales with impact, not ceremony:
 A smaller route never permits weaker evidence for the behavior it changes. A
 full suite is not automatic when targeted evidence is sufficient, and passing a
 full suite does not replace a missing focused regression check.
+
+### Progressive remote verification
+
+Use the cheapest available gate that can falsify the current candidate, then
+expand only after it passes:
+
+```text
+local focused check
+  -> representative remote OS/runtime canary when supported
+  -> affected remote cells
+  -> complete required matrix on the final candidate
+```
+
+Do not run a complete expensive matrix after every mechanical correction when a
+representative remote probe is available. Do not pretend a canary exists when
+the repository cannot select one; record that limitation and use the smallest
+real gate. A changed candidate needs new affected verification. An unchanged
+candidate may be rerun only for evidenced infrastructure or intermittency, not
+to hope that a deterministic failure disappears.
+
+For sequential pipelines, record the furthest successful stage. A failure in a
+newly reached later stage is a new downstream finding, not evidence that the
+earlier resolved finding returned. When multiple jobs have the same signature,
+inspect one representative failing log in detail and confirm the remaining
+jobs from their concise status/error signature.
 
 ## Context contract
 
@@ -107,6 +171,12 @@ unfiltered memory. A completion report contains one concise result per
 acceptance criterion and verification command; attach only the failure excerpt
 needed to diagnose a failed check.
 
+On resume, load the latest durable checkpoint, current candidate diff, and exact
+active-failure excerpt. Do not reconstruct settled Tasks, Deliveries, or review
+rounds unless the active decision depends on them. For a repeated matrix
+signature, read one representative job deeply rather than copying every job log
+into coordinator context.
+
 ## Coordinator checkpoints
 
 The coordinator is one logical owner, not necessarily one unbounded physical
@@ -116,10 +186,11 @@ session. Write a durable checkpoint before replacing or compacting its context:
 Issue and Run
 current objective and route
 settled decisions
-completed and pending Tasks
+pending Tasks plus counts/pointers for settled Tasks
 candidate identity
 open finding IDs
 verification state
+continuation-envelope budget remaining
 next action
 known risks or blockers
 ```

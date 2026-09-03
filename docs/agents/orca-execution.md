@@ -136,6 +136,8 @@ retains settled workers deliberately. Workers do not create new project work.
 | Full spec approved | Publish one non-executable umbrella/spec Issue and preserve approval evidence. | Draft tickets only when explicitly requested or already authorized. |
 | Ticket breakdown approved | Create durable implementation Issues, blockers, verification, and labels. | Do not create workers or Runs merely because tickets exist. |
 | Implementation Issue begins | Claim it, create/bind its one execution Run, choose worktree, and create the minimum Task DAG. | Dispatch only ready Task contracts. |
+| Verification exposes a new deterministic harness failure | Classify it against the continuation envelope and assign a new finding ID. | Repair directly when the authorized surface and budget allow it; otherwise pause. Do not call it recurrence of an earlier resolved finding. |
+| Verification repeats the same deterministic finding | Preserve its stable ID and increment the same-context counter. | Do not rerun unchanged bytes; pause at the recorded recurrence limit. |
 | Review returns `FIX_FIRST` | Keep integration blocked, preserve stable finding IDs, and create a correction Task in the same execution Run. | Re-run affected checks and use delta review when the correction stays confined to those IDs; full review when scope/risk expands. Pause after two equivalent blocking rounds. |
 | Worker escalates architecture | Pause the dependent path and record the coordinator's decision. | Update the contract before redispatching or canceling work. |
 
@@ -174,6 +176,15 @@ contract. A full suite is not automatic when focused evidence covers a
 low-risk change. If credentials, network, browser, or external infrastructure
 is unavailable, report that limit and arrange verification at the coordinator
 gate; do not call it a product failure or silently claim success.
+
+For remote verification, use the progressive funnel in the execution policy:
+focused local evidence, then a representative remote canary or affected cells
+when the workflow supports them, and finally the complete required matrix for
+the final candidate. Record the last successful pipeline stage. If several jobs
+fail with the same signature, inspect one complete representative log and only
+the concise status/signature of the others. A newly reachable downstream stage
+gets a new finding ID; rerunning an unchanged deterministic failure is not
+verification.
 
 A worker's one completion report states files changed, a bounded result for each
 acceptance criterion and verification command, decisions not specified by the

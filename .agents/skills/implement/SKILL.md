@@ -30,6 +30,9 @@ when adjacent work looks useful.
 
 1. Classify shape, risk, uncertainty, and locality. Record the route, verification,
    review, worker budget, and blocking-review budget required by the execution policy.
+   For an authorized end-to-end or resumed gate, also record a continuation envelope:
+   owned surfaces, allowed correction classes, direct/worker/remote budgets, authorized
+   external actions, and stop conditions.
 2. For a direct trivial route, confirm there is no risk disqualifier, inspect the
    checkout, make the smallest local change, and run the targeted check. Do not create
    an Issue, Run, Task, worker, or reviewer solely to satisfy ceremony. If the work is
@@ -79,6 +82,14 @@ For each settled Task, inspect the actual diff and completion report. Confirm:
 Run the targeted, module, or full deterministic checks selected by the execution policy.
 Do not run a full suite by ritual when focused evidence is sufficient, and do not call an
 unverified prose report complete.
+
+If verification fails, classify it before creating work: recurrence of the same finding,
+a newly reachable downstream finding, infrastructure failure, or scope expansion. A new
+deterministic low-risk test/build/CI harness finding may be corrected directly by the
+coordinator only when it is inside the recorded continuation envelope. Use progressive
+remote verification and inspect one representative log for identical matrix failures.
+Do not spend another worker, reviewer, or complete remote run merely because a gate is
+red.
 
 ### 4. Review by risk
 
