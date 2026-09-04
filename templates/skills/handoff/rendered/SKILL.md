@@ -1,47 +1,100 @@
 ---
 name: handoff
-description: Compact the current conversation into a handoff document for
-  another agent to pick up.
+description: Create a redacted, portable handoff for ownership transfer, a bounded supervised Dispatch, or coordinator session replacement.
 ---
 
-## Orca execution overlay
+# Handoff
 
-The following rules are part of this installed skill and override conflicting
-instructions in the upstream body below.
+Read `AGENTS.md`, `docs/agents/execution-policy.md`, and, when present,
+`docs/agents/orca-execution.md` for ownership, checkpoint, and Dispatch rules. A handoff
+is a durable orientation artifact, not a second copy of the issue, plan, ADR, commit, or
+diff. Reference those artifacts by path or URL.
 
-- The coordinator owns the user conversation, GitHub Issue state, Orca Run and
-  Task DAG, worktree placement, gates, and final integration decisions.
-- A dispatched worker performs only its bounded Task. It does not create Runs,
-  Tasks, worktrees, branches, nested agents, or background agents.
-- Where the upstream text says to call a Skill tool, invoke a named installed
-  skill through the current harness's supported skill discovery. A worker asks
-  its coordinator when another Task or skill invocation is required.
-- Where the upstream text says to ask or wait for the user, the coordinator uses
-  the user conversation; a worker uses the Orca ask/reply flow.
-- Where the upstream text says to spawn a subagent, background agent, or parallel
-  reviewer, the coordinator creates bounded Orca Tasks and Dispatches. Workers
-  never nest delegation.
-- Repository mutations such as assignment, Issue updates, commits, staging,
-  branching, or conflict continuation happen only when the Task contract assigns
-  them to that actor. The CLI itself never commits, pushes, branches, or opens a
-  pull request.
-- A worker completes its Dispatch exactly once with concrete evidence and stops.
-  Review workers report `SHIP`, `FIX_FIRST`, or `RETHINK` and do not implement
-  their own corrections.
-- GitHub tracker operations follow `docs/agents/issue-tracker.md`. Do not fall
-  back to a local Markdown tracker in this installation.
+## Classify the handoff
 
-The remaining section is the pinned upstream procedure, adapted only by the
-recorded maintainer patch shipped with this snapshot.
+Choose exactly one mode before writing:
 
-## Pinned upstream procedure
+- **Full ownership transfer:** the next session becomes responsible for the objective.
+  Use Orca's ordinary handoff/worktree mechanism rather than creating a supervised Task
+  or lifecycle obligation. Record any issue and prior Run/Task identity as provenance,
+  then write the artifact for the new owner. Do not imply transfer merely by placing a
+  file in `/tmp` or by starting another terminal.
+- **Supervised Dispatch:** the coordinator remains owner and sends a bounded Task to a
+  worker. Preserve the issue, Run, Task, and Dispatch context; the worker reports findings
+  or changes back through its Dispatch. The artifact is supporting evidence, not an
+  ownership transfer, and the worker must not create a new Run or pass the work onward.
+- **Coordinator checkpoint:** the logical coordinator and Issue-owned Run remain the
+  same, but a fresh physical session resumes from a bounded durable summary. Record the
+  checkpoint in the Issue/Run when one exists; do not copy the transcript or create a
+  replacement Run. Use this at Campaign Issue boundaries and when context is materially
+  full, tool-output dominated, or entering repeated review.
 
-Write a handoff document summarising the current conversation so a fresh agent can continue the work. Save to the temporary directory of the user's OS - not the current workspace.
+If invoked inside a worker Dispatch, default to a supervised artifact unless the Task
+explicitly authorizes a full transfer; ask the coordinator before changing ownership.
 
-Include a "suggested skills" section in the document, naming which skills the next agent should call the Skill tool for.
+## Write a portable artifact
 
-Do not duplicate content already captured in other artifacts (specs, plans, ADRs, issues, commits, diffs). Reference them by path or URL instead.
+For ownership transfer or supervised Dispatch, resolve the operating system temporary
+directory (`$TMPDIR`, then `/tmp`, or the platform equivalent) and create a fresh file
+such as `<tmpdir>/orca-handoff-<timestamp>.md`. Never write it into the repository by
+default. For a coordinator checkpoint, use the durable Issue/Run record when available;
+use a temporary portable file only when no such record exists. Include:
 
-Redact any sensitive information, such as API keys, passwords, or personally identifiable information.
+```markdown
+# Handoff: <objective>
 
-If the user passed arguments, treat them as a description of what the next session will focus on and tailor the doc accordingly.
+## Mode
+Full ownership transfer | Supervised Dispatch | Coordinator checkpoint
+
+## Next session focus
+<the user's requested focus>
+
+## Current state
+<one paragraph: what is true now and why the next session starts here>
+
+## Route and candidate
+- Classification: <shape/risk/uncertainty/locality>
+- Route/review/verification: <selected policy>
+- Candidate identity: <identity or none>
+
+## Source artifacts
+- Issue/spec: <path or URL>
+- Plan/ADR: <path or URL, if applicable>
+- Relevant diff/commit: <ref or path>
+- Orca context: <Run/Task/Dispatch reference, if applicable>
+
+## Completed
+- <outcome with evidence>
+
+## Remaining work
+- <next concrete action>
+
+## Open findings
+- <stable finding ID and acceptance condition, or none>
+
+## Decisions and constraints
+- <decision, owner, or non-negotiable constraint>
+
+## Verification
+- `<command>` — <result or limitation>
+
+## Risks, blockers, and uncertainty
+- <specific issue or explicitly “none known”>
+
+## Suggested skills
+- <available skill or capability and why>
+```
+
+Keep it concise and avoid duplicating source artifacts. Include changed files only when
+they are needed to orient the next session. State what was intentionally left undone.
+
+## Redaction and portability checks
+
+Before saving, replace secrets, tokens, passwords, credentials, authorization headers,
+private keys, and unnecessary personal data with `<REDACTED>`. Remove machine-specific
+assumptions where a path or command can be expressed portably. Do not embed terminal
+transcripts containing unredacted environment values. Re-read the final file for secrets,
+then report its absolute path and mode to the intended owner.
+
+The handoff does not grant authority to edit, commit, review, or publish. Those actions
+remain with the owner named by the mode and the canonical Orca lifecycle.

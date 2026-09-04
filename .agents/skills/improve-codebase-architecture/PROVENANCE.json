@@ -1,22 +1,57 @@
 {
-  "upstreamRepository": "https://github.com/mattpocock/skills",
+  "kind": "upstream",
   "upstreamPath": "skills/engineering/improve-codebase-architecture/SKILL.md",
-  "upstreamCommit": "6654f6b60cd9d5be8b54c6fafe44346dabeb3b76",
   "originalContentHash": "d1ac25511a936ff4250a48dbcefda363837d6bb9321b3cba73df99fa37270a75",
-  "overlayVersion": "1",
+  "overlayVersion": "2",
   "renderedContentHash": "c534b5865526e66c5cf430afa4942639a8e8f73601f686e9220e94bf83e75fa3",
   "supportFiles": [
+    {
+      "path": "skills/engineering/improve-codebase-architecture/agents/openai.yaml",
+      "hash": "c8cb20f68ebf0edb4e497bc11ae5fcaa196004e661cd189015b04f4109ced7f1"
+    },
     {
       "path": "skills/engineering/improve-codebase-architecture/HTML-REPORT.md",
       "hash": "581e8bb5a521e46bbda8ca7e19b15948bed882187108092ebb90c62513b77528"
     }
   ],
-  "patch": {
+  "reconciliation": {
     "kind": "manual",
+    "overlayVersion": "2",
+    "upstreamTreeHash": "4fd75b53b56f556e1a5bf94d89f6f25c3306e4cea26cb5443420193a4bced14c",
+    "renderedTreeHash": "45d536441c5c32d274814c0a745bb0cf7ca5b5c994ada6e9fd07f7f0c005b83f",
+    "upstreamFiles": [
+      {
+        "path": "agents/openai.yaml",
+        "hash": "c8cb20f68ebf0edb4e497bc11ae5fcaa196004e661cd189015b04f4109ced7f1"
+      },
+      {
+        "path": "HTML-REPORT.md",
+        "hash": "581e8bb5a521e46bbda8ca7e19b15948bed882187108092ebb90c62513b77528"
+      },
+      {
+        "path": "SKILL.md",
+        "hash": "d1ac25511a936ff4250a48dbcefda363837d6bb9321b3cba73df99fa37270a75"
+      }
+    ],
+    "renderedFiles": [
+      {
+        "path": "agents/openai.yaml",
+        "hash": "c8cb20f68ebf0edb4e497bc11ae5fcaa196004e661cd189015b04f4109ced7f1"
+      },
+      {
+        "path": "HTML-REPORT.md",
+        "hash": "18e7524a66f32192914ff01cd4780ed7a02373d1e7b55c69651777755d6d538f"
+      },
+      {
+        "path": "SKILL.md",
+        "hash": "c534b5865526e66c5cf430afa4942639a8e8f73601f686e9220e94bf83e75fa3"
+      }
+    ],
     "changes": [
-      "generic Orca ownership and lifecycle adaptation",
-      "Codex $skill-name references",
-      "manual removal of product and alternate-adapter content"
+      "Reviewed local non-provenance tree is the Living Fixture.",
+      "Manual overlay-v2 reconciliation preserves upstream attribution and repository workflow rules."
     ]
-  }
+  },
+  "upstreamRepository": "https://github.com/mattpocock/skills",
+  "upstreamCommit": "6654f6b60cd9d5be8b54c6fafe44346dabeb3b76"
 }

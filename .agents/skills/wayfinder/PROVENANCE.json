@@ -1,18 +1,45 @@
 {
-  "upstreamRepository": "https://github.com/mattpocock/skills",
+  "kind": "upstream",
   "upstreamPath": "skills/engineering/wayfinder/SKILL.md",
-  "upstreamCommit": "6654f6b60cd9d5be8b54c6fafe44346dabeb3b76",
   "originalContentHash": "fee6e1d0c50f0e736b4ef8a599060c959afae904c9a97d82c97f049fcc3aa0f1",
-  "overlayVersion": "1",
+  "overlayVersion": "2",
   "renderedContentHash": "2a45dafad7bbf620483e1c0b0bc49ce82f6170e78039ce3fba4026f05c416a66",
-  "supportFiles": [],
-  "patch": {
+  "supportFiles": [
+    {
+      "path": "skills/engineering/wayfinder/agents/openai.yaml",
+      "hash": "88bc81a11a6d52ac67aeaa76b8b619e387020d47c5133a4dd4927fd15c4ad073"
+    }
+  ],
+  "reconciliation": {
     "kind": "manual",
+    "overlayVersion": "2",
+    "upstreamTreeHash": "d68b1919b563c8b9402ce1bdecac1b08d49c16eefac0f5c2b9c9128335bda7d2",
+    "renderedTreeHash": "5832027d4f2dbf04ea331ca3ce055a89b64a0a4a992cf14326b11dd0bb059894",
+    "upstreamFiles": [
+      {
+        "path": "agents/openai.yaml",
+        "hash": "88bc81a11a6d52ac67aeaa76b8b619e387020d47c5133a4dd4927fd15c4ad073"
+      },
+      {
+        "path": "SKILL.md",
+        "hash": "fee6e1d0c50f0e736b4ef8a599060c959afae904c9a97d82c97f049fcc3aa0f1"
+      }
+    ],
+    "renderedFiles": [
+      {
+        "path": "agents/openai.yaml",
+        "hash": "88bc81a11a6d52ac67aeaa76b8b619e387020d47c5133a4dd4927fd15c4ad073"
+      },
+      {
+        "path": "SKILL.md",
+        "hash": "2a45dafad7bbf620483e1c0b0bc49ce82f6170e78039ce3fba4026f05c416a66"
+      }
+    ],
     "changes": [
-      "generic Orca ownership and lifecycle adaptation",
-      "Codex $skill-name references",
-      "manual removal of product and alternate-adapter content",
-      "Wayfinder label taxonomy replaced with body metadata and native GitHub relationships"
+      "Reviewed local non-provenance tree is the Living Fixture.",
+      "Manual overlay-v2 reconciliation preserves upstream attribution and repository workflow rules."
     ]
-  }
+  },
+  "upstreamRepository": "https://github.com/mattpocock/skills",
+  "upstreamCommit": "6654f6b60cd9d5be8b54c6fafe44346dabeb3b76"
 }

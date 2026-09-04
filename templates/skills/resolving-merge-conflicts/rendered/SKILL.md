@@ -1,46 +1,55 @@
 ---
 name: resolving-merge-conflicts
-description: Use when you need to resolve an in-progress git merge/rebase conflict.
+description: Resolve an in-progress git merge or rebase while preserving intent and explicit commit ownership.
 ---
 
-## Orca execution overlay
+# Resolving Merge Conflicts
 
-The following rules are part of this installed skill and override conflicting
-instructions in the upstream body below.
+Read `AGENTS.md` and, when present, `docs/agents/orca-execution.md` before deciding who
+may finish the integration. Conflict resolution is a source-and-evidence task, not a
+reason to create nested workers or invent behavior.
 
-- The coordinator owns the user conversation, GitHub Issue state, Orca Run and
-  Task DAG, worktree placement, gates, and final integration decisions.
-- A dispatched worker performs only its bounded Task. It does not create Runs,
-  Tasks, worktrees, branches, nested agents, or background agents.
-- Where the upstream text says to call a Skill tool, invoke a named installed
-  skill through the current harness's supported skill discovery. A worker asks
-  its coordinator when another Task or skill invocation is required.
-- Where the upstream text says to ask or wait for the user, the coordinator uses
-  the user conversation; a worker uses the Orca ask/reply flow.
-- Where the upstream text says to spawn a subagent, background agent, or parallel
-  reviewer, the coordinator creates bounded Orca Tasks and Dispatches. Workers
-  never nest delegation.
-- Repository mutations such as assignment, Issue updates, commits, staging,
-  branching, or conflict continuation happen only when the Task contract assigns
-  them to that actor. The CLI itself never commits, pushes, branches, or opens a
-  pull request.
-- A worker completes its Dispatch exactly once with concrete evidence and stops.
-  Review workers report `SHIP`, `FIX_FIRST`, or `RETHINK` and do not implement
-  their own corrections.
-- GitHub tracker operations follow `docs/agents/issue-tracker.md`. Do not fall
-  back to a local Markdown tracker in this installation.
+## Establish state and ownership
 
-The remaining section is the pinned upstream procedure, adapted only by the
-recorded maintainer patch shipped with this snapshot.
+1. Inspect the merge/rebase state, `git status`, history, and every conflicted file.
+2. Determine whether the current session is coordinator mode or a live Dispatch worker.
+3. In coordinator mode, the coordinator owns the merge/rebase state and final integration
+   commit. If the conflict set is large, dispatch read-only intent-gathering Tasks with
+   non-overlapping scopes; do not let separate workers edit the same hunk.
+4. In worker mode, work only on the files and hunks explicitly assigned. The worker may
+   inspect sources and apply bounded hunk resolutions when the contract authorizes it,
+   but must not stage, commit, push, run merge/rebase continuation, abort the operation,
+   or claim final integration. Report unresolved conflicts through the Dispatch.
 
-## Pinned upstream procedure
+## Find both intents
 
-1. **See the current state** of the merge/rebase. Check git history, and the conflicting files.
+For each side of each conflict, inspect the originating commit, nearby history, the
+originating issue/spec, and relevant ADRs. Use `docs/agents/issue-tracker.md` for issue
+lookup. Record the purpose of both changes before editing. Prefer a resolution that
+preserves both intents; where they are incompatible, select the behavior matching the
+stated merge/rebase goal and record the trade-off for the coordinator.
 
-2. **Find the primary sources** for each conflict. Understand deeply why each change was made, and what the original intent was. Read the commit messages, check the PRs, check original issues/tickets.
+## Resolve conservatively
 
-3. **Resolve each hunk.** Preserve both intents where possible. Where incompatible, pick the one matching the merge's stated goal and note the trade-off. Do **not** invent new behaviour. Always resolve; never `--abort`.
+Resolve one hunk at a time. Do not blindly choose ours/theirs, discard a side without
+evidence, or introduce new behavior to make the markers disappear. Keep the diff narrow,
+preserve formatting and generated-file policy, and leave no conflict markers. If the
+resolution changes an interface, persistent data, security assumption, or architectural
+decision, stop and escalate rather than improvising.
 
-4. Discover the project's **automated checks** and run them, typically typecheck, then tests, then format. Fix anything the merge broke.
+Never abort a merge or rebase as a shortcut. An explicit user instruction to abandon the
+operation is outside this procedure and must be handled as a separate, destructive
+action.
 
-5. **Finish the merge/rebase.** Stage everything and commit. If rebasing, continue the rebase process until all commits are rebased.
+## Verify and finish under the owner
+
+Discover the repository's checks and run the relevant deterministic sequence: focused
+tests or typechecking first, then broader tests/build/format as appropriate. Redact
+secrets in logs and report unavailable external checks. Reinspect the complete diff for
+both preserved intents and unintended scope.
+
+Only the coordinator may stage the resolved files and continue or complete the merge or
+rebase, then create the integration commit on the owned branch. A worker reports files,
+hunk decisions, checks, unresolved uncertainty, and intentionally undone work; it sends
+one Dispatch completion report and stops. The coordinator then owns final verification,
+issue updates, risk-based review, and commit lifecycle.

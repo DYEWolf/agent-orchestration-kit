@@ -1,0 +1,30 @@
+{
+  "kind": "manual",
+  "overlayVersion": "2",
+  "upstreamTreeHash": "1fa5dae0154787ad5e0b9478a3bb759ec75ead99af016565b7d66ea44db79ac8",
+  "renderedTreeHash": "fc01fab6b407b6d576de04b47fbdc7c4cd20f225a694714a1910de0552b9c647",
+  "upstreamFiles": [
+    {
+      "path": "agents/openai.yaml",
+      "hash": "8229ca854e11dc8e6aef2131ee03f31fb1561cf905fab9ccc325180cf3331352"
+    },
+    {
+      "path": "SKILL.md",
+      "hash": "47f4e52c21694def9c7c11cbfbf891ca35eac7a93e395797515be3c8a409ae50"
+    }
+  ],
+  "renderedFiles": [
+    {
+      "path": "agents/openai.yaml",
+      "hash": "8229ca854e11dc8e6aef2131ee03f31fb1561cf905fab9ccc325180cf3331352"
+    },
+    {
+      "path": "SKILL.md",
+      "hash": "2dec24b12abe50dfb572c15d6c1b9d5dd99abbd5b744886db717cb726940ab81"
+    }
+  ],
+  "changes": [
+    "Reviewed local non-provenance tree is the Living Fixture.",
+    "Manual overlay-v2 reconciliation preserves upstream attribution and repository workflow rules."
+  ]
+}

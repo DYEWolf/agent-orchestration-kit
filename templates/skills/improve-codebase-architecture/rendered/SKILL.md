@@ -1,103 +1,95 @@
 ---
 name: improve-codebase-architecture
-description: Scan a codebase for deepening opportunities, present them as a
-  visual HTML report, then grill through whichever one you pick.
+description: Scan for deepening opportunities, gather bounded evidence through Orca, and present candidates as a temporary visual HTML report.
 ---
-
-## Orca execution overlay
-
-The following rules are part of this installed skill and override conflicting
-instructions in the upstream body below.
-
-- The coordinator owns the user conversation, GitHub Issue state, Orca Run and
-  Task DAG, worktree placement, gates, and final integration decisions.
-- A dispatched worker performs only its bounded Task. It does not create Runs,
-  Tasks, worktrees, branches, nested agents, or background agents.
-- Where the upstream text says to call a Skill tool, invoke a named installed
-  skill through the current harness's supported skill discovery. A worker asks
-  its coordinator when another Task or skill invocation is required.
-- Where the upstream text says to ask or wait for the user, the coordinator uses
-  the user conversation; a worker uses the Orca ask/reply flow.
-- Where the upstream text says to spawn a subagent, background agent, or parallel
-  reviewer, the coordinator creates bounded Orca Tasks and Dispatches. Workers
-  never nest delegation.
-- Repository mutations such as assignment, Issue updates, commits, staging,
-  branching, or conflict continuation happen only when the Task contract assigns
-  them to that actor. The CLI itself never commits, pushes, branches, or opens a
-  pull request.
-- A worker completes its Dispatch exactly once with concrete evidence and stops.
-  Review workers report `SHIP`, `FIX_FIRST`, or `RETHINK` and do not implement
-  their own corrections.
-- GitHub tracker operations follow `docs/agents/issue-tracker.md`. Do not fall
-  back to a local Markdown tracker in this installation.
-
-The remaining section is the pinned upstream procedure, adapted only by the
-recorded maintainer patch shipped with this snapshot.
-
-## Pinned upstream procedure
 
 # Improve Codebase Architecture
 
-Surface architectural friction and propose **deepening opportunities**: refactors that turn shallow modules into deep ones. The aim is testability and AI-navigability.
+This skill surfaces architectural friction; it does not apply an architecture change
+during the scan. Read `AGENTS.md` and, when present, `docs/agents/orca-execution.md` for
+Orca ownership and risk gates. Read `CONTEXT.md` if it exists and the relevant ADRs
+before interpreting a module. The vocabulary is defined here so this skill has no
+dependency on another skill: **module**, **interface**, **implementation**, **depth**,
+**deep**, **shallow**, **seam**, **adapter**, **leverage**, and **locality**.
 
-This command is _informed_ by the project's domain model and built on a shared design vocabulary:
+## Execution modes
 
-- Call the Skill tool with "codebase-design" for the architecture vocabulary (**module**, **interface**, **depth**, **seam**, **adapter**, **leverage**, **locality**) and its principles (the deletion test, "the interface is the test surface", "one adapter = hypothetical seam, two = real"). Use these terms exactly in every suggestion, and don't drift into "component," "service," "API," or "boundary."
-- The domain language in `CONTEXT.md` gives names to good seams; ADRs in `docs/adr/` record decisions this command should not re-litigate.
+- **Coordinator mode:** choose the scan scope, create bounded read-only evidence Tasks
+  when useful, inspect their reports, write the HTML artifact to the OS temp directory,
+  and gate any later architecture decision.
+- **Worker mode:** inspect only the dispatched scope and return evidence. Do not create a
+  Run or Task, launch workers, edit product architecture, update an ADR, or turn a
+  candidate into implementation. A worker may write only an artifact explicitly owned by
+  its Dispatch, and must report its path and verification.
 
-## Process
+Scanning and candidate decisions remain planning work; accepting a candidate does not
+itself authorize implementation. After a candidate decision is accepted, the coordinator
+must create and approve a separate durable implementation issue stating its objective,
+acceptance criteria, risk, verification, and dependency gates. Only when that
+implementation issue is claimed may the coordinator create or bind exactly one
+issue-owned execution Run and its bounded Task DAG; do not claim orchestration without
+those records.
 
-### 1. Explore
+## 1. Explore with bounded evidence
 
-**Scope before you scan: YAGNI.** Deepening a module pays off by making future changes to it easier, so put extra weight on the parts of the codebase that have recently changed. Decide *where* to look before you look:
+Scope before scanning. Follow a user-named module, subsystem, or pain point; otherwise
+use recent history to identify hot spots, then widen only when evidence requires it.
+Read the domain glossary and local ADRs first. Look for:
 
-- If the user named a direction (a module, a subsystem, a pain point), take it, and skip the inference below.
-- Otherwise, walk back a good stretch of the commit history (`git log --oneline`) to find the codebase's hot spots, the files and areas that keep coming up, and let those paths pull your attention first. If the changes are scattered with no clear hot spot, widen the net.
+- a shallow module whose interface nearly matches its implementation;
+- understanding that requires bouncing across many modules with poor locality;
+- pure functions extracted for tests while the real behavior leaks at their call sites;
+- tightly coupled modules leaking across a seam;
+- untested behavior that cannot be reached through a useful interface.
 
-Read the project's domain glossary (`CONTEXT.md`) and any ADRs in the area you're touching first.
+Apply the deletion test: would deleting this module concentrate complexity in a better
+place, or merely move it? A candidate needs evidence from actual files, call paths, tests,
+or history. The coordinator may dispatch separate read-only evidence Tasks for genuinely
+independent areas. Each Task must have a bounded file scope, evidence questions, expected
+citations, and a report contract; the coordinator integrates reports before proposing a
+candidate. A worker never creates those Tasks itself.
 
-Then spawn a sub-agent to walk the codebase. Don't follow rigid heuristics; explore organically and note where you experience friction:
+## 2. Present candidates as a temporary HTML artifact
 
-- Where does understanding one concept require bouncing between many small modules?
-- Where are modules **shallow**, with an interface nearly as complex as the implementation?
-- Where have pure functions been extracted just for testability, but the real bugs hide in how they're called (no **locality**)?
-- Where do tightly-coupled modules leak across their seams?
-- Which parts of the codebase are untested, or hard to test through their current interface?
+Write a fresh self-contained file to the OS temp directory, using `$TMPDIR` then `/tmp`
+(or the platform equivalent), for example
+`<tmpdir>/architecture-review-<timestamp>.html`. Do not write the report into the repo.
+Use the existing `HTML-REPORT.md` scaffold as the local format reference. Open it for the
+user when the environment permits and report its absolute path.
 
-Apply the **deletion test** to anything you suspect is shallow: would deleting it concentrate complexity, or just move it? A "yes, concentrates" is the signal you want.
+The report uses Tailwind and Mermaid CDN assets only for presentation, with hand-built
+CSS/SVG where that communicates structure better. Each candidate card contains:
 
-### 2. Present candidates as an HTML report
+- involved files/modules;
+- the observed problem and evidence;
+- the proposed deepening in plain English;
+- benefits stated as locality, leverage, and test-surface gains;
+- a before/after visualization of the seam and module shape;
+- a recommendation badge: `Strong`, `Worth exploring`, or `Speculative`;
+- an explicit ADR warning when the candidate would reopen a real existing decision.
 
-Write a self-contained HTML file to the OS temp directory so nothing lands in the repo. Resolve the temp dir from `$TMPDIR`, falling back to `/tmp` (or `%TEMP%` on Windows), and write to `<tmpdir>/architecture-review-<timestamp>.html` so each run gets a fresh file. Open it for the user (`xdg-open <path>` on Linux, `open <path>` on macOS, `start <path>` on Windows) and tell them the absolute path.
+Use the architectural nouns consistently. A deep module puts substantial implementation
+behind a small interface; a shallow module exposes nearly as much interface as
+implementation. An adapter is justified by a real seam and improves locality only when
+it hides a meaningful variation. Do not propose a final interface in the scan report.
+End with one top recommendation and ask which candidate the owner wants to explore.
 
-The report uses **Tailwind via CDN** for layout and styling, and **Mermaid via CDN** for diagrams where a graph/flow/sequence reliably communicates the structure. Mix Mermaid with hand-crafted CSS/SVG visuals: use Mermaid when relationships are graph-shaped (call graphs, dependencies, sequences), and hand-built divs/SVG when you want something more editorial (mass diagrams, cross-sections, collapse animations). Each candidate gets a **before/after visualisation**. Be visual.
+## 3. Gate any architecture change
 
-For each candidate, render a card with:
+The report is not approval. Before changing architecture, the coordinator must:
 
-- **Files**: which files/modules are involved
-- **Problem**: why the current architecture is causing friction
-- **Solution**: plain English description of what would change
-- **Benefits**: explained in terms of locality and leverage, and how tests would improve
-- **Before / After diagram**: side-by-side, custom-drawn, illustrating the shallowness and the deepening
-- **Recommendation strength**: one of `Strong`, `Worth exploring`, `Speculative`, rendered as a badge
+1. select one named candidate and state the problem it solves;
+2. create or update the decision issue with evidence and affected scope;
+3. resolve the decision, including ADR/domain implications and migration risk;
+4. after the candidate decision is accepted, create and approve a separate durable
+   implementation issue with an objective, acceptance criteria, risk, verification,
+   and dependency gates; keep the scan and decision in planning;
+5. claim the implementation issue, then create or bind exactly one issue-owned execution
+   Run and its bounded Task DAG with rollback or compatibility criteria;
+6. dispatch bounded implementation work, verify its actual diff, and obtain the
+   independent review required by `AGENTS.md` when the change affects architectural
+   boundaries, data integrity, security, deployment, or broad cross-cutting behavior.
 
-End the report with a **Top recommendation** section: which candidate you'd tackle first and why.
-
-**Use CONTEXT.md vocabulary for the domain, and the `codebase-design` vocabulary for the architecture.** If `CONTEXT.md` defines "Order," talk about "the Order intake module," not "the FooBarHandler," and not "the Order service."
-
-**ADR conflicts**: if a candidate contradicts an existing ADR, only surface it when the friction is real enough to warrant revisiting the ADR. Mark it clearly in the card (e.g. a warning callout: _"contradicts ADR-0007, but worth reopening because…"_). Don't list every theoretical refactor an ADR forbids.
-
-See [HTML-REPORT.md](HTML-REPORT.md) for the full HTML scaffold, diagram patterns, and styling guidance.
-
-Do NOT propose interfaces yet. After the file is written, ask the user: "Which of these would you like to explore?"
-
-### 3. Grilling loop
-
-Once the user picks a candidate, call the Skill tool with "grilling" to walk the decision tree with them: constraints, dependencies, the shape of the deepened module, what sits behind the seam, what tests survive.
-
-Side effects happen inline as decisions crystallize; call the Skill tool with "domain-modeling" to keep the domain model current as you go:
-
-- **Naming a deepened module after a concept not in `CONTEXT.md`?** Add the term to `CONTEXT.md`. Create the file lazily if it doesn't exist.
-- **Sharpening a fuzzy term during the conversation?** Update `CONTEXT.md` right there.
-- **User rejects the candidate with a load-bearing reason?** Offer an ADR, framed as: _"Want me to record this as an ADR so future architecture reviews don't re-suggest it?"_ Only offer when the reason would actually be needed by a future explorer to avoid re-suggesting the same thing; skip ephemeral reasons ("not worth it right now") and self-evident ones.
-- **Want to explore alternative interfaces for the deepened module?** Call the Skill tool with "codebase-design" and use its design-it-twice parallel sub-agent pattern.
+Workers may escalate a candidate when evidence reveals a public contract, persistent
+data, security assumption, or ADR conflict. They must stop at that gate and report the
+evidence; they do not decide or implement around it.

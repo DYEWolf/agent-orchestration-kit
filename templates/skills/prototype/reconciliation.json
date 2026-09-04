@@ -1,0 +1,46 @@
+{
+  "kind": "manual",
+  "overlayVersion": "2",
+  "upstreamTreeHash": "3a07a79792ea5eae7ba1072096f620b52bd48a46942760e3755bb9e4c0c634a0",
+  "renderedTreeHash": "d1898ca5c58956139ccdb4a9bba1828941b69b5c918afc13d44a703bec3dd690",
+  "upstreamFiles": [
+    {
+      "path": "agents/openai.yaml",
+      "hash": "5af65e43ab41a350436697b81e27b7f848d36782043b73c322bb2c9fa9cc55dc"
+    },
+    {
+      "path": "LOGIC.md",
+      "hash": "f61c7d249e786a79ef289018901c348271e1798dd0b0bc5607b5c6f4d4a01ab9"
+    },
+    {
+      "path": "SKILL.md",
+      "hash": "714de632d116bb73f65cdb5a882db15b9369a6713b9a47c0fad827848f0bfbe3"
+    },
+    {
+      "path": "UI.md",
+      "hash": "723211e878acbc7b6ff09755263f3295cde724ba902ff0064da41eed51d45ad3"
+    }
+  ],
+  "renderedFiles": [
+    {
+      "path": "agents/openai.yaml",
+      "hash": "5af65e43ab41a350436697b81e27b7f848d36782043b73c322bb2c9fa9cc55dc"
+    },
+    {
+      "path": "LOGIC.md",
+      "hash": "aefbda35e177411f3375ca0e847859c3a974d60f31a8b1e71c700d3eb0938d35"
+    },
+    {
+      "path": "SKILL.md",
+      "hash": "86d133d565d24b4959360e263d1201d9eddaa500baff895499b6632d44647f1b"
+    },
+    {
+      "path": "UI.md",
+      "hash": "af8b8bb50d570781a723bb02a430e1d99920bd46394f52ea3ab37cd95f180c32"
+    }
+  ],
+  "changes": [
+    "Reviewed local non-provenance tree is the Living Fixture.",
+    "Manual overlay-v2 reconciliation preserves upstream attribution and repository workflow rules."
+  ]
+}

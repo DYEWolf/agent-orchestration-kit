@@ -1,18 +1,69 @@
 {
-  "upstreamRepository": "https://github.com/mattpocock/skills",
+  "kind": "upstream",
   "upstreamPath": "skills/engineering/domain-modeling/SKILL.md",
-  "upstreamCommit": "6654f6b60cd9d5be8b54c6fafe44346dabeb3b76",
   "originalContentHash": "327a2b50620e2fd70abc6893cd6965e76b20f8d0adb0dc2c8d5eb3845efb643e",
-  "overlayVersion": "1",
-  "renderedContentHash": "bc01a776bbf75f23ad4490da1faf34d21728a3c71de808ebaff668b45aae27d8",
+  "overlayVersion": "2",
+  "renderedContentHash": "152e2c97239affb12a60c5f4a7e74ab546a49ae169688c81f4e2ccc42dafa579",
   "supportFiles": [
     {
       "path": "skills/engineering/domain-modeling/ADR-FORMAT.md",
       "hash": "944c92aa790e8fbdc9199640b170979abb8a34ba8d0fe18c2a01a63bce140ca0"
     },
     {
+      "path": "skills/engineering/domain-modeling/agents/openai.yaml",
+      "hash": "f6bf2aa996c6e6f53fdd0708e18a0d16a56aed8322cca59fedbe3c0d2c75f06b"
+    },
+    {
       "path": "skills/engineering/domain-modeling/CONTEXT-FORMAT.md",
       "hash": "17ab16ce783e4d2801ee52fd9acdf550cbf44de65ae76797a93943bbedf22a13"
     }
-  ]
+  ],
+  "reconciliation": {
+    "kind": "manual",
+    "overlayVersion": "2",
+    "upstreamTreeHash": "2ba77b5974caedcd2982f8e5c008e82d02ed4da635aa5c94719042e33f4c3ac8",
+    "renderedTreeHash": "ceb8cede20a88b1f13e81875f598451eb2e0f987d22289fd58d8cb1988e3e293",
+    "upstreamFiles": [
+      {
+        "path": "ADR-FORMAT.md",
+        "hash": "944c92aa790e8fbdc9199640b170979abb8a34ba8d0fe18c2a01a63bce140ca0"
+      },
+      {
+        "path": "agents/openai.yaml",
+        "hash": "f6bf2aa996c6e6f53fdd0708e18a0d16a56aed8322cca59fedbe3c0d2c75f06b"
+      },
+      {
+        "path": "CONTEXT-FORMAT.md",
+        "hash": "17ab16ce783e4d2801ee52fd9acdf550cbf44de65ae76797a93943bbedf22a13"
+      },
+      {
+        "path": "SKILL.md",
+        "hash": "327a2b50620e2fd70abc6893cd6965e76b20f8d0adb0dc2c8d5eb3845efb643e"
+      }
+    ],
+    "renderedFiles": [
+      {
+        "path": "ADR-FORMAT.md",
+        "hash": "f1f36cd3f8d3b6474ddd5855da4e233bfc4ae1a1c5024909ccf11871819a41b2"
+      },
+      {
+        "path": "agents/openai.yaml",
+        "hash": "f6bf2aa996c6e6f53fdd0708e18a0d16a56aed8322cca59fedbe3c0d2c75f06b"
+      },
+      {
+        "path": "CONTEXT-FORMAT.md",
+        "hash": "b8cc318f2a4285b530e908b6bc43901c3c5cd11100362636bbc4216639bef597"
+      },
+      {
+        "path": "SKILL.md",
+        "hash": "152e2c97239affb12a60c5f4a7e74ab546a49ae169688c81f4e2ccc42dafa579"
+      }
+    ],
+    "changes": [
+      "Reviewed local non-provenance tree is the Living Fixture.",
+      "Manual overlay-v2 reconciliation preserves upstream attribution and repository workflow rules."
+    ]
+  },
+  "upstreamRepository": "https://github.com/mattpocock/skills",
+  "upstreamCommit": "6654f6b60cd9d5be8b54c6fafe44346dabeb3b76"
 }

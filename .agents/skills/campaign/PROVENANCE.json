@@ -1,0 +1,25 @@
+{
+  "kind": "first-party",
+  "author": "agent-orchestration-kit",
+  "sourcePath": "templates/skills/campaign",
+  "sourceContentHash": "02000efabc41abc61d70fa281301ef5ff247c4c3c76ec39bdf45e676ea0dd322",
+  "renderedContentHash": "02000efabc41abc61d70fa281301ef5ff247c4c3c76ec39bdf45e676ea0dd322",
+  "files": [
+    {
+      "path": "agents/openai.yaml",
+      "hash": "5eaa483a219caa22cbfa20117633ef8d9100725716fc4b50325e4bf4e2812adc"
+    },
+    {
+      "path": "references/lifecycle.md",
+      "hash": "4082ef5f91b987795d0ff88315ebfcc5e664c5f3563429485285200fc0fbf702"
+    },
+    {
+      "path": "references/preflight-and-record.md",
+      "hash": "7f173571049eb487ae10620c81a3dde765ca38d6a9df7c933be4b640ecac5dd7"
+    },
+    {
+      "path": "SKILL.md",
+      "hash": "02000efabc41abc61d70fa281301ef5ff247c4c3c76ec39bdf45e676ea0dd322"
+    }
+  ]
+}

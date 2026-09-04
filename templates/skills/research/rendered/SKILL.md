@@ -1,47 +1,17 @@
 ---
 name: research
-description: Investigate a question against high-trust primary sources and
-  capture the findings as a Markdown file in the repo. Use when the user wants a
-  topic researched, docs or API facts gathered, or reading legwork delegated to
-  a background agent.
+description: Investigate a question against high-trust primary sources and capture authorized findings as a Markdown file in the repo, directly or through a bounded Orca evidence Task.
 ---
 
-## Orca execution overlay
+# Research
 
-The following rules are part of this installed skill and override conflicting
-instructions in the upstream body below.
+Research is coordinator-owned evidence gathering. The coordinator may do the work directly or create one bounded, read-only Orca Task with a question, source standard, owned scope, output contract, and verification. A worker reports evidence to the coordinator; it does not ask the user, create a Task, choose a product decision, publish an issue, or write files unless the Task contract explicitly authorizes the output path. Read `AGENTS.md` and, when present, `docs/agents/orca-execution.md` before routing work.
 
-- The coordinator owns the user conversation, GitHub Issue state, Orca Run and
-  Task DAG, worktree placement, gates, and final integration decisions.
-- A dispatched worker performs only its bounded Task. It does not create Runs,
-  Tasks, worktrees, branches, nested agents, or background agents.
-- Where the upstream text says to call a Skill tool, invoke a named installed
-  skill through the current harness's supported skill discovery. A worker asks
-  its coordinator when another Task or skill invocation is required.
-- Where the upstream text says to ask or wait for the user, the coordinator uses
-  the user conversation; a worker uses the Orca ask/reply flow.
-- Where the upstream text says to spawn a subagent, background agent, or parallel
-  reviewer, the coordinator creates bounded Orca Tasks and Dispatches. Workers
-  never nest delegation.
-- Repository mutations such as assignment, Issue updates, commits, staging,
-  branching, or conflict continuation happen only when the Task contract assigns
-  them to that actor. The CLI itself never commits, pushes, branches, or opens a
-  pull request.
-- A worker completes its Dispatch exactly once with concrete evidence and stops.
-  Review workers report `SHIP`, `FIX_FIRST`, or `RETHINK` and do not implement
-  their own corrections.
-- GitHub tracker operations follow `docs/agents/issue-tracker.md`. Do not fall
-  back to a local Markdown tracker in this installation.
+## Method
 
-The remaining section is the pinned upstream procedure, adapted only by the
-recorded maintainer patch shipped with this snapshot.
+1. State the research question, decision it informs, source-quality requirement, and allowed output route in the coordinator's context or Task contract. If any of those are missing in a worker Task, escalate before researching or writing.
+2. Investigate against **primary sources** (official docs, source code, specifications, or first-party APIs), not a secondary write-up. Follow every claim back to the source that owns it and record enough citation detail to verify it.
+3. Return a concise evidence report to the coordinator. Write a single Markdown artifact only when the coordinator or Task contract authorizes that path; use the repository's existing notes convention and do not create unrelated files.
+4. Keep findings separate from decisions. The coordinator presents evidence to the user, records accepted decisions, and decides whether the result belongs in an issue, ADR, or another durable artifact.
 
-## Pinned upstream procedure
-
-Spin up a **background agent** to do the research, so you keep working while it reads.
-
-Its job:
-
-1. Investigate the question against **primary sources** (official docs, source code, specs, first-party APIs), not a secondary write-up of them. Follow every claim back to the source that owns it.
-2. Write the findings to a single Markdown file, citing each claim's source.
-3. Save it where the repo already keeps such notes; match the existing convention, and if there is none, put it somewhere sensible and say where.
+Research does not dispatch work, run parallel workers, or advance a planning or implementation flow automatically.

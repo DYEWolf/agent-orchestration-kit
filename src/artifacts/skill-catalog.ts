@@ -1,6 +1,31 @@
+import { sha256 } from '../shared/hash.js';
+
 export interface CatalogFileHash {
   readonly path: string;
   readonly hash: string;
+}
+
+export interface ManualReconciliation {
+  readonly kind: 'manual';
+  readonly overlayVersion: '2';
+  readonly upstreamTreeHash: string;
+  readonly renderedTreeHash: string;
+  readonly upstreamFiles: readonly CatalogFileHash[];
+  readonly renderedFiles: readonly CatalogFileHash[];
+  readonly changes: readonly string[];
+}
+
+export interface SkillBundleCatalog {
+  readonly schemaVersion: 1;
+  readonly upstreamRepository: string;
+  readonly upstreamCommit: string;
+  readonly overlayVersion: '2';
+  readonly license: {
+    readonly spdx: 'MIT';
+    readonly hash: string;
+    readonly content: string;
+  };
+  readonly skills: readonly CatalogSkill[];
 }
 
 export interface FirstPartySkillDefinition {
@@ -25,10 +50,10 @@ export interface UpstreamCatalogSkill {
     readonly kind: 'upstream';
     readonly upstreamPath: string;
     readonly originalContentHash: string;
-    readonly overlayVersion: string;
+    readonly overlayVersion: '2';
     readonly renderedContentHash: string;
     readonly supportFiles: readonly CatalogFileHash[];
-    readonly patch: Readonly<Record<string, unknown>>;
+    readonly reconciliation: ManualReconciliation;
   };
 }
 
@@ -46,6 +71,15 @@ export interface FirstPartyCatalogSkill {
 }
 
 export type CatalogSkill = UpstreamCatalogSkill | FirstPartyCatalogSkill;
+
+/** Hash a complete text-file tree by sorted path and content hash. */
+export function hashFileTree(files: Readonly<Record<string, string>>): string {
+  const entries = Object.entries(files)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([filePath, content]) => `${filePath}\0${sha256(content)}\0`)
+    .join('');
+  return sha256(entries);
+}
 
 /**
  * Reject an upstream sync before it can replace a first-party skill, then

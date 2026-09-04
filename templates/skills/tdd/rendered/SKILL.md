@@ -1,45 +1,13 @@
 ---
 name: tdd
-description: Test-driven development. Use when the user wants to build features
-  or fix bugs test-first, mentions "red-green-refactor", or wants integration
-  tests.
+description: Test-driven development. Use when the user wants to build features or fix bugs test-first, mentions "red-green-refactor", or wants integration tests.
 ---
-
-## Orca execution overlay
-
-The following rules are part of this installed skill and override conflicting
-instructions in the upstream body below.
-
-- The coordinator owns the user conversation, GitHub Issue state, Orca Run and
-  Task DAG, worktree placement, gates, and final integration decisions.
-- A dispatched worker performs only its bounded Task. It does not create Runs,
-  Tasks, worktrees, branches, nested agents, or background agents.
-- Where the upstream text says to call a Skill tool, invoke a named installed
-  skill through the current harness's supported skill discovery. A worker asks
-  its coordinator when another Task or skill invocation is required.
-- Where the upstream text says to ask or wait for the user, the coordinator uses
-  the user conversation; a worker uses the Orca ask/reply flow.
-- Where the upstream text says to spawn a subagent, background agent, or parallel
-  reviewer, the coordinator creates bounded Orca Tasks and Dispatches. Workers
-  never nest delegation.
-- Repository mutations such as assignment, Issue updates, commits, staging,
-  branching, or conflict continuation happen only when the Task contract assigns
-  them to that actor. The CLI itself never commits, pushes, branches, or opens a
-  pull request.
-- A worker completes its Dispatch exactly once with concrete evidence and stops.
-  Review workers report `SHIP`, `FIX_FIRST`, or `RETHINK` and do not implement
-  their own corrections.
-- GitHub tracker operations follow `docs/agents/issue-tracker.md`. Do not fall
-  back to a local Markdown tracker in this installation.
-
-The remaining section is the pinned upstream procedure, adapted only by the
-recorded maintainer patch shipped with this snapshot.
-
-## Pinned upstream procedure
 
 # Test-Driven Development
 
 TDD is the red → green loop. This skill is the reference that makes that loop produce tests worth keeping: what a good test is, where tests go, the anti-patterns, and the rules of the loop. Every section applies on every cycle: consult them before and during the loop, not after.
+
+Read `AGENTS.md` and, when present, `docs/agents/orca-execution.md` before applying this procedure. A worker may write tests only at seams pre-approved by the implementation issue or its Orca Task contract. If the contract does not name a trustworthy seam, stop and ask the coordinator through the Dispatch; do not choose a new seam or ask the user directly.
 
 When exploring the codebase, read `CONTEXT.md` (if it exists) so test names and interface vocabulary match the project's domain language, and respect ADRs in the area you're touching.
 
@@ -53,11 +21,9 @@ See [tests.md](tests.md) for examples and [mocking.md](mocking.md) for mocking g
 
 A **seam** is the public boundary you test at: the interface where you observe behavior without reaching inside. Tests live at seams, never against internals.
 
-**Test only at pre-agreed seams.** Before writing any test, write down the seams under test and confirm them with the user. No test is written at an unconfirmed seam. You can't test everything, so agreeing the seams up front is how testing effort lands on the critical paths and complex logic instead of every edge case.
+**Test only at pre-agreed seams.** Before writing any test, read the seams named by the implementation issue or Orca Task. No test is written at an unconfirmed seam. You can't test everything, so agreeing the seams up front is how testing effort lands on the critical paths and complex logic instead of every edge case.
 
-Ask: "What's the public interface, and which seams should we test?"
-
-When the shape of that interface is itself in question (how deep the module is, where the seam belongs, what the interface should expose), call the Skill tool with "codebase-design" for the vocabulary. It is the shared source of the module, interface, depth, seam, adapter, leverage and locality terms, and it is a reference to consult, not a session to run.
+The issue or Task must answer: "What's the public interface, and which seams should we test?" If it does not, escalate that question to the coordinator before writing a test. When the shape of the interface itself is in question, the coordinator may use the `codebase-design` vocabulary or create a separate bounded design Task; do not turn an implementation Task into an unapproved design exercise.
 
 ## Anti-patterns
 

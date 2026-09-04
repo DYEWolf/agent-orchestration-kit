@@ -1,0 +1,38 @@
+{
+  "kind": "manual",
+  "overlayVersion": "2",
+  "upstreamTreeHash": "6fa69772f51d13dfab7e96798afb97c50e2307d690ef08af6722286859a1607d",
+  "renderedTreeHash": "925e306c7675388824922503e76921c76856e5870de9dcb0125684ab69812942",
+  "upstreamFiles": [
+    {
+      "path": "agents/openai.yaml",
+      "hash": "bdffbc5a0a99ed1b6ef3253d251d755fd18162b9845972e380007f844b09b05c"
+    },
+    {
+      "path": "PHASE-BOUNDARIES.md",
+      "hash": "a8aa20158609ef39e2b308b6ba0660c91066838d07a867202e63a7744a88a3ed"
+    },
+    {
+      "path": "SKILL.md",
+      "hash": "b25d86fb36b1d294eeead5d7db529f86135f9671f2afcd607579a63bb2213769"
+    }
+  ],
+  "renderedFiles": [
+    {
+      "path": "agents/openai.yaml",
+      "hash": "bdffbc5a0a99ed1b6ef3253d251d755fd18162b9845972e380007f844b09b05c"
+    },
+    {
+      "path": "PHASE-BOUNDARIES.md",
+      "hash": "b3d2bd296e29df61e96ea5779054d5331c31cf2868242fa09540f5151cbf77f3"
+    },
+    {
+      "path": "SKILL.md",
+      "hash": "8c6c77ccb6d47e600150cfe7eebbbe3d63e82a7d1d0858bac1ebca77519cd5b2"
+    }
+  ],
+  "changes": [
+    "Reviewed local non-provenance tree is the Living Fixture.",
+    "Manual overlay-v2 reconciliation preserves upstream attribution and repository workflow rules."
+  ]
+}

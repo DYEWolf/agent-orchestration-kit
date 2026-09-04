@@ -1,8 +1,9 @@
 import { createHash } from 'node:crypto';
+import { readdir, readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 import { renderDesiredArtifacts } from '../src/artifacts/render.js';
 import { skillBundleCatalog } from '../src/artifacts/skill-bundle.js';
-import { assertNoOriginCollisions, mergeCatalogSkills } from '../src/artifacts/skill-catalog.js';
+import { assertNoOriginCollisions, hashFileTree, mergeCatalogSkills } from '../src/artifacts/skill-catalog.js';
 import { resolveConfig } from '../src/config/profiles.js';
 import { manifestSchema } from '../src/workflow-project/manifest.js';
 
@@ -89,10 +90,18 @@ describe('desired artifact rendering', () => {
         kind: 'upstream' as const,
         upstreamPath: 'skills/upstream-skill/SKILL.md',
         originalContentHash: 'a'.repeat(64),
-        overlayVersion: '1',
+        overlayVersion: '2' as const,
         renderedContentHash: 'b'.repeat(64),
         supportFiles: [],
-        patch: { kind: 'mechanical' },
+        reconciliation: {
+          kind: 'manual' as const,
+          overlayVersion: '2' as const,
+          upstreamTreeHash: 'c'.repeat(64),
+          renderedTreeHash: 'd'.repeat(64),
+          upstreamFiles: [{ path: 'SKILL.md', hash: 'e'.repeat(64) }],
+          renderedFiles: [{ path: 'SKILL.md', hash: 'f'.repeat(64) }],
+          changes: ['Reviewed local fixture.'],
+        },
       },
     };
     const firstParty = {
@@ -144,6 +153,25 @@ describe('desired artifact rendering', () => {
     expect(JSON.parse(provenance?.content ?? '{}')).toMatchObject({ files: campaign.origin.files });
   });
 
+  it('binds every catalog tree to its complete Living Fixture and reconciliation evidence', async () => {
+    for (const skill of skillBundleCatalog.skills) {
+      const fixtureRoot = skill.origin.kind === 'first-party'
+        ? skill.origin.sourcePath
+        : `templates/skills/${skill.name}/rendered`;
+      const fixture = await readTextTree(fixtureRoot);
+      const installed = await readTextTree(`.agents/skills/${skill.name}`, 'PROVENANCE.json');
+      expect(installed).toEqual(fixture);
+      expect(skill.files).toEqual(fixture);
+
+      if (skill.origin.kind === 'upstream') {
+        expect(hashFileTree(fixture)).toBe(skill.origin.reconciliation.renderedTreeHash);
+        expect(hashEntries(fixture)).toEqual(skill.origin.reconciliation.renderedFiles);
+      } else {
+        expect(hashEntries(fixture)).toEqual(skill.origin.files);
+      }
+    }
+  });
+
   it('makes CLAUDE.md import the root constitution and distinguishes skill locations', () => {
     const claude = renderDesiredArtifacts(resolveConfig('claude-coordinator'))
       .find((artifact) => artifact.path === 'CLAUDE.md');
@@ -170,3 +198,24 @@ describe('desired artifact rendering', () => {
     expect(tracker).toContain('never implied by `Type: wayfinder-task`');
   });
 });
+
+async function readTextTree(directory: string, excluded?: string, prefix = ''): Promise<Record<string, string>> {
+  const files: Record<string, string> = {};
+  const entries = await readdir(directory, { withFileTypes: true });
+  for (const entry of entries.sort((left, right) => left.name.localeCompare(right.name))) {
+    const relativePath = prefix === '' ? entry.name : `${prefix}/${entry.name}`;
+    const absolutePath = `${directory}/${entry.name}`;
+    if (entry.isDirectory()) {
+      Object.assign(files, await readTextTree(absolutePath, excluded, relativePath));
+    } else if (entry.isFile() && relativePath !== excluded) {
+      files[relativePath] = await readFile(absolutePath, 'utf8');
+    }
+  }
+  return Object.fromEntries(Object.entries(files).sort(([left], [right]) => left.localeCompare(right)));
+}
+
+function hashEntries(files: Readonly<Record<string, string>>): readonly { path: string; hash: string }[] {
+  return Object.entries(files)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([path, content]) => ({ path, hash: createHash('sha256').update(content, 'utf8').digest('hex') }));
+}

@@ -1,86 +1,76 @@
 ---
 name: ask-matt
-description: Ask which skill or flow fits your situation. A router over the
-  skills in this repo.
+description: Route an explicitly invoked request to the installed planning, implementation, diagnosis, review, or handoff flow while the coordinator retains conversation ownership.
 ---
-
-## Orca execution overlay
-
-The following rules are part of this installed skill and override conflicting
-instructions in the upstream body below.
-
-- The coordinator owns the user conversation, GitHub Issue state, Orca Run and
-  Task DAG, worktree placement, gates, and final integration decisions.
-- A dispatched worker performs only its bounded Task. It does not create Runs,
-  Tasks, worktrees, branches, nested agents, or background agents.
-- Where the upstream text says to call a Skill tool, invoke a named installed
-  skill through the current harness's supported skill discovery. A worker asks
-  its coordinator when another Task or skill invocation is required.
-- Where the upstream text says to ask or wait for the user, the coordinator uses
-  the user conversation; a worker uses the Orca ask/reply flow.
-- Where the upstream text says to spawn a subagent, background agent, or parallel
-  reviewer, the coordinator creates bounded Orca Tasks and Dispatches. Workers
-  never nest delegation.
-- Repository mutations such as assignment, Issue updates, commits, staging,
-  branching, or conflict continuation happen only when the Task contract assigns
-  them to that actor. The CLI itself never commits, pushes, branches, or opens a
-  pull request.
-- A worker completes its Dispatch exactly once with concrete evidence and stops.
-  Review workers report `SHIP`, `FIX_FIRST`, or `RETHINK` and do not implement
-  their own corrections.
-- GitHub tracker operations follow `docs/agents/issue-tracker.md`. Do not fall
-  back to a local Markdown tracker in this installation.
-
-The remaining section is the pinned upstream procedure, adapted only by the
-recorded maintainer patch shipped with this snapshot.
-
-## Pinned upstream procedure
 
 # Ask Matt
 
-Route work only through the skills installed by agent-orchestration-kit. Name skills neutrally;
-the active harness decides the invocation syntax.
+This is a router and decision aid, not an autonomous dispatcher. Classify shape,
+risk, uncertainty, and locality with `docs/agents/execution-policy.md` before
+selecting a workflow. The coordinator asks the user questions only when a material decision
+is genuinely unresolved, records decisions, and authorizes phase transitions. A
+worker receives only a coordinator-created, bounded Orca Task and returns
+evidence; it never owns the conversation, asks the user, makes an unassigned
+product decision, creates another Task, or silently advances the flow. See
+`docs/agents/orca-execution.md` and
+[PHASE-BOUNDARIES.md](PHASE-BOUNDARIES.md).
 
-## Main product flow
+## Route the smallest useful flow
 
-1. When the destination is clear but details remain unresolved, start with
-   grill-with-docs. It uses grilling and domain-modeling to establish shared
-   language and decisions.
-2. When the effort is too foggy or too large for one session, use wayfinder to
-   create and resolve a bounded decision map. When the route becomes buildable,
-   return to grill-with-docs if conversational alignment remains.
-3. After the understanding gate is approved, use to-spec.
-4. After the specification gate is approved, use to-tickets.
-5. After the ticket breakdown is approved, use implement once per claimed,
-   executable, unblocked GitHub implementation Issue.
-6. Implementation uses tdd where appropriate and risk-based code-review before
-   the Issue is closed.
+- **Trivial, low-risk, settled, isolated** → direct coordinator execution plus
+  the closest deterministic check. Do not create an Issue, Run, worker, or
+  reviewer solely for ceremony.
+- **Bounded and settled** → direct execution or one implementation worker, with
+  the Issue/Run lifecycle when delegated, risk-bearing, or already Issue-owned.
+- **Feature with settled outcomes** → `$to-spec` and `$to-tickets` only when the
+  durable contract or decomposition is actually needed, then `$implement`.
+- **Architectural or ambiguous** → `$wayfinder` or `$grill-with-docs`, followed
+  by explicit specification and ticket gates as needed.
 
-Completing one phase never silently invokes the next. Even when the user
-authorizes an end-to-end flow, pause at the understanding, specification, and
-ticket-breakdown gates.
+## Substantial workflow: idea to ship
 
-## Other routes
+Use this path when the user has an idea they want built:
 
-- A difficult or intermittent defect: diagnosing-bugs, then tdd for the
-  regression and improve-codebase-architecture if the missing seam is systemic.
-- Codebase health: improve-codebase-architecture to find candidates, then
-  codebase-design to shape the selected change.
-- A question needing runnable evidence: prototype.
-- Primary-source reading: research.
-- A merge or rebase already in conflict: resolving-merge-conflicts.
-- A portable context transfer: handoff.
-- Direct vocabulary work: domain-modeling or codebase-design.
-- A focused review: code-review.
+1. **Sharpen and document** — `$grill-with-docs`. The coordinator interviews one decision at a time, using `$grilling` and `$domain-modeling`. Facts may be gathered through coordinator-created Orca evidence Tasks. The phase ends with shared understanding and recorded decisions.
+2. **Specify** — explicitly invoke `$to-spec`. The coordinator drafts the complete specification, obtains explicit approval of the full document, and publishes one non-executable umbrella/spec issue. The issue is not ready for implementation.
+3. **Split durable work** — explicitly invoke `$to-tickets`. The coordinator drafts outcome-based implementation issues, including acceptance, constraints, risks, verification, and genuine blocking edges; the user explicitly approves the breakdown before publication. Only implementation issues ready to execute receive `ready-for-agent`.
+4. **Implement** — explicitly invoke `$implement` for an approved implementation issue. The coordinator owns runtime dispatch through Orca; the issue remains the durable contract and contains no model or routing instructions.
+5. **Review and verify** — use `$code-review` when the risk policy requires it or the user requests it. Accept, correct, or escalate based on the exact candidate and deterministic verification.
 
-## Installed vocabulary
+Campaign is not part of this default path. After tickets are published, manual
+Issue execution remains the default; only an explicit `$campaign` invocation
+can authorize a fixed multi-Issue execution.
 
-The complete installed set is: ask-matt, grill-with-docs, to-spec, to-tickets,
-implement, wayfinder, improve-codebase-architecture, handoff, grilling,
-domain-modeling, research, prototype, tdd, diagnosing-bugs, codebase-design,
-code-review, and resolving-merge-conflicts.
+The sequence above is a recommendation for substantial work, not the default
+cost of every change. It becomes automatic only when the user explicitly
+authorizes that end-to-end flow. Completing one phase never implicitly invokes
+the next phase.
 
-Campaign is installed but explicit-only: do not start it from this router.
-Only an explicit user request may invoke campaign for a fixed Issue set.
+## On-ramps and standalone flows
 
-Do not route to any skill outside this list.
+- **Something is broken or regressed** → `$diagnosing-bugs`. Establish a tight failing feedback loop, then repair it with a regression test.
+- **Test-first implementation** → `$tdd`. Use issue/Task-approved seams and keep the red-green loop inside the active implementation contract.
+- **A module boundary or public seam is unclear** → `$codebase-design`. Use its vocabulary directly; if alternatives need independent analysis, the coordinator creates sibling Orca Tasks and synthesizes the decision.
+- **A bounded factual question needs primary-source evidence** → `$research`. Run it directly or as a read-only Orca evidence Task; the report returns to the coordinator.
+- **A risky interaction or design assumption needs a disposable artifact** → `$prototype`. Gate the question first, let the coordinator present the artifact, and capture only the approved result.
+- **The destination is too foggy to plan** → `$wayfinder`. Resolve decision work until a buildable direction exists, then explicitly return to `$to-spec`.
+- **Codebase health** → `$improve-codebase-architecture`. Use it to surface deepening opportunities; take a selected opportunity into `$grill-with-docs` explicitly.
+- **Domain language or a hard-to-reverse domain decision** → `$domain-modeling`.
+- **An in-progress merge or rebase conflict** → `$resolving-merge-conflicts`.
+- **A branch or pull request needs independent inspection** → `$code-review`.
+- **The work must move to another harness, directory, or colleague** → `$handoff`, and only at the corresponding phase boundary.
+- **Explicitly start, inspect, pause, resume, or cancel a fixed set of approved implementation Issues** → `$campaign`.
+
+If no installed flow fits, keep the coordinator in the conversation and use a coordinator-created Orca evidence Task only for a bounded fact-finding need. Do not invent a route or present runtime worker selection as a user-facing workflow.
+
+## Routing rules
+
+- Facts are investigated; decisions are put to the user.
+- Shared understanding precedes specification; explicit full-spec approval precedes publication.
+- An approved umbrella/spec precedes ticket drafting; explicit ticket-breakdown approval precedes publication.
+- GitHub issues are durable boundaries for non-trivial specs and implementation
+  outcomes. Do not manufacture one for the direct trivial route. Runtime worker
+  routing is an Orca concern and never belongs in a ticket.
+- Campaign membership never raises review risk. Select review from the Issue's
+  risk and bind any verdict to the exact reviewed candidate.
+- A phase boundary is a decision point, not a trigger. Read [PHASE-BOUNDARIES.md](PHASE-BOUNDARIES.md) before choosing whether to continue, gather bounded evidence, hand off, or enter the next explicitly authorized phase.

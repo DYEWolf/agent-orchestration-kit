@@ -1,36 +1,34 @@
 # Third-party notices
 
-agent-orchestration-kit redistributes reviewed and modified snapshots from Matt Pocock's skills repository.
+The following skill snapshots were adapted for Orca orchestration. This project is not affiliated with, endorsed by, or an official product of Orca or its maintainers.
 
 Upstream repository: https://github.com/mattpocock/skills
-Pinned commit: 6654f6b60cd9d5be8b54c6fafe44346dabeb3b76
-Orca overlay version: 1
+Pinned upstream commit: `6654f6b60cd9d5be8b54c6fafe44346dabeb3b76`
+Orca overlay version: `2`
 
-Included paths:
+## Included third-party skills
 
-- ask-matt: skills/engineering/ask-matt/SKILL.md
-- code-review: skills/engineering/code-review/SKILL.md
-- codebase-design: skills/engineering/codebase-design/SKILL.md
-- diagnosing-bugs: skills/engineering/diagnosing-bugs/SKILL.md
-- domain-modeling: skills/engineering/domain-modeling/SKILL.md
-- grill-with-docs: skills/engineering/grill-with-docs/SKILL.md
-- grilling: skills/productivity/grilling/SKILL.md
-- handoff: skills/productivity/handoff/SKILL.md
-- implement: skills/engineering/implement/SKILL.md
-- improve-codebase-architecture: skills/engineering/improve-codebase-architecture/SKILL.md
-- prototype: skills/engineering/prototype/SKILL.md
-- research: skills/engineering/research/SKILL.md
-- resolving-merge-conflicts: skills/engineering/resolving-merge-conflicts/SKILL.md
-- tdd: skills/engineering/tdd/SKILL.md
-- to-spec: skills/engineering/to-spec/SKILL.md
-- to-tickets: skills/engineering/to-tickets/SKILL.md
-- wayfinder: skills/engineering/wayfinder/SKILL.md
+- `ask-matt`: `skills/engineering/ask-matt/SKILL.md`
+- `code-review`: `skills/engineering/code-review/SKILL.md`
+- `codebase-design`: `skills/engineering/codebase-design/SKILL.md`
+- `diagnosing-bugs`: `skills/engineering/diagnosing-bugs/SKILL.md`
+- `domain-modeling`: `skills/engineering/domain-modeling/SKILL.md`
+- `grill-with-docs`: `skills/engineering/grill-with-docs/SKILL.md`
+- `grilling`: `skills/productivity/grilling/SKILL.md`
+- `handoff`: `skills/productivity/handoff/SKILL.md`
+- `implement`: `skills/engineering/implement/SKILL.md`
+- `improve-codebase-architecture`: `skills/engineering/improve-codebase-architecture/SKILL.md`
+- `prototype`: `skills/engineering/prototype/SKILL.md`
+- `research`: `skills/engineering/research/SKILL.md`
+- `resolving-merge-conflicts`: `skills/engineering/resolving-merge-conflicts/SKILL.md`
+- `tdd`: `skills/engineering/tdd/SKILL.md`
+- `to-spec`: `skills/engineering/to-spec/SKILL.md`
+- `to-tickets`: `skills/engineering/to-tickets/SKILL.md`
+- `wayfinder`: `skills/engineering/wayfinder/SKILL.md`
 
-The bundled skills were modified for coordinator-supervised Orca orchestration.
-This project is not affiliated with, endorsed by, or an official product of Orca or its maintainers.
+## Upstream license
 
-## Matt Pocock skills license
-
+```text
 MIT License
 
 Copyright (c) 2026 Matt Pocock
@@ -52,3 +50,4 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+```

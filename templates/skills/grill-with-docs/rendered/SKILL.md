@@ -1,39 +1,20 @@
 ---
 name: grill-with-docs
-description: A relentless interview to sharpen a plan or design, which also
-  creates docs (ADR's and glossary) as we go.
+description: A relentless interview to sharpen a plan or design, while recording the resulting domain decisions in project docs.
 ---
 
-## Orca execution overlay
+# Grill with Docs
 
-The following rules are part of this installed skill and override conflicting
-instructions in the upstream body below.
+The coordinator is the conversational owner for this entire flow. Use `$grilling` to ask one decision question at a time and `$domain-modeling` when a term, relationship, or hard-to-reverse trade-off belongs in `CONTEXT.md` or an ADR.
 
-- The coordinator owns the user conversation, GitHub Issue state, Orca Run and
-  Task DAG, worktree placement, gates, and final integration decisions.
-- A dispatched worker performs only its bounded Task. It does not create Runs,
-  Tasks, worktrees, branches, nested agents, or background agents.
-- Where the upstream text says to call a Skill tool, invoke a named installed
-  skill through the current harness's supported skill discovery. A worker asks
-  its coordinator when another Task or skill invocation is required.
-- Where the upstream text says to ask or wait for the user, the coordinator uses
-  the user conversation; a worker uses the Orca ask/reply flow.
-- Where the upstream text says to spawn a subagent, background agent, or parallel
-  reviewer, the coordinator creates bounded Orca Tasks and Dispatches. Workers
-  never nest delegation.
-- Repository mutations such as assignment, Issue updates, commits, staging,
-  branching, or conflict continuation happen only when the Task contract assigns
-  them to that actor. The CLI itself never commits, pushes, branches, or opens a
-  pull request.
-- A worker completes its Dispatch exactly once with concrete evidence and stops.
-  Review workers report `SHIP`, `FIX_FIRST`, or `RETHINK` and do not implement
-  their own corrections.
-- GitHub tracker operations follow `docs/agents/issue-tracker.md`. Do not fall
-  back to a local Markdown tracker in this installation.
+When a fact can be discovered from the repository or another available source, look it up instead of asking the user. If that investigation is bounded and needs a worker, the coordinator creates one Orca Task and gives it a read-oriented evidence contract. The worker returns findings; it does not interview the user, make the product decision, publish documents, or create another Task. Follow `docs/agents/orca-execution.md` for the Task contract and evidence lifecycle.
 
-The remaining section is the pinned upstream procedure, adapted only by the
-recorded maintainer patch shipped with this snapshot.
+## Process
 
-## Pinned upstream procedure
+1. Read the relevant project context and ADRs, then state the decision or design question in the user's vocabulary.
+2. Gather facts directly or through coordinator-created Orca Tasks. Keep evidence separate from decisions and bring the report back to the coordinator.
+3. Interview the user one question at a time. Give a recommended answer, wait for the user's decision, and probe edge cases until the understanding is shared.
+4. Record resolved domain terms in `CONTEXT.md` and offer an ADR only for a hard-to-reverse, surprising trade-off with real alternatives. Do this as the coordinator after the decision is settled.
+5. End by presenting the shared understanding and unresolved questions. Do not invoke specification, ticket, or implementation work automatically. A later phase starts only when the user explicitly requests it or an explicitly authorized end-to-end flow names that transition.
 
-Call the Skill tool twice, for "grilling" and "domain-modeling".
+This skill sharpens and documents a decision; it does not publish executable implementation work.

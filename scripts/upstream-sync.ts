@@ -1,22 +1,16 @@
+import { createHash } from 'node:crypto';
+import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
 import path from 'node:path';
-import { mkdtemp, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { execa } from 'execa';
-import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
-import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import {
-  FIRST_PARTY_SKILL_REGISTRY,
-  assertNoOriginCollisions,
-  mergeCatalogSkills,
-  type FirstPartyCatalogSkill,
-  type UpstreamCatalogSkill,
-} from '../src/artifacts/skill-catalog.js';
+import { renderSkillNotices, renderSkillProvenance, skillBundleCatalog as catalog } from '../src/artifacts/skill-bundle.js';
+import { assertNoOriginCollisions, hashFileTree, FIRST_PARTY_SKILL_REGISTRY } from '../src/artifacts/skill-catalog.js';
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const upstreamRepository = 'https://github.com/mattpocock/skills';
 const upstreamCommit = '6654f6b60cd9d5be8b54c6fafe44346dabeb3b76';
-const overlayVersion = '1';
+const overlayVersion = '2';
 
 const skills = {
   'ask-matt': 'skills/engineering/ask-matt',
@@ -38,32 +32,6 @@ const skills = {
   'resolving-merge-conflicts': 'skills/engineering/resolving-merge-conflicts',
 } as const;
 
-const supportBySkill: Readonly<Record<keyof typeof skills, readonly string[]>> = {
-  'ask-matt': [],
-  'grill-with-docs': [],
-  'to-spec': [],
-  'to-tickets': [],
-  implement: [],
-  wayfinder: [],
-  'improve-codebase-architecture': ['HTML-REPORT.md'],
-  handoff: [],
-  grilling: [],
-  'domain-modeling': ['ADR-FORMAT.md', 'CONTEXT-FORMAT.md'],
-  research: [],
-  prototype: ['LOGIC.md', 'UI.md'],
-  tdd: ['mocking.md', 'tests.md'],
-  'diagnosing-bugs': ['scripts/hitl-loop.template.sh'],
-  'codebase-design': ['DEEPENING.md', 'DESIGN-IT-TWICE.md'],
-  'code-review': [],
-  'resolving-merge-conflicts': [],
-};
-
-interface UpstreamFrontmatter {
-  readonly name?: string;
-  readonly description?: string;
-  readonly 'disable-model-invocation'?: boolean;
-}
-
 const temporary = await mkdtemp(path.join(tmpdir(), 'agent-orchestration-kit-upstream-sync-'));
 try {
   await execa('git', ['clone', '--quiet', '--filter=blob:none', '--no-checkout', `${upstreamRepository}.git`, temporary]);
@@ -71,255 +39,166 @@ try {
   const actualCommit = (await execa('git', ['-C', temporary, 'rev-parse', 'HEAD'])).stdout.trim();
   if (actualCommit !== upstreamCommit) throw new Error(`Expected ${upstreamCommit}, received ${actualCommit}`);
 
-  const sharedOverlay = await readFile(path.join(repositoryRoot, 'templates/overlays/shared.md'), 'utf8');
-  const askMattReplacement = await readFile(path.join(repositoryRoot, 'templates/patches/ask-matt-body.md'), 'utf8');
+  assertCatalogIdentity();
   const license = await readFile(path.join(temporary, 'LICENSE'), 'utf8');
-  const catalogSkills: UpstreamCatalogSkill[] = [];
-  const firstPartySkills = await readFirstPartySkills();
-  assertNoOriginCollisions(Object.keys(skills), firstPartySkills.map((skill) => skill.name));
-
-  for (const [name, upstreamDirectory] of Object.entries(skills)) {
-    const sourceDirectory = path.join(temporary, upstreamDirectory);
-    const upstreamSkillPath = path.join(sourceDirectory, 'SKILL.md');
-    const original = await readFile(upstreamSkillPath, 'utf8');
-    const parsed = parseSkill(original);
-    if (parsed.frontmatter.name !== name) throw new Error(`Unexpected skill name in ${upstreamDirectory}`);
-
-    const patch = name === 'ask-matt'
-      ? { kind: 'replacement', source: 'templates/patches/ask-matt-body.md', reason: 'Router must reference only installed skills.' }
-      : {
-          kind: 'mechanical',
-          replacements: [
-            'adapter-specific slash invocations -> neutral skill names',
-            'setup skill fallback -> installed GitHub tracker documentation',
-            ...(name === 'wayfinder'
-              ? ['Wayfinder label taxonomy -> body metadata and native tracker relationships']
-              : []),
-          ],
-        };
-    const patchedBody = name === 'ask-matt' ? askMattReplacement : adaptBody(parsed.body, name);
-    const frontmatter = stringifyYaml({
-      name,
-      description: parsed.frontmatter.description ?? `Orca-adapted ${name} procedure`,
-    }).trim();
-    const rendered = `---\n${frontmatter}\n---\n\n${sharedOverlay.trim()}\n\n## Pinned upstream procedure\n\n${patchedBody.trim()}\n`;
-
-    const files: Record<string, string> = {
-      'SKILL.md': rendered,
-      'agents/openai.yaml': renderOpenAiMetadata(
-        name,
-        parsed.frontmatter.description ?? `Orca-adapted ${name} procedure`,
-        parsed.frontmatter['disable-model-invocation'] === true,
-      ),
-    };
-    const supportFiles: { path: string; hash: string }[] = [];
-    for (const relativePath of supportBySkill[name as keyof typeof skills]) {
-      const content = await readFile(path.join(sourceDirectory, relativePath), 'utf8');
-      files[relativePath] = content;
-      supportFiles.push({ path: `${upstreamDirectory}/${relativePath}`, hash: sha256(content) });
-    }
-
-    const snapshotRoot = path.join(repositoryRoot, 'templates/skills', name);
-    await rm(snapshotRoot, { recursive: true, force: true });
-    await mkdir(path.join(snapshotRoot, 'upstream'), { recursive: true });
-    await mkdir(path.join(snapshotRoot, 'rendered'), { recursive: true });
-    await writeFile(path.join(snapshotRoot, 'upstream/SKILL.md'), original, 'utf8');
-    await writeFile(path.join(snapshotRoot, 'rendered/SKILL.md'), rendered, 'utf8');
-    await writeFile(path.join(snapshotRoot, 'overlay.md'), sharedOverlay, 'utf8');
-    await writeFile(path.join(snapshotRoot, 'patch.json'), `${JSON.stringify(patch, null, 2)}\n`, 'utf8');
-    for (const [relativePath, content] of Object.entries(files)) {
-      if (relativePath === 'SKILL.md' || relativePath === 'agents/openai.yaml') continue;
-      const destination = path.join(snapshotRoot, 'upstream', relativePath);
-      await mkdir(path.dirname(destination), { recursive: true });
-      await writeFile(destination, content, 'utf8');
-    }
-
-    const catalogSkill: UpstreamCatalogSkill = {
-      name,
-      files: Object.fromEntries(Object.entries(files).sort(([a], [b]) => a.localeCompare(b))),
-      origin: {
-        kind: 'upstream',
-        upstreamPath: `${upstreamDirectory}/SKILL.md`,
-        originalContentHash: sha256(original),
-        overlayVersion,
-        renderedContentHash: sha256(rendered),
-        supportFiles: supportFiles.sort((a, b) => a.path.localeCompare(b.path)),
-        patch,
-      },
-    };
-    catalogSkills.push(catalogSkill);
-    await writeFile(path.join(snapshotRoot, 'provenance.json'), `${JSON.stringify({
-      upstreamRepository,
-      upstreamPath: catalogSkill.origin.upstreamPath,
-      upstreamCommit,
-      originalContentHash: catalogSkill.origin.originalContentHash,
-      overlayVersion,
-      renderedContentHash: catalogSkill.origin.renderedContentHash,
-      supportFiles: catalogSkill.origin.supportFiles,
-    }, null, 2)}\n`, 'utf8');
+  if (catalog.license.spdx !== 'MIT' || sha256(license) !== catalog.license.hash || catalog.license.content !== license) {
+    throw new Error('Catalog does not contain the complete pinned upstream MIT license.');
   }
 
-  const catalog = {
-    schemaVersion: 1,
-    upstreamRepository,
-    upstreamCommit,
-    overlayVersion,
-    license: { spdx: 'MIT', hash: sha256(license), content: license },
-    skills: mergeCatalogSkills(catalogSkills, firstPartySkills),
-  };
-  await mkdir(path.join(repositoryRoot, 'src/generated'), { recursive: true });
-  await writeFile(path.join(repositoryRoot, 'src/generated/skill-bundle.json'), `${JSON.stringify(catalog, null, 2)}\n`, 'utf8');
-  await writeFile(path.join(repositoryRoot, 'templates/skills/catalog.json'), `${JSON.stringify({
-    ...catalog,
-    skills: catalog.skills.map(({ files: _files, ...skill }) => skill),
-  }, null, 2)}\n`, 'utf8');
-  const inventory = catalogSkills
-    .sort((a, b) => a.name.localeCompare(b.name))
-    .map((skill) => `- ${skill.name}: ${skill.origin.upstreamPath}`).join('\n');
-  await writeFile(path.join(repositoryRoot, 'THIRD_PARTY_NOTICES.md'), [
-    '# Third-party notices',
-    '',
-    'agent-orchestration-kit redistributes reviewed and modified snapshots from Matt Pocock\'s skills repository.',
-    '',
-    `Upstream repository: ${upstreamRepository}`,
-    `Pinned commit: ${upstreamCommit}`,
-    `Orca overlay version: ${overlayVersion}`,
-    '',
-    'Included paths:',
-    '',
-    inventory,
-    '',
-    'The bundled skills were modified for coordinator-supervised Orca orchestration.',
-    'This project is not affiliated with, endorsed by, or an official product of Orca or its maintainers.',
-    '',
-    '## Matt Pocock skills license',
-    '',
-    license.trim(),
-    '',
-  ].join('\n'), 'utf8');
+  for (const [name, upstreamPath] of Object.entries(skills)) {
+    await validateUpstreamSkill(name, upstreamPath, temporary);
+  }
+  await validateFirstPartyCampaign();
+  await validateCatalogAndNotices(license);
+  console.log(`Upstream sync validation PASS: ${Object.keys(skills).length} pinned upstream skills, Campaign, catalogs, notices, and provenance agree.`);
 } finally {
   await rm(temporary, { recursive: true, force: true });
 }
 
-function parseSkill(content: string): { frontmatter: UpstreamFrontmatter; body: string } {
-  const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/u.exec(content);
-  if (match === null) throw new Error('Skill is missing YAML frontmatter.');
-  return {
-    frontmatter: parseYaml(match[1] ?? '') as UpstreamFrontmatter,
-    body: match[2] ?? '',
-  };
-}
+async function validateUpstreamSkill(name: string, upstreamPath: string, cloneRoot: string): Promise<void> {
+  const skill = catalog.skills.find((candidate) => candidate.name === name);
+  if (skill?.origin.kind !== 'upstream') throw new Error(`Catalog is missing upstream skill ${name}.`);
 
-function adaptBody(body: string, name: string): string {
-  let adapted = body;
-  for (const name of Object.keys(skills)) {
-    adapted = adapted.replace(new RegExp(`/${escapeRegExp(name)}(?![A-Za-z0-9-])`, 'gu'), name);
+  const upstreamFiles = await readTree(path.join(cloneRoot, upstreamPath));
+  const snapshotFiles = await readTree(path.join(repositoryRoot, 'templates/skills', name, 'upstream'));
+  assertTreeEqual(snapshotFiles, upstreamFiles, `${name} upstream snapshot`);
+
+  const renderedFiles = await readTree(path.join(repositoryRoot, 'templates/skills', name, 'rendered'));
+  const localFiles = await readTree(path.join(repositoryRoot, '.agents/skills', name), 'PROVENANCE.json');
+  assertTreeEqual(renderedFiles, localFiles, `${name} rendered Living Fixture`);
+  assertTreeEqual(skill.files, renderedFiles, `${name} runtime catalog`);
+
+  const upstreamHashes = hashFiles(upstreamFiles);
+  const renderedHashes = hashFiles(renderedFiles);
+  const reconciliation = skill.origin.reconciliation;
+  if (reconciliation.kind !== 'manual' || reconciliation.overlayVersion !== overlayVersion) {
+    throw new Error(`${name} must use overlay-v2 manual reconciliation.`);
   }
-  adapted = adapted.replaceAll('/setup-matt-pocock-skills', 'docs/agents/issue-tracker.md');
-  adapted = adapted.replaceAll('setup-matt-pocock-skills', 'docs/agents/issue-tracker.md');
-  adapted = adapted.replaceAll('tell the user to run `docs/agents/issue-tracker.md`', 'follow `docs/agents/issue-tracker.md`; if it is missing, report an incomplete agent-orchestration-kit installation');
-  adapted = adapted.replaceAll('If no tracker has been provided, default to the local-markdown tracker.', 'If the tracker document is missing, stop and report an incomplete agent-orchestration-kit installation.');
-  if (name === 'wayfinder') adapted = adaptWayfinderBody(adapted);
-  return adapted;
+  assertHashesEqual(reconciliation.upstreamFiles, upstreamHashes, `${name} upstream per-file hashes`);
+  assertHashesEqual(reconciliation.renderedFiles, renderedHashes, `${name} rendered per-file hashes`);
+  if (reconciliation.upstreamTreeHash !== hashFileTree(upstreamFiles)) throw new Error(`${name} upstream tree hash mismatch.`);
+  if (reconciliation.renderedTreeHash !== hashFileTree(renderedFiles)) throw new Error(`${name} rendered tree hash mismatch.`);
+  if (reconciliation.changes.length === 0) throw new Error(`${name} reconciliation must explain its reviewed changes.`);
+  if (skill.origin.originalContentHash !== sha256(upstreamFiles['SKILL.md'] ?? '')) throw new Error(`${name} original content hash mismatch.`);
+  if (skill.origin.renderedContentHash !== sha256(renderedFiles['SKILL.md'] ?? '')) throw new Error(`${name} rendered content hash mismatch.`);
+
+  const reconciliationPath = path.join(repositoryRoot, 'templates/skills', name, 'reconciliation.json');
+  const recorded = JSON.parse(await readFile(reconciliationPath, 'utf8')) as unknown;
+  if (JSON.stringify(recorded) !== JSON.stringify(reconciliation)) throw new Error(`${name} reconciliation record disagrees with the runtime catalog.`);
+
+  const expectedProvenance = renderSkillProvenance(skill);
+  const actualProvenance = await readFile(path.join(repositoryRoot, '.agents/skills', name, 'PROVENANCE.json'), 'utf8');
+  const templateProvenance = await readFile(path.join(repositoryRoot, 'templates/skills', name, 'provenance.json'), 'utf8');
+  if (actualProvenance !== expectedProvenance || templateProvenance !== expectedProvenance) {
+    throw new Error(`${name} repository-local provenance is not generated deterministically.`);
+  }
 }
 
-function adaptWayfinderBody(body: string): string {
-  let adapted = body;
-  adapted = replaceRequired(
-    adapted,
-    'The map is a single issue on this repo\'s issue tracker, labelled `wayfinder:map`, the canonical artifact. Its tickets are child issues of the map.',
-    'The map is a single issue on this repo\'s issue tracker, identified by `Type: wayfinder-map` body metadata, and is the canonical artifact. Its tickets are child issues of the map. Do not create or require `wayfinder:*` labels.',
-  );
-  adapted = replaceRequired(
-    adapted,
-    '```markdown\n## Destination',
-    '```markdown\nType: wayfinder-map\n\n## Destination',
-  );
-  adapted = replaceRequired(
-    adapted,
-    '```markdown\n## Question',
-    '```markdown\nType: wayfinder-<research|prototype|grilling|task>\nPart of: #<map>\n\n## Question',
-  );
-  adapted = replaceRequired(
-    adapted,
-    'Each ticket carries a `wayfinder:<type>` label, one of `research`, `prototype`, `grilling`, `task` (see [Ticket Types](#ticket-types)).',
-    'Each ticket carries stable body metadata: `Type: wayfinder-<research|prototype|grilling|task>` and `Part of: #<map>`. The native sub-issue relation is the canonical hierarchy when available; otherwise use a task list in the map as the fallback. `Type: wayfinder-task` is planning metadata and does not imply `ready-for-agent` or authorize an issue-owned execution Run.',
-  );
-  adapted = replaceRequired(
-    adapted,
-    'Only a tracker that lacks native blocking falls back to a body convention.',
-    'Only a tracker that lacks native blocking falls back to a `Blocked by: #<issue>` body convention.',
-  );
-  adapted = replaceRequired(
-    adapted,
-    '3. **Create the map** (label `wayfinder:map`): Destination and Notes filled in, Decisions-so-far empty, the fog sketched into **Not yet specified**.',
-    '3. **Create the map** with `Type: wayfinder-map` body metadata: Destination and Notes filled in, Decisions-so-far empty, the fog sketched into **Not yet specified**.',
-  );
-  return adapted;
+async function validateFirstPartyCampaign(): Promise<void> {
+  const definition = FIRST_PARTY_SKILL_REGISTRY.find((candidate) => candidate.name === 'campaign');
+  if (definition === undefined) throw new Error('Campaign is not registered as first-party.');
+  const sourceFiles = await readTree(path.join(repositoryRoot, definition.sourcePath));
+  const localFiles = await readTree(path.join(repositoryRoot, '.agents/skills/campaign'), 'PROVENANCE.json');
+  assertTreeEqual(sourceFiles, localFiles, 'Campaign first-party source and local Living Fixture');
+
+  const skill = catalog.skills.find((candidate) => candidate.name === 'campaign');
+  if (skill?.origin.kind !== 'first-party') throw new Error('Campaign must have first-party provenance.');
+  assertTreeEqual(skill.files, sourceFiles, 'Campaign runtime catalog');
+  const expectedProvenance = renderSkillProvenance(skill);
+  const actualProvenance = await readFile(path.join(repositoryRoot, '.agents/skills/campaign/PROVENANCE.json'), 'utf8');
+  if (actualProvenance !== expectedProvenance) throw new Error('Campaign provenance is not generated deterministically.');
 }
 
-function replaceRequired(content: string, source: string, replacement: string): string {
-  if (!content.includes(source)) throw new Error(`Expected maintainer patch source was not found: ${source}`);
-  return content.replace(source, replacement);
+async function validateCatalogAndNotices(license: string): Promise<void> {
+  const maintenance = JSON.parse(await readFile(path.join(repositoryRoot, 'templates/skills/catalog.json'), 'utf8')) as typeof catalog;
+  if (catalog.schemaVersion !== 1 || maintenance.schemaVersion !== 1
+    || catalog.upstreamRepository !== upstreamRepository || maintenance.upstreamRepository !== upstreamRepository
+    || catalog.upstreamCommit !== upstreamCommit || maintenance.upstreamCommit !== upstreamCommit
+    || catalog.overlayVersion !== overlayVersion || maintenance.overlayVersion !== overlayVersion) {
+    throw new Error('Runtime and maintenance catalogs disagree about the pinned overlay-v2 bundle identity.');
+  }
+  if (catalog.license.content !== license || maintenance.license.content !== license
+    || catalog.license.hash !== maintenance.license.hash) throw new Error('Runtime and maintenance catalogs disagree about the license.');
+  const runtimeOrigins = catalog.skills.map(({ name, origin }) => ({ name, origin })).sort(byName);
+  const maintenanceOrigins = maintenance.skills.map(({ name, origin }) => ({ name, origin })).sort(byName);
+  if (JSON.stringify(runtimeOrigins) !== JSON.stringify(maintenanceOrigins)) throw new Error('Runtime and maintenance catalogs disagree about origin evidence.');
+
+  const publicNotice = await readFile(path.join(repositoryRoot, 'THIRD_PARTY_NOTICES.md'), 'utf8');
+  const installedNotice = await readFile(path.join(repositoryRoot, '.agents/THIRD_PARTY_NOTICES.md'), 'utf8');
+  const expectedNotice = renderSkillNotices();
+  const expectedInstalledNotice = `<!-- Generated by @dyewolf/agent-orchestration-kit. V1 does not update this file automatically. -->\n\n${expectedNotice}`;
+  if (publicNotice !== expectedNotice || installedNotice !== expectedInstalledNotice) {
+    throw new Error('Third-party notices do not match the catalog-derived notice generator.');
+  }
 }
 
-function renderOpenAiMetadata(name: string, description: string, disableModelInvocation: boolean): string {
-  const shortDescription = description.length <= 90 ? description : `${description.slice(0, 87)}...`;
-  return `# Generated by @dyewolf/agent-orchestration-kit from pinned upstream metadata.\n${stringifyYaml({
-    interface: {
-      display_name: name.split('-').map((part) => `${part[0]?.toUpperCase() ?? ''}${part.slice(1)}`).join(' '),
-      short_description: shortDescription,
-    },
-    policy: { allow_implicit_invocation: !disableModelInvocation },
-  })}`;
+function assertCatalogIdentity(): void {
+  if (catalog.upstreamRepository !== upstreamRepository || catalog.upstreamCommit !== upstreamCommit || catalog.overlayVersion !== overlayVersion) {
+    throw new Error('Bundle catalog does not use the pinned overlay-v2 identity.');
+  }
+  if (catalog.skills.length !== Object.keys(skills).length + FIRST_PARTY_SKILL_REGISTRY.length) {
+    throw new Error('Bundle catalog skill inventory is incomplete.');
+  }
+  const names = catalog.skills.map((skill) => skill.name);
+  if (new Set(names).size !== names.length || JSON.stringify(names) !== JSON.stringify([...names].sort(byNameString))) {
+    throw new Error('Bundle catalog skill names must be unique and sorted.');
+  }
+  assertNoOriginCollisions(
+    catalog.skills.filter((skill) => skill.origin.kind === 'upstream').map((skill) => skill.name),
+    FIRST_PARTY_SKILL_REGISTRY.map((skill) => skill.name),
+  );
+  if (catalog.skills.some((skill) => skill.origin.kind === 'upstream' && skill.origin.reconciliation.kind !== 'manual')) {
+    throw new Error('Every upstream origin must carry a manual reconciliation.');
+  }
 }
 
-async function readFirstPartySkills(): Promise<readonly FirstPartyCatalogSkill[]> {
-  return Promise.all(FIRST_PARTY_SKILL_REGISTRY.map(async (definition) => {
-    const sourceDirectory = path.join(repositoryRoot, definition.sourcePath);
-    const files = await readTree(sourceDirectory);
-    const skill = files['SKILL.md'];
-    const metadata = files['agents/openai.yaml'];
-    if (skill === undefined || metadata === undefined) {
-      throw new Error(`First-party skill ${definition.name} must include SKILL.md and agents/openai.yaml.`);
-    }
-    return {
-      name: definition.name,
-      files,
-      origin: {
-        kind: 'first-party' as const,
-        author: definition.author,
-        sourcePath: definition.sourcePath,
-        sourceContentHash: sha256(skill),
-        renderedContentHash: sha256(skill),
-        files: Object.entries(files)
-          .map(([filePath, content]) => ({ path: filePath, hash: sha256(content) }))
-          .sort((left, right) => left.path.localeCompare(right.path)),
-      },
-    } satisfies FirstPartyCatalogSkill;
-  }));
+function hashFiles(files: Readonly<Record<string, string>>): readonly { path: string; hash: string }[] {
+  return Object.entries(files)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([filePath, content]) => ({ path: filePath, hash: sha256(content) }));
 }
 
-async function readTree(directory: string, prefix = ''): Promise<Record<string, string>> {
+function assertHashesEqual(
+  actual: readonly { path: string; hash: string }[],
+  expected: readonly { path: string; hash: string }[],
+  label: string,
+): void {
+  if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error(`${label} mismatch.`);
+}
+
+function assertTreeEqual(
+  actual: Readonly<Record<string, string>>,
+  expected: Readonly<Record<string, string>>,
+  label: string,
+): void {
+  const actualPaths = Object.keys(actual).sort((left, right) => left.localeCompare(right));
+  const expectedPaths = Object.keys(expected).sort((left, right) => left.localeCompare(right));
+  if (JSON.stringify(actualPaths) !== JSON.stringify(expectedPaths)) throw new Error(`${label} file set mismatch.`);
+  for (const filePath of expectedPaths) {
+    if (actual[filePath] !== expected[filePath]) throw new Error(`${label} differs at ${filePath}.`);
+  }
+}
+
+async function readTree(directory: string, excluded?: string, prefix = ''): Promise<Record<string, string>> {
   const files: Record<string, string> = {};
-  for (const entry of await readdir(directory, { withFileTypes: true })) {
+  for (const entry of (await readdir(directory, { withFileTypes: true })).sort((left, right) => left.name.localeCompare(right.name))) {
     const relativePath = prefix === '' ? entry.name : `${prefix}/${entry.name}`;
     const absolutePath = path.join(directory, entry.name);
-    if (entry.isDirectory()) {
-      Object.assign(files, await readTree(absolutePath, relativePath));
-    } else if (entry.isFile()) {
-      files[relativePath] = await readFile(absolutePath, 'utf8');
-    } else {
-      throw new Error(`First-party skill source contains unsupported entry: ${relativePath}`);
-    }
+    if (entry.isDirectory()) Object.assign(files, await readTree(absolutePath, excluded, relativePath));
+    else if (entry.isFile() && relativePath !== excluded) files[relativePath] = await readFile(absolutePath, 'utf8');
+    else if (!entry.isFile()) throw new Error(`Unsupported skill tree entry: ${relativePath}`);
   }
-  return Object.fromEntries(Object.entries(files).sort(([a], [b]) => a.localeCompare(b)));
+  return Object.fromEntries(Object.entries(files).sort(([left], [right]) => left.localeCompare(right)));
 }
 
 function sha256(content: string): string {
   return createHash('sha256').update(content, 'utf8').digest('hex');
 }
 
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+function byName(left: { name: string }, right: { name: string }): number {
+  return left.name.localeCompare(right.name);
+}
+
+function byNameString(left: string, right: string): number {
+  return left.localeCompare(right);
 }

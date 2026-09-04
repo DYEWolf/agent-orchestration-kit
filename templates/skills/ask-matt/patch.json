@@ -1,5 +1,0 @@
-{
-  "kind": "replacement",
-  "source": "templates/patches/ask-matt-body.md",
-  "reason": "Router must reference only installed skills."
-}

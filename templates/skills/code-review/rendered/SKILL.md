@@ -1,124 +1,131 @@
 ---
 name: code-review
-description: "Review the changes since a fixed point (commit, branch, tag, or
-  merge-base) along two axes: Standards (does the code follow this repo's
-  documented coding standards?) and Spec (does the code match what the
-  originating issue/spec asked for?). Runs both reviews in parallel sub-agents
-  and reports them side by side. Use when the user wants to review a branch, a
-  PR, work-in-progress changes, or asks to \"review since X\"."
+description: "Review a committed checkpoint or WIP snapshot along separate Standards and Spec axes and return SHIP, FIX_FIRST, or RETHINK."
 ---
 
-## Orca execution overlay
+# Code Review
 
-The following rules are part of this installed skill and override conflicting
-instructions in the upstream body below.
+This is a read-only review. Read `AGENTS.md`, `docs/agents/execution-policy.md`, and,
+when present, `docs/agents/orca-execution.md` for the canonical Orca lifecycle and risk
+policy. The coordinator decides whether review is needed, whether it is full or delta,
+and which reviewer model to use; a worker performing this skill reviews only its
+dispatched scope. Never edit, stage, commit, or otherwise fix the reviewed change.
 
-- The coordinator owns the user conversation, GitHub Issue state, Orca Run and
-  Task DAG, worktree placement, gates, and final integration decisions.
-- A dispatched worker performs only its bounded Task. It does not create Runs,
-  Tasks, worktrees, branches, nested agents, or background agents.
-- Where the upstream text says to call a Skill tool, invoke a named installed
-  skill through the current harness's supported skill discovery. A worker asks
-  its coordinator when another Task or skill invocation is required.
-- Where the upstream text says to ask or wait for the user, the coordinator uses
-  the user conversation; a worker uses the Orca ask/reply flow.
-- Where the upstream text says to spawn a subagent, background agent, or parallel
-  reviewer, the coordinator creates bounded Orca Tasks and Dispatches. Workers
-  never nest delegation.
-- Repository mutations such as assignment, Issue updates, commits, staging,
-  branching, or conflict continuation happen only when the Task contract assigns
-  them to that actor. The CLI itself never commits, pushes, branches, or opens a
-  pull request.
-- A worker completes its Dispatch exactly once with concrete evidence and stops.
-  Review workers report `SHIP`, `FIX_FIRST`, or `RETHINK` and do not implement
-  their own corrections.
-- GitHub tracker operations follow `docs/agents/issue-tracker.md`. Do not fall
-  back to a local Markdown tracker in this installation.
+## Pin a review snapshot
 
-The remaining section is the pinned upstream procedure, adapted only by the
-recorded maintainer patch shipped with this snapshot.
+The Dispatch must supply a fixed point, expected candidate identity, review mode
+(`full` or `delta`), and originating Issue/spec. Delta mode also supplies the prior
+candidate, prior receipt, authorized finding IDs, and correction diff. Accept either of
+these candidate forms:
 
-## Pinned upstream procedure
+- **Committed checkpoint:** resolve the supplied fixed point and compare
+  `git diff <fixed-point>...HEAD`; record `git log <fixed-point>..HEAD --oneline`.
+- **WIP snapshot:** resolve the supplied fixed point, record `git status --short`, and
+  capture both the committed comparison and the current staged and unstaged diffs. Then
+  explicitly enumerate every untracked path (for example with
+  `git ls-files --others --exclude-standard`) and inspect/capture each path's contents
+  in the review evidence (for example with
+  `git diff --no-index --binary /dev/null <path>`; use an appropriate binary-safe
+  inspection when a patch cannot show the
+  contents). Run `git diff --no-index --check /dev/null <path>` for every untracked
+  path without staging or committing it; the expected difference exit status is not a
+  whitespace finding, so inspect the command output for reported whitespace errors.
+  Treat that complete capture as the review snapshot; do not create a commit or stage
+  files merely to make the WIP reviewable.
 
-Two-axis review of the diff between `HEAD` and a fixed point the user supplies:
+Compute or verify the candidate identity with
+`node .agents/scripts/candidate-id.mjs <fixed-point>`. If no fixed point or expected
+identity is supplied, ask for it. If either does not resolve, the identity mismatches, or
+the combined snapshot is empty, stop and report that prerequisite failure. For a WIP snapshot,
+"combined" means the committed comparison, staged diff, unstaged diff, and the
+enumerated untracked content; an untracked file with no `git diff` output still makes
+the snapshot non-empty and must be reviewed. Never alter the worktree to manufacture a
+diff.
 
-- **Standards**: does the code conform to this repo's documented coding standards?
-- **Spec**: does the code faithfully implement the originating issue / spec?
+## Select full or delta review
 
-Both axes run as **parallel sub-agents** so they don't pollute each other's context, then this skill aggregates their findings.
+- **Full:** inspect the complete candidate against both Standards and Spec axes below.
+- **Delta:** inspect the correction diff against the authorized stable finding IDs,
+  their acceptance conditions, affected verification, and regressions introduced by the
+  correction. Preserve the prior non-blocking findings without relitigating unchanged
+  code.
 
-The issue tracker should have been provided to you. If `docs/agents/issue-tracker.md` is missing, follow `docs/agents/issue-tracker.md`; if it is missing, report an incomplete agent-orchestration-kit installation.
+Stop delta review and request full review if the correction changes unrelated paths,
+architecture, public or persistent contracts, security assumptions, or the previously
+assessed blast radius.
 
-## Process
+## Establish the evidence sources
 
-### 1. Pin the fixed point
+1. Read `docs/agents/issue-tracker.md` and locate the originating issue from commit
+   messages, the user-provided issue/spec path, or matching documentation under `docs/`,
+   `specs/`, or `.scratch/`.
+2. If no specification exists, keep the Spec axis and report `no spec available`; do not
+   invent requirements.
+3. Read the repository standards that apply to the changed files. Always include the
+   smell baseline below. A documented repository rule overrides a baseline heuristic,
+   and tooling-enforced concerns need not be repeated.
 
-Whatever the user said is the fixed point (a commit SHA, branch name, tag, `main`, `HEAD~5`, etc.). If they didn't specify one, ask for it.
+## Standards axis
 
-Capture the diff command once: `git diff <fixed-point>...HEAD` (three-dot, so the comparison is against the merge-base). Also note the list of commits via `git log <fixed-point>..HEAD --oneline`.
+Report hard breaches of documented standards separately from judgement-call smells.
+For each finding assign a stable ID such as `STD-001`, cite the file/hunk and the rule or
+smell, and state a concrete acceptance condition for its correction.
+The baseline is:
 
-Before going further, confirm the fixed point resolves (`git rev-parse <fixed-point>`) and the diff is non-empty. A bad ref or empty diff should fail here, not inside two parallel sub-agents.
+- **Mysterious Name:** a name does not reveal what it holds or does; rename it.
+- **Duplicated Code:** one logic shape appears in multiple changed locations; extract the
+  shared shape.
+- **Feature Envy:** a method reaches into another object's data more than its own; move
+  behavior toward the envied data.
+- **Data Clumps:** the same fields or parameters travel together; bundle them into a
+  type.
+- **Primitive Obsession:** a primitive stands in for a domain concept; give the concept a
+  small type.
+- **Repeated Switches:** the same type drives repeated conditionals; centralize the map
+  or use polymorphism.
+- **Shotgun Surgery:** one logical change scatters edits across many files; gather the
+  change into its owning module.
+- **Divergent Change:** one file changes for unrelated reasons; split the responsibilities.
+- **Speculative Generality:** an abstraction serves no requirement; delete or inline it.
+- **Message Chains:** callers navigate a long chain; hide the walk behind one method.
+- **Middle Man:** a function mostly delegates; remove it or give it real leverage.
+- **Refused Bequest:** an implementer ignores inherited behavior; prefer composition.
 
-### 2. Identify the spec source
+Baseline smells are labelled heuristics, never automatic failures. Keep the Standards
+report independent from the Spec report.
 
-Look for the originating spec, in this order:
+## Spec axis
 
-1. Issue references in the commit messages (`#123`, `Closes #45`, GitLab `!67`, etc.), fetched via the workflow in `docs/agents/issue-tracker.md`.
-2. A path the user passed as an argument.
-3. A spec file under `docs/`, `specs/`, or `.scratch/` matching the branch name or feature.
-4. If nothing is found, ask the user where the spec is. If they say there isn't one, the **Spec** sub-agent will skip and report "no spec available".
+Compare the snapshot to the originating issue/spec and report, separately. Assign stable
+IDs such as `SPEC-001` to findings:
 
-### 3. Identify the standards sources
+- requested behavior or acceptance criteria that are missing or partial;
+- behavior added without authorization (scope creep);
+- behavior that appears implemented but is wrong, with the relevant requirement quoted or
+  precisely referenced.
 
-Anything in the repo that documents how code should be written, such as `CODING_STANDARDS.md` or `CONTRIBUTING.md`.
+If the issue is ambiguous, identify the ambiguity as a question for the coordinator; do
+not turn an assumption into a blocking finding without evidence.
 
-On top of whatever the repo documents, the Standards axis always carries the **smell baseline** below: a fixed set of Fowler code smells (_Refactoring_, ch.3) that applies even when a repo documents nothing. Two rules bind it:
+## Aggregate and verdict
 
-- **The repo overrides.** A documented repo standard always wins; where it endorses something the baseline would flag, suppress the smell.
-- **Always a judgement call.** Each smell is a labelled heuristic ("possible Feature Envy"), never a hard violation. Like any standard here, skip anything tooling already enforces.
+For full review, present two headings, `Standards` and `Spec`, with findings kept in their
+original axis. For delta review, present each authorized finding ID and its state
+(`resolved`, `unresolved`, or `regressed`), followed by any correction-induced finding.
+For every finding include stable ID, severity, file/hunk, evidence, violated rule or
+requirement, and acceptance condition. End with one verdict:
 
-Each smell reads *what it is* → *how to fix*; match it against the diff:
+- **SHIP:** no unresolved blocking finding; the snapshot can proceed.
+- **FIX_FIRST:** a concrete defect, hard standards breach, or missing requirement must be
+  corrected before shipping. The coordinator creates or assigns a correction Task; the
+  reviewer does not make it.
+- **RETHINK:** the requested behavior or architecture cannot be safely satisfied by a
+  local correction, or the snapshot contradicts a load-bearing decision. Return to the
+  coordinator for a new decision before implementation continues.
 
-- **Mysterious Name**: a function, variable, or type whose name doesn't reveal what it does or holds. → rename it; if no honest name comes, the design's murky.
-- **Duplicated Code**: the same logic shape appears in more than one hunk or file in the change. → extract the shared shape, call it from both.
-- **Feature Envy**: a method that reaches into another object's data more than its own. → move the method onto the data it envies.
-- **Data Clumps**: the same few fields or params keep travelling together (a type wanting to be born). → bundle them into one type, pass that.
-- **Primitive Obsession**: a primitive or string standing in for a domain concept that deserves its own type. → give the concept its own small type.
-- **Repeated Switches**: the same `switch`/`if`-cascade on the same type recurs across the change. → replace with polymorphism, or one map both sites share.
-- **Shotgun Surgery**: one logical change forces scattered edits across many files in the diff. → gather what changes together into one module.
-- **Divergent Change**: one file or module is edited for several unrelated reasons. → split so each module changes for one reason.
-- **Speculative Generality**: abstraction, parameters, or hooks added for needs the spec doesn't have. → delete it; inline back until a real need shows.
-- **Message Chains**: long `a.b().c().d()` navigation the caller shouldn't depend on. → hide the walk behind one method on the first object.
-- **Middle Man**: a class or function that mostly just delegates onward. → cut it, call the real target direct.
-- **Refused Bequest**: a subclass or implementer that ignores or overrides most of what it inherits. → drop the inheritance, use composition.
-
-### 4. Spawn both sub-agents in parallel
-
-**Standards sub-agent prompt** should include:
-
-- The full diff command and commit list.
-- The list of standards-source files you found in step 3, **plus the smell baseline from step 3** pasted in full (the sub-agent has no other access to it).
-- The brief: "Report, per file/hunk where relevant, (a) every place the diff violates a documented standard: cite the standard (file + the rule); and (b) any baseline smell you spot: name it and quote the hunk. Distinguish hard violations from judgement calls: documented-standard breaches can be hard, but baseline smells are always judgement calls, and a documented repo standard overrides the baseline. Skip anything tooling enforces. Under 400 words."
-
-**Spec sub-agent prompt** should include:
-
-- The diff command and commit list.
-- The path or fetched contents of the spec.
-- The brief: "Report: (a) requirements the spec asked for that are missing or partial; (b) behaviour in the diff that wasn't asked for (scope creep); (c) requirements that look implemented but where the implementation looks wrong. Quote the spec line for each finding. Under 400 words."
-
-If the spec is missing, skip the Spec sub-agent and note this in the final report.
-
-### 5. Aggregate
-
-Present the two reports under `## Standards` and `## Spec` headings, verbatim or lightly cleaned. Do **not** merge or rerank findings, because the two axes are deliberately separate (see _Why two axes_).
-
-End with a one-line summary: total findings per axis, and the worst issue _within each axis_ (if any). Don't pick a single winner across axes: that's the reranking the separation exists to prevent.
-
-## Why two axes
-
-A change can pass one axis and fail the other:
-
-- Code that follows every standard but implements the wrong thing → **Standards pass, Spec fail.**
-- Code that does exactly what the issue asked but breaks the project's conventions → **Spec pass, Standards fail.**
-
-Reporting them separately stops one axis from masking the other.
+End the report with a compact receipt containing review mode, expected and observed
+candidate identity, fixed point, verification inspected, verdict, and open/resolved
+finding IDs. For high-risk changes, the coordinator obtains the independent reviewer
+required by `AGENTS.md` and records that evidence with the issue. Do not require a second
+reviewer by ritual for routine work. A worker reviewer reports its verdict and evidence
+through its Dispatch; it does not create Tasks or initiate another review cycle.

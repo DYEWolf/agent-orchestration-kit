@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "upstreamRepository": "https://github.com/mattpocock/skills",
   "upstreamCommit": "6654f6b60cd9d5be8b54c6fafe44346dabeb3b76",
-  "overlayVersion": "1",
+  "overlayVersion": "2",
   "license": {
     "spdx": "MIT",
     "hash": "0e7ac423bf2c6e223b7c5b156f8cf72da49d748e56a1641402c31f22ad07dbb5",
@@ -15,13 +15,55 @@
         "kind": "upstream",
         "upstreamPath": "skills/engineering/ask-matt/SKILL.md",
         "originalContentHash": "b25d86fb36b1d294eeead5d7db529f86135f9671f2afcd607579a63bb2213769",
-        "overlayVersion": "1",
-        "renderedContentHash": "bf210d351d155ffa61d52dd2049bb81a5d99c2ecbcf95611ac413ec9b55b414e",
-        "supportFiles": [],
-        "patch": {
-          "kind": "replacement",
-          "source": "templates/patches/ask-matt-body.md",
-          "reason": "Router must reference only installed skills."
+        "overlayVersion": "2",
+        "renderedContentHash": "8c6c77ccb6d47e600150cfe7eebbbe3d63e82a7d1d0858bac1ebca77519cd5b2",
+        "supportFiles": [
+          {
+            "path": "skills/engineering/ask-matt/agents/openai.yaml",
+            "hash": "bdffbc5a0a99ed1b6ef3253d251d755fd18162b9845972e380007f844b09b05c"
+          },
+          {
+            "path": "skills/engineering/ask-matt/PHASE-BOUNDARIES.md",
+            "hash": "a8aa20158609ef39e2b308b6ba0660c91066838d07a867202e63a7744a88a3ed"
+          }
+        ],
+        "reconciliation": {
+          "kind": "manual",
+          "overlayVersion": "2",
+          "upstreamTreeHash": "6fa69772f51d13dfab7e96798afb97c50e2307d690ef08af6722286859a1607d",
+          "renderedTreeHash": "925e306c7675388824922503e76921c76856e5870de9dcb0125684ab69812942",
+          "upstreamFiles": [
+            {
+              "path": "agents/openai.yaml",
+              "hash": "bdffbc5a0a99ed1b6ef3253d251d755fd18162b9845972e380007f844b09b05c"
+            },
+            {
+              "path": "PHASE-BOUNDARIES.md",
+              "hash": "a8aa20158609ef39e2b308b6ba0660c91066838d07a867202e63a7744a88a3ed"
+            },
+            {
+              "path": "SKILL.md",
+              "hash": "b25d86fb36b1d294eeead5d7db529f86135f9671f2afcd607579a63bb2213769"
+            }
+          ],
+          "renderedFiles": [
+            {
+              "path": "agents/openai.yaml",
+              "hash": "bdffbc5a0a99ed1b6ef3253d251d755fd18162b9845972e380007f844b09b05c"
+            },
+            {
+              "path": "PHASE-BOUNDARIES.md",
+              "hash": "b3d2bd296e29df61e96ea5779054d5331c31cf2868242fa09540f5151cbf77f3"
+            },
+            {
+              "path": "SKILL.md",
+              "hash": "8c6c77ccb6d47e600150cfe7eebbbe3d63e82a7d1d0858bac1ebca77519cd5b2"
+            }
+          ],
+          "changes": [
+            "Reviewed local non-provenance tree is the Living Fixture.",
+            "Manual overlay-v2 reconciliation preserves upstream attribution and repository workflow rules."
+          ]
         }
       }
     },
@@ -31,8 +73,8 @@
         "kind": "first-party",
         "author": "agent-orchestration-kit",
         "sourcePath": "templates/skills/campaign",
-        "sourceContentHash": "892c0983c0856ff1adea742090716a6f573d4bf64ec660abb9f5ecc2db9a4b54",
-        "renderedContentHash": "892c0983c0856ff1adea742090716a6f573d4bf64ec660abb9f5ecc2db9a4b54",
+        "sourceContentHash": "02000efabc41abc61d70fa281301ef5ff247c4c3c76ec39bdf45e676ea0dd322",
+        "renderedContentHash": "02000efabc41abc61d70fa281301ef5ff247c4c3c76ec39bdf45e676ea0dd322",
         "files": [
           {
             "path": "agents/openai.yaml",
@@ -40,7 +82,7 @@
           },
           {
             "path": "references/lifecycle.md",
-            "hash": "7b56d5dda08a95dc9f80820a7b3e6adfc763c235682f9e6c3bbfc8e7a722d1f0"
+            "hash": "4082ef5f91b987795d0ff88315ebfcc5e664c5f3563429485285200fc0fbf702"
           },
           {
             "path": "references/preflight-and-record.md",
@@ -48,7 +90,7 @@
           },
           {
             "path": "SKILL.md",
-            "hash": "892c0983c0856ff1adea742090716a6f573d4bf64ec660abb9f5ecc2db9a4b54"
+            "hash": "02000efabc41abc61d70fa281301ef5ff247c4c3c76ec39bdf45e676ea0dd322"
           }
         ]
       }
@@ -59,14 +101,42 @@
         "kind": "upstream",
         "upstreamPath": "skills/engineering/code-review/SKILL.md",
         "originalContentHash": "47f4e52c21694def9c7c11cbfbf891ca35eac7a93e395797515be3c8a409ae50",
-        "overlayVersion": "1",
-        "renderedContentHash": "7f82c3ef52680c1daa553bf62ce75c59a5ce7a37e25e405647fcff77975a406f",
-        "supportFiles": [],
-        "patch": {
-          "kind": "mechanical",
-          "replacements": [
-            "adapter-specific slash invocations -> neutral skill names",
-            "setup skill fallback -> installed GitHub tracker documentation"
+        "overlayVersion": "2",
+        "renderedContentHash": "2dec24b12abe50dfb572c15d6c1b9d5dd99abbd5b744886db717cb726940ab81",
+        "supportFiles": [
+          {
+            "path": "skills/engineering/code-review/agents/openai.yaml",
+            "hash": "8229ca854e11dc8e6aef2131ee03f31fb1561cf905fab9ccc325180cf3331352"
+          }
+        ],
+        "reconciliation": {
+          "kind": "manual",
+          "overlayVersion": "2",
+          "upstreamTreeHash": "1fa5dae0154787ad5e0b9478a3bb759ec75ead99af016565b7d66ea44db79ac8",
+          "renderedTreeHash": "fc01fab6b407b6d576de04b47fbdc7c4cd20f225a694714a1910de0552b9c647",
+          "upstreamFiles": [
+            {
+              "path": "agents/openai.yaml",
+              "hash": "8229ca854e11dc8e6aef2131ee03f31fb1561cf905fab9ccc325180cf3331352"
+            },
+            {
+              "path": "SKILL.md",
+              "hash": "47f4e52c21694def9c7c11cbfbf891ca35eac7a93e395797515be3c8a409ae50"
+            }
+          ],
+          "renderedFiles": [
+            {
+              "path": "agents/openai.yaml",
+              "hash": "8229ca854e11dc8e6aef2131ee03f31fb1561cf905fab9ccc325180cf3331352"
+            },
+            {
+              "path": "SKILL.md",
+              "hash": "2dec24b12abe50dfb572c15d6c1b9d5dd99abbd5b744886db717cb726940ab81"
+            }
+          ],
+          "changes": [
+            "Reviewed local non-provenance tree is the Living Fixture.",
+            "Manual overlay-v2 reconciliation preserves upstream attribution and repository workflow rules."
           ]
         }
       }
@@ -77,9 +147,13 @@
         "kind": "upstream",
         "upstreamPath": "skills/engineering/codebase-design/SKILL.md",
         "originalContentHash": "2c20617f87ec8af6a434859f381b2f061a69b530444e74eb39e78bb016a6d1e2",
-        "overlayVersion": "1",
-        "renderedContentHash": "f64494233170e9dd18fcc2dd2a943a05f3c616b1db5277bbb47a1e9194a915f8",
+        "overlayVersion": "2",
+        "renderedContentHash": "17a415702855c634f9ba42195b9d41dfa2401e57bb71613acda643458abc54a3",
         "supportFiles": [
+          {
+            "path": "skills/engineering/codebase-design/agents/openai.yaml",
+            "hash": "edebc9e4fcfe102114012575eaa9600b9b5fd08c311664f389c36e7bc717740f"
+          },
           {
             "path": "skills/engineering/codebase-design/DEEPENING.md",
             "hash": "f3dd099ce99289bd213914d8ee3e2429b78309c3957ca4583f7659551b1d53c1"
@@ -89,11 +163,50 @@
             "hash": "8e740bf98446dbd4dfdc132ac4346d9a7eedaf93de6a495889171cf7f99f16bd"
           }
         ],
-        "patch": {
-          "kind": "mechanical",
-          "replacements": [
-            "adapter-specific slash invocations -> neutral skill names",
-            "setup skill fallback -> installed GitHub tracker documentation"
+        "reconciliation": {
+          "kind": "manual",
+          "overlayVersion": "2",
+          "upstreamTreeHash": "0a81dfc72f0f71c9279e7b9a5f2dfad3c3297bc30c99ced668b21ac7727b6a45",
+          "renderedTreeHash": "7e6bbc21eab123e84d809c35d9b3a6697ef9a7944890b9bd735049b6745dbc71",
+          "upstreamFiles": [
+            {
+              "path": "agents/openai.yaml",
+              "hash": "edebc9e4fcfe102114012575eaa9600b9b5fd08c311664f389c36e7bc717740f"
+            },
+            {
+              "path": "DEEPENING.md",
+              "hash": "f3dd099ce99289bd213914d8ee3e2429b78309c3957ca4583f7659551b1d53c1"
+            },
+            {
+              "path": "DESIGN-IT-TWICE.md",
+              "hash": "8e740bf98446dbd4dfdc132ac4346d9a7eedaf93de6a495889171cf7f99f16bd"
+            },
+            {
+              "path": "SKILL.md",
+              "hash": "2c20617f87ec8af6a434859f381b2f061a69b530444e74eb39e78bb016a6d1e2"
+            }
+          ],
+          "renderedFiles": [
+            {
+              "path": "agents/openai.yaml",
+              "hash": "edebc9e4fcfe102114012575eaa9600b9b5fd08c311664f389c36e7bc717740f"
+            },
+            {
+              "path": "DEEPENING.md",
+              "hash": "f3dd099ce99289bd213914d8ee3e2429b78309c3957ca4583f7659551b1d53c1"
+            },
+            {
+              "path": "DESIGN-IT-TWICE.md",
+              "hash": "a6be4421f7204468abfcfcfc9c159509c6d1554dad6670e9c0588cf882933fad"
+            },
+            {
+              "path": "SKILL.md",
+              "hash": "17a415702855c634f9ba42195b9d41dfa2401e57bb71613acda643458abc54a3"
+            }
+          ],
+          "changes": [
+            "Reviewed local non-provenance tree is the Living Fixture.",
+            "Manual overlay-v2 reconciliation preserves upstream attribution and repository workflow rules."
           ]
         }
       }
@@ -104,19 +217,54 @@
         "kind": "upstream",
         "upstreamPath": "skills/engineering/diagnosing-bugs/SKILL.md",
         "originalContentHash": "77f3cf31bc99b2f49af943222526531fcc9fc41d047626d3640e875e85af3e84",
-        "overlayVersion": "1",
-        "renderedContentHash": "d32a00e7c3c640908af326fd7e4ba192767165de147d1ba79309cfe56de657ad",
+        "overlayVersion": "2",
+        "renderedContentHash": "efde4ba25ec1640624c9cd9048c2b6d95a4a3bd9ca1eb1c4eb6f348d851fcddb",
         "supportFiles": [
+          {
+            "path": "skills/engineering/diagnosing-bugs/agents/openai.yaml",
+            "hash": "3e430dbe4334a87597488c060cb3dc3786bb00c9182877d6f5ec41f62490e90b"
+          },
           {
             "path": "skills/engineering/diagnosing-bugs/scripts/hitl-loop.template.sh",
             "hash": "35103539fc36873eea36074769ad454f9379d6fc8b2dc0e26ce987fd3bfe5503"
           }
         ],
-        "patch": {
-          "kind": "mechanical",
-          "replacements": [
-            "adapter-specific slash invocations -> neutral skill names",
-            "setup skill fallback -> installed GitHub tracker documentation"
+        "reconciliation": {
+          "kind": "manual",
+          "overlayVersion": "2",
+          "upstreamTreeHash": "aa4c1ca71fd5b544c23bfe320539a5770d7567298940df6aba465eb76eca3760",
+          "renderedTreeHash": "97c850c060661ad8fbf1a252c8c75ad7ad59a939c062f85dd55494efb484bf28",
+          "upstreamFiles": [
+            {
+              "path": "agents/openai.yaml",
+              "hash": "3e430dbe4334a87597488c060cb3dc3786bb00c9182877d6f5ec41f62490e90b"
+            },
+            {
+              "path": "scripts/hitl-loop.template.sh",
+              "hash": "35103539fc36873eea36074769ad454f9379d6fc8b2dc0e26ce987fd3bfe5503"
+            },
+            {
+              "path": "SKILL.md",
+              "hash": "77f3cf31bc99b2f49af943222526531fcc9fc41d047626d3640e875e85af3e84"
+            }
+          ],
+          "renderedFiles": [
+            {
+              "path": "agents/openai.yaml",
+              "hash": "3e430dbe4334a87597488c060cb3dc3786bb00c9182877d6f5ec41f62490e90b"
+            },
+            {
+              "path": "scripts/hitl-loop.template.sh",
+              "hash": "35103539fc36873eea36074769ad454f9379d6fc8b2dc0e26ce987fd3bfe5503"
+            },
+            {
+              "path": "SKILL.md",
+              "hash": "efde4ba25ec1640624c9cd9048c2b6d95a4a3bd9ca1eb1c4eb6f348d851fcddb"
+            }
+          ],
+          "changes": [
+            "Reviewed local non-provenance tree is the Living Fixture.",
+            "Manual overlay-v2 reconciliation preserves upstream attribution and repository workflow rules."
           ]
         }
       }
@@ -127,23 +275,66 @@
         "kind": "upstream",
         "upstreamPath": "skills/engineering/domain-modeling/SKILL.md",
         "originalContentHash": "327a2b50620e2fd70abc6893cd6965e76b20f8d0adb0dc2c8d5eb3845efb643e",
-        "overlayVersion": "1",
-        "renderedContentHash": "bc01a776bbf75f23ad4490da1faf34d21728a3c71de808ebaff668b45aae27d8",
+        "overlayVersion": "2",
+        "renderedContentHash": "152e2c97239affb12a60c5f4a7e74ab546a49ae169688c81f4e2ccc42dafa579",
         "supportFiles": [
           {
             "path": "skills/engineering/domain-modeling/ADR-FORMAT.md",
             "hash": "944c92aa790e8fbdc9199640b170979abb8a34ba8d0fe18c2a01a63bce140ca0"
           },
           {
+            "path": "skills/engineering/domain-modeling/agents/openai.yaml",
+            "hash": "f6bf2aa996c6e6f53fdd0708e18a0d16a56aed8322cca59fedbe3c0d2c75f06b"
+          },
+          {
             "path": "skills/engineering/domain-modeling/CONTEXT-FORMAT.md",
             "hash": "17ab16ce783e4d2801ee52fd9acdf550cbf44de65ae76797a93943bbedf22a13"
           }
         ],
-        "patch": {
-          "kind": "mechanical",
-          "replacements": [
-            "adapter-specific slash invocations -> neutral skill names",
-            "setup skill fallback -> installed GitHub tracker documentation"
+        "reconciliation": {
+          "kind": "manual",
+          "overlayVersion": "2",
+          "upstreamTreeHash": "2ba77b5974caedcd2982f8e5c008e82d02ed4da635aa5c94719042e33f4c3ac8",
+          "renderedTreeHash": "ceb8cede20a88b1f13e81875f598451eb2e0f987d22289fd58d8cb1988e3e293",
+          "upstreamFiles": [
+            {
+              "path": "ADR-FORMAT.md",
+              "hash": "944c92aa790e8fbdc9199640b170979abb8a34ba8d0fe18c2a01a63bce140ca0"
+            },
+            {
+              "path": "agents/openai.yaml",
+              "hash": "f6bf2aa996c6e6f53fdd0708e18a0d16a56aed8322cca59fedbe3c0d2c75f06b"
+            },
+            {
+              "path": "CONTEXT-FORMAT.md",
+              "hash": "17ab16ce783e4d2801ee52fd9acdf550cbf44de65ae76797a93943bbedf22a13"
+            },
+            {
+              "path": "SKILL.md",
+              "hash": "327a2b50620e2fd70abc6893cd6965e76b20f8d0adb0dc2c8d5eb3845efb643e"
+            }
+          ],
+          "renderedFiles": [
+            {
+              "path": "ADR-FORMAT.md",
+              "hash": "f1f36cd3f8d3b6474ddd5855da4e233bfc4ae1a1c5024909ccf11871819a41b2"
+            },
+            {
+              "path": "agents/openai.yaml",
+              "hash": "f6bf2aa996c6e6f53fdd0708e18a0d16a56aed8322cca59fedbe3c0d2c75f06b"
+            },
+            {
+              "path": "CONTEXT-FORMAT.md",
+              "hash": "b8cc318f2a4285b530e908b6bc43901c3c5cd11100362636bbc4216639bef597"
+            },
+            {
+              "path": "SKILL.md",
+              "hash": "152e2c97239affb12a60c5f4a7e74ab546a49ae169688c81f4e2ccc42dafa579"
+            }
+          ],
+          "changes": [
+            "Reviewed local non-provenance tree is the Living Fixture.",
+            "Manual overlay-v2 reconciliation preserves upstream attribution and repository workflow rules."
           ]
         }
       }
@@ -154,14 +345,42 @@
         "kind": "upstream",
         "upstreamPath": "skills/engineering/grill-with-docs/SKILL.md",
         "originalContentHash": "7de372c13488f1ee96cc11cd8907b56b6809cc93eef776eeddd37de6b6cbe3fe",
-        "overlayVersion": "1",
-        "renderedContentHash": "fbee36ee42207652b9d9e155fbdc1491b3547959f3d1257091d59c7cf7e6d9a3",
-        "supportFiles": [],
-        "patch": {
-          "kind": "mechanical",
-          "replacements": [
-            "adapter-specific slash invocations -> neutral skill names",
-            "setup skill fallback -> installed GitHub tracker documentation"
+        "overlayVersion": "2",
+        "renderedContentHash": "369d33f49ce3942d175cff7c6f427e405c1fecd49314701f5f42827f0a477af1",
+        "supportFiles": [
+          {
+            "path": "skills/engineering/grill-with-docs/agents/openai.yaml",
+            "hash": "94cd0ab161fb468a836349f5ed482ba58ce8e709a05c57ce533d739dbd35cca9"
+          }
+        ],
+        "reconciliation": {
+          "kind": "manual",
+          "overlayVersion": "2",
+          "upstreamTreeHash": "76c49d1fff99bba497e373f4485099e492142848e0188ebe3374ebea62dc1569",
+          "renderedTreeHash": "2fbbbd4209a3af7f52fba5219a9e8eb86b6bc4e0a4f5f9e3d60c2e7406d63c80",
+          "upstreamFiles": [
+            {
+              "path": "agents/openai.yaml",
+              "hash": "94cd0ab161fb468a836349f5ed482ba58ce8e709a05c57ce533d739dbd35cca9"
+            },
+            {
+              "path": "SKILL.md",
+              "hash": "7de372c13488f1ee96cc11cd8907b56b6809cc93eef776eeddd37de6b6cbe3fe"
+            }
+          ],
+          "renderedFiles": [
+            {
+              "path": "agents/openai.yaml",
+              "hash": "94cd0ab161fb468a836349f5ed482ba58ce8e709a05c57ce533d739dbd35cca9"
+            },
+            {
+              "path": "SKILL.md",
+              "hash": "369d33f49ce3942d175cff7c6f427e405c1fecd49314701f5f42827f0a477af1"
+            }
+          ],
+          "changes": [
+            "Reviewed local non-provenance tree is the Living Fixture.",
+            "Manual overlay-v2 reconciliation preserves upstream attribution and repository workflow rules."
           ]
         }
       }
@@ -172,14 +391,42 @@
         "kind": "upstream",
         "upstreamPath": "skills/productivity/grilling/SKILL.md",
         "originalContentHash": "10ff989e7498b23b5acb49d5048f11dcd906757d2f79c5cdf8a00001381296f2",
-        "overlayVersion": "1",
-        "renderedContentHash": "d7fd5145de97c335853a17abc41a1c75a97941f8bcdd8c1b421d7a563ccfada3",
-        "supportFiles": [],
-        "patch": {
-          "kind": "mechanical",
-          "replacements": [
-            "adapter-specific slash invocations -> neutral skill names",
-            "setup skill fallback -> installed GitHub tracker documentation"
+        "overlayVersion": "2",
+        "renderedContentHash": "44331dda57f461db4fec3f2efb6ddabe7aaaa0a57ae0f88a883bc61aed8a0587",
+        "supportFiles": [
+          {
+            "path": "skills/productivity/grilling/agents/openai.yaml",
+            "hash": "1411d7df7d99b7e621a1ff8283c8133cc2464be63d064e52d8ce169c6800ee9b"
+          }
+        ],
+        "reconciliation": {
+          "kind": "manual",
+          "overlayVersion": "2",
+          "upstreamTreeHash": "c0dae48c03029851663ce973ffe44b4755f05ab7cf7533c60928b09fade9a1e3",
+          "renderedTreeHash": "e95b8c609c9f994b91f56b00f6853465bd5203655c7b7442066db5f64826100d",
+          "upstreamFiles": [
+            {
+              "path": "agents/openai.yaml",
+              "hash": "1411d7df7d99b7e621a1ff8283c8133cc2464be63d064e52d8ce169c6800ee9b"
+            },
+            {
+              "path": "SKILL.md",
+              "hash": "10ff989e7498b23b5acb49d5048f11dcd906757d2f79c5cdf8a00001381296f2"
+            }
+          ],
+          "renderedFiles": [
+            {
+              "path": "agents/openai.yaml",
+              "hash": "cf29b9a8dbf35a58a908a6ca4f64dcd86c2b2130291eee0a78b9f706b138825b"
+            },
+            {
+              "path": "SKILL.md",
+              "hash": "44331dda57f461db4fec3f2efb6ddabe7aaaa0a57ae0f88a883bc61aed8a0587"
+            }
+          ],
+          "changes": [
+            "Reviewed local non-provenance tree is the Living Fixture.",
+            "Manual overlay-v2 reconciliation preserves upstream attribution and repository workflow rules."
           ]
         }
       }
@@ -190,14 +437,42 @@
         "kind": "upstream",
         "upstreamPath": "skills/productivity/handoff/SKILL.md",
         "originalContentHash": "7c62de979fdc7ac32fb5ddb2146156c917f80ee070d30fadc9d40343c4b6ed25",
-        "overlayVersion": "1",
-        "renderedContentHash": "22fd58bde7cf51fc6439b7e980b0bba478aa7f156666bf206f6df72d55b9aae7",
-        "supportFiles": [],
-        "patch": {
-          "kind": "mechanical",
-          "replacements": [
-            "adapter-specific slash invocations -> neutral skill names",
-            "setup skill fallback -> installed GitHub tracker documentation"
+        "overlayVersion": "2",
+        "renderedContentHash": "e46e895c75d5ae281c0e86edc512b7de3bad35c53f9b0177a5420429c4ab2a4b",
+        "supportFiles": [
+          {
+            "path": "skills/productivity/handoff/agents/openai.yaml",
+            "hash": "5c479fd562c691851690e8b18c8501045bef0943c10743d636b2fae26add1d28"
+          }
+        ],
+        "reconciliation": {
+          "kind": "manual",
+          "overlayVersion": "2",
+          "upstreamTreeHash": "4dbf63130b2a6774408142cb7c75e637ef3cc0e90ec4e26a6441437180c1d3ae",
+          "renderedTreeHash": "91a88232f609ef339465f61d1a41398ea3ad3e5c75e65d1a5cee16e64c0c0b38",
+          "upstreamFiles": [
+            {
+              "path": "agents/openai.yaml",
+              "hash": "5c479fd562c691851690e8b18c8501045bef0943c10743d636b2fae26add1d28"
+            },
+            {
+              "path": "SKILL.md",
+              "hash": "7c62de979fdc7ac32fb5ddb2146156c917f80ee070d30fadc9d40343c4b6ed25"
+            }
+          ],
+          "renderedFiles": [
+            {
+              "path": "agents/openai.yaml",
+              "hash": "5c479fd562c691851690e8b18c8501045bef0943c10743d636b2fae26add1d28"
+            },
+            {
+              "path": "SKILL.md",
+              "hash": "e46e895c75d5ae281c0e86edc512b7de3bad35c53f9b0177a5420429c4ab2a4b"
+            }
+          ],
+          "changes": [
+            "Reviewed local non-provenance tree is the Living Fixture.",
+            "Manual overlay-v2 reconciliation preserves upstream attribution and repository workflow rules."
           ]
         }
       }
@@ -208,14 +483,42 @@
         "kind": "upstream",
         "upstreamPath": "skills/engineering/implement/SKILL.md",
         "originalContentHash": "6d3fd9e83b8f36e5213854779db49b256a457a7ebb4a503e53fa7dcff696adc3",
-        "overlayVersion": "1",
-        "renderedContentHash": "9404b7604d4701c6ac2eb521883c3d5c0bdfbf104053c4b070eb62bdaf4814e1",
-        "supportFiles": [],
-        "patch": {
-          "kind": "mechanical",
-          "replacements": [
-            "adapter-specific slash invocations -> neutral skill names",
-            "setup skill fallback -> installed GitHub tracker documentation"
+        "overlayVersion": "2",
+        "renderedContentHash": "9897208ffb7a7b7c12910f1e97c48f3317b4848c260362e8bc8836c9b3a2f93a",
+        "supportFiles": [
+          {
+            "path": "skills/engineering/implement/agents/openai.yaml",
+            "hash": "8970a8596ade0c28ab427f41a4ea242d6bdf6186c59ebf55e1238dbecaab79dc"
+          }
+        ],
+        "reconciliation": {
+          "kind": "manual",
+          "overlayVersion": "2",
+          "upstreamTreeHash": "55c13c534eb726ce3905e0ff0a868c16a7fe1761fe7ede3250afc6483226b388",
+          "renderedTreeHash": "670fac85d35001322b9c85ee7318888b64b0562d88243d6e031735ce49312529",
+          "upstreamFiles": [
+            {
+              "path": "agents/openai.yaml",
+              "hash": "8970a8596ade0c28ab427f41a4ea242d6bdf6186c59ebf55e1238dbecaab79dc"
+            },
+            {
+              "path": "SKILL.md",
+              "hash": "6d3fd9e83b8f36e5213854779db49b256a457a7ebb4a503e53fa7dcff696adc3"
+            }
+          ],
+          "renderedFiles": [
+            {
+              "path": "agents/openai.yaml",
+              "hash": "8970a8596ade0c28ab427f41a4ea242d6bdf6186c59ebf55e1238dbecaab79dc"
+            },
+            {
+              "path": "SKILL.md",
+              "hash": "9897208ffb7a7b7c12910f1e97c48f3317b4848c260362e8bc8836c9b3a2f93a"
+            }
+          ],
+          "changes": [
+            "Reviewed local non-provenance tree is the Living Fixture.",
+            "Manual overlay-v2 reconciliation preserves upstream attribution and repository workflow rules."
           ]
         }
       }
@@ -226,19 +529,54 @@
         "kind": "upstream",
         "upstreamPath": "skills/engineering/improve-codebase-architecture/SKILL.md",
         "originalContentHash": "d1ac25511a936ff4250a48dbcefda363837d6bb9321b3cba73df99fa37270a75",
-        "overlayVersion": "1",
-        "renderedContentHash": "f348936b2f551a0c6bd7a1e306694193c8f794f3c31fbe0b2834647bb51216f0",
+        "overlayVersion": "2",
+        "renderedContentHash": "c534b5865526e66c5cf430afa4942639a8e8f73601f686e9220e94bf83e75fa3",
         "supportFiles": [
+          {
+            "path": "skills/engineering/improve-codebase-architecture/agents/openai.yaml",
+            "hash": "c8cb20f68ebf0edb4e497bc11ae5fcaa196004e661cd189015b04f4109ced7f1"
+          },
           {
             "path": "skills/engineering/improve-codebase-architecture/HTML-REPORT.md",
             "hash": "581e8bb5a521e46bbda8ca7e19b15948bed882187108092ebb90c62513b77528"
           }
         ],
-        "patch": {
-          "kind": "mechanical",
-          "replacements": [
-            "adapter-specific slash invocations -> neutral skill names",
-            "setup skill fallback -> installed GitHub tracker documentation"
+        "reconciliation": {
+          "kind": "manual",
+          "overlayVersion": "2",
+          "upstreamTreeHash": "4fd75b53b56f556e1a5bf94d89f6f25c3306e4cea26cb5443420193a4bced14c",
+          "renderedTreeHash": "45d536441c5c32d274814c0a745bb0cf7ca5b5c994ada6e9fd07f7f0c005b83f",
+          "upstreamFiles": [
+            {
+              "path": "agents/openai.yaml",
+              "hash": "c8cb20f68ebf0edb4e497bc11ae5fcaa196004e661cd189015b04f4109ced7f1"
+            },
+            {
+              "path": "HTML-REPORT.md",
+              "hash": "581e8bb5a521e46bbda8ca7e19b15948bed882187108092ebb90c62513b77528"
+            },
+            {
+              "path": "SKILL.md",
+              "hash": "d1ac25511a936ff4250a48dbcefda363837d6bb9321b3cba73df99fa37270a75"
+            }
+          ],
+          "renderedFiles": [
+            {
+              "path": "agents/openai.yaml",
+              "hash": "c8cb20f68ebf0edb4e497bc11ae5fcaa196004e661cd189015b04f4109ced7f1"
+            },
+            {
+              "path": "HTML-REPORT.md",
+              "hash": "18e7524a66f32192914ff01cd4780ed7a02373d1e7b55c69651777755d6d538f"
+            },
+            {
+              "path": "SKILL.md",
+              "hash": "c534b5865526e66c5cf430afa4942639a8e8f73601f686e9220e94bf83e75fa3"
+            }
+          ],
+          "changes": [
+            "Reviewed local non-provenance tree is the Living Fixture.",
+            "Manual overlay-v2 reconciliation preserves upstream attribution and repository workflow rules."
           ]
         }
       }
@@ -249,9 +587,13 @@
         "kind": "upstream",
         "upstreamPath": "skills/engineering/prototype/SKILL.md",
         "originalContentHash": "714de632d116bb73f65cdb5a882db15b9369a6713b9a47c0fad827848f0bfbe3",
-        "overlayVersion": "1",
-        "renderedContentHash": "1cec4be8d6a4bc3b00b638d4896f71333db2c3ca21d3f80b73f62a2b6b5b9b7c",
+        "overlayVersion": "2",
+        "renderedContentHash": "86d133d565d24b4959360e263d1201d9eddaa500baff895499b6632d44647f1b",
         "supportFiles": [
+          {
+            "path": "skills/engineering/prototype/agents/openai.yaml",
+            "hash": "5af65e43ab41a350436697b81e27b7f848d36782043b73c322bb2c9fa9cc55dc"
+          },
           {
             "path": "skills/engineering/prototype/LOGIC.md",
             "hash": "f61c7d249e786a79ef289018901c348271e1798dd0b0bc5607b5c6f4d4a01ab9"
@@ -261,11 +603,50 @@
             "hash": "723211e878acbc7b6ff09755263f3295cde724ba902ff0064da41eed51d45ad3"
           }
         ],
-        "patch": {
-          "kind": "mechanical",
-          "replacements": [
-            "adapter-specific slash invocations -> neutral skill names",
-            "setup skill fallback -> installed GitHub tracker documentation"
+        "reconciliation": {
+          "kind": "manual",
+          "overlayVersion": "2",
+          "upstreamTreeHash": "3a07a79792ea5eae7ba1072096f620b52bd48a46942760e3755bb9e4c0c634a0",
+          "renderedTreeHash": "d1898ca5c58956139ccdb4a9bba1828941b69b5c918afc13d44a703bec3dd690",
+          "upstreamFiles": [
+            {
+              "path": "agents/openai.yaml",
+              "hash": "5af65e43ab41a350436697b81e27b7f848d36782043b73c322bb2c9fa9cc55dc"
+            },
+            {
+              "path": "LOGIC.md",
+              "hash": "f61c7d249e786a79ef289018901c348271e1798dd0b0bc5607b5c6f4d4a01ab9"
+            },
+            {
+              "path": "SKILL.md",
+              "hash": "714de632d116bb73f65cdb5a882db15b9369a6713b9a47c0fad827848f0bfbe3"
+            },
+            {
+              "path": "UI.md",
+              "hash": "723211e878acbc7b6ff09755263f3295cde724ba902ff0064da41eed51d45ad3"
+            }
+          ],
+          "renderedFiles": [
+            {
+              "path": "agents/openai.yaml",
+              "hash": "5af65e43ab41a350436697b81e27b7f848d36782043b73c322bb2c9fa9cc55dc"
+            },
+            {
+              "path": "LOGIC.md",
+              "hash": "aefbda35e177411f3375ca0e847859c3a974d60f31a8b1e71c700d3eb0938d35"
+            },
+            {
+              "path": "SKILL.md",
+              "hash": "86d133d565d24b4959360e263d1201d9eddaa500baff895499b6632d44647f1b"
+            },
+            {
+              "path": "UI.md",
+              "hash": "af8b8bb50d570781a723bb02a430e1d99920bd46394f52ea3ab37cd95f180c32"
+            }
+          ],
+          "changes": [
+            "Reviewed local non-provenance tree is the Living Fixture.",
+            "Manual overlay-v2 reconciliation preserves upstream attribution and repository workflow rules."
           ]
         }
       }
@@ -276,14 +657,42 @@
         "kind": "upstream",
         "upstreamPath": "skills/engineering/research/SKILL.md",
         "originalContentHash": "985569f15739c713d6784887c3d186d4ef9ac85bec5ad9c068d25bf0739928e4",
-        "overlayVersion": "1",
-        "renderedContentHash": "8f26395f2bf477ffa1a44f105b00e44e9f2e4996c649906bddd022d44f4ee61d",
-        "supportFiles": [],
-        "patch": {
-          "kind": "mechanical",
-          "replacements": [
-            "adapter-specific slash invocations -> neutral skill names",
-            "setup skill fallback -> installed GitHub tracker documentation"
+        "overlayVersion": "2",
+        "renderedContentHash": "9db3214aaf3170557b09dccc44b5290dd498fe1b60ac0907e8f95d17f2166bd5",
+        "supportFiles": [
+          {
+            "path": "skills/engineering/research/agents/openai.yaml",
+            "hash": "9b4c470d63221c1f68f22df70b83e2f12401b317babe0d1b7b5f24a974474d0d"
+          }
+        ],
+        "reconciliation": {
+          "kind": "manual",
+          "overlayVersion": "2",
+          "upstreamTreeHash": "c3b8a4fed948e46a86bf1d849fd4f05174a731740ae04849e4d87d28a0870f33",
+          "renderedTreeHash": "c06ccb4303b2749b8b506c979a92335ae7d6f518fc2df8cdade22302622243ed",
+          "upstreamFiles": [
+            {
+              "path": "agents/openai.yaml",
+              "hash": "9b4c470d63221c1f68f22df70b83e2f12401b317babe0d1b7b5f24a974474d0d"
+            },
+            {
+              "path": "SKILL.md",
+              "hash": "985569f15739c713d6784887c3d186d4ef9ac85bec5ad9c068d25bf0739928e4"
+            }
+          ],
+          "renderedFiles": [
+            {
+              "path": "agents/openai.yaml",
+              "hash": "9b4c470d63221c1f68f22df70b83e2f12401b317babe0d1b7b5f24a974474d0d"
+            },
+            {
+              "path": "SKILL.md",
+              "hash": "9db3214aaf3170557b09dccc44b5290dd498fe1b60ac0907e8f95d17f2166bd5"
+            }
+          ],
+          "changes": [
+            "Reviewed local non-provenance tree is the Living Fixture.",
+            "Manual overlay-v2 reconciliation preserves upstream attribution and repository workflow rules."
           ]
         }
       }
@@ -294,14 +703,42 @@
         "kind": "upstream",
         "upstreamPath": "skills/engineering/resolving-merge-conflicts/SKILL.md",
         "originalContentHash": "9d8114f8ef0b31f535a265fc05c364bd8cf2e2895a830040e06c22acb11f54b0",
-        "overlayVersion": "1",
-        "renderedContentHash": "3066748696c230aac236be712ff4afc70a7f91bffb09e040b84c9a84c19ac4f8",
-        "supportFiles": [],
-        "patch": {
-          "kind": "mechanical",
-          "replacements": [
-            "adapter-specific slash invocations -> neutral skill names",
-            "setup skill fallback -> installed GitHub tracker documentation"
+        "overlayVersion": "2",
+        "renderedContentHash": "90b9064afefcc9c088d958aa6b4a4eac586a860b37bbb8102031e503703ac63b",
+        "supportFiles": [
+          {
+            "path": "skills/engineering/resolving-merge-conflicts/agents/openai.yaml",
+            "hash": "a1f4f96838f2ed6282eb28abbbf99029cb8fadce552baf53da90a025b8bffddf"
+          }
+        ],
+        "reconciliation": {
+          "kind": "manual",
+          "overlayVersion": "2",
+          "upstreamTreeHash": "a9ae908eb434b5e6daf1ae7384046a668805fee0fa2361f84ea2b48202113d33",
+          "renderedTreeHash": "b3890cac8cecc3bde076dc2e40abf0b91de2b2567cc3cb57ee6bc6fefa6d7c11",
+          "upstreamFiles": [
+            {
+              "path": "agents/openai.yaml",
+              "hash": "a1f4f96838f2ed6282eb28abbbf99029cb8fadce552baf53da90a025b8bffddf"
+            },
+            {
+              "path": "SKILL.md",
+              "hash": "9d8114f8ef0b31f535a265fc05c364bd8cf2e2895a830040e06c22acb11f54b0"
+            }
+          ],
+          "renderedFiles": [
+            {
+              "path": "agents/openai.yaml",
+              "hash": "a1f4f96838f2ed6282eb28abbbf99029cb8fadce552baf53da90a025b8bffddf"
+            },
+            {
+              "path": "SKILL.md",
+              "hash": "90b9064afefcc9c088d958aa6b4a4eac586a860b37bbb8102031e503703ac63b"
+            }
+          ],
+          "changes": [
+            "Reviewed local non-provenance tree is the Living Fixture.",
+            "Manual overlay-v2 reconciliation preserves upstream attribution and repository workflow rules."
           ]
         }
       }
@@ -312,9 +749,13 @@
         "kind": "upstream",
         "upstreamPath": "skills/engineering/tdd/SKILL.md",
         "originalContentHash": "cb01f66bebfaa25fa1f88e6b7e769cd9fd9f35b1120b8563749820738814c927",
-        "overlayVersion": "1",
-        "renderedContentHash": "b7e2670926558c04fcbd74dc3b1816d832549a0decdba6a0f4d3d2cd2ed547d4",
+        "overlayVersion": "2",
+        "renderedContentHash": "d879af47b767d0ebda6803593da43e45582ba6c879e0cd9470e53ddaf5c6a68e",
         "supportFiles": [
+          {
+            "path": "skills/engineering/tdd/agents/openai.yaml",
+            "hash": "ea6f01cf1b8c06a4b0f5b649d74b1b8ce8685e72af1b38d70d877693e092af0b"
+          },
           {
             "path": "skills/engineering/tdd/mocking.md",
             "hash": "3ceb807fdf4a47d6a93d4d9a891e5ba6d362a6247bd08adc451feebfc17361ef"
@@ -324,11 +765,50 @@
             "hash": "859f9e592c188fda4fc7277dd180e4ce9c7a2e13f6efe1f6f29eccc9d28c106a"
           }
         ],
-        "patch": {
-          "kind": "mechanical",
-          "replacements": [
-            "adapter-specific slash invocations -> neutral skill names",
-            "setup skill fallback -> installed GitHub tracker documentation"
+        "reconciliation": {
+          "kind": "manual",
+          "overlayVersion": "2",
+          "upstreamTreeHash": "52450e15cf330d50c81b96cfd900d178fb55830796d6bee69035629fcb39d9a3",
+          "renderedTreeHash": "bad26a08c75eec36e767b2fa0ea5b4d983d80aa41264ad6430f38efee8c9c36f",
+          "upstreamFiles": [
+            {
+              "path": "agents/openai.yaml",
+              "hash": "ea6f01cf1b8c06a4b0f5b649d74b1b8ce8685e72af1b38d70d877693e092af0b"
+            },
+            {
+              "path": "mocking.md",
+              "hash": "3ceb807fdf4a47d6a93d4d9a891e5ba6d362a6247bd08adc451feebfc17361ef"
+            },
+            {
+              "path": "SKILL.md",
+              "hash": "cb01f66bebfaa25fa1f88e6b7e769cd9fd9f35b1120b8563749820738814c927"
+            },
+            {
+              "path": "tests.md",
+              "hash": "859f9e592c188fda4fc7277dd180e4ce9c7a2e13f6efe1f6f29eccc9d28c106a"
+            }
+          ],
+          "renderedFiles": [
+            {
+              "path": "agents/openai.yaml",
+              "hash": "ea6f01cf1b8c06a4b0f5b649d74b1b8ce8685e72af1b38d70d877693e092af0b"
+            },
+            {
+              "path": "mocking.md",
+              "hash": "3ceb807fdf4a47d6a93d4d9a891e5ba6d362a6247bd08adc451feebfc17361ef"
+            },
+            {
+              "path": "SKILL.md",
+              "hash": "d879af47b767d0ebda6803593da43e45582ba6c879e0cd9470e53ddaf5c6a68e"
+            },
+            {
+              "path": "tests.md",
+              "hash": "859f9e592c188fda4fc7277dd180e4ce9c7a2e13f6efe1f6f29eccc9d28c106a"
+            }
+          ],
+          "changes": [
+            "Reviewed local non-provenance tree is the Living Fixture.",
+            "Manual overlay-v2 reconciliation preserves upstream attribution and repository workflow rules."
           ]
         }
       }
@@ -339,14 +819,42 @@
         "kind": "upstream",
         "upstreamPath": "skills/engineering/to-spec/SKILL.md",
         "originalContentHash": "43ad9cf318e5e7d3d1fa360253a37021796dc87a0c2e595ad262661a10f85088",
-        "overlayVersion": "1",
-        "renderedContentHash": "c919dac95f6bae44f259ddc5bbee8aaebf7a176763e8dcb9dff8f72ec68889aa",
-        "supportFiles": [],
-        "patch": {
-          "kind": "mechanical",
-          "replacements": [
-            "adapter-specific slash invocations -> neutral skill names",
-            "setup skill fallback -> installed GitHub tracker documentation"
+        "overlayVersion": "2",
+        "renderedContentHash": "b80f71b15f996c75324f6d11ccab341c42bf72944f0c923a11f5a02de09f8dec",
+        "supportFiles": [
+          {
+            "path": "skills/engineering/to-spec/agents/openai.yaml",
+            "hash": "1c5b4d1e3d8e52287ef19cc2742fdbbfae1914ac75d33af3e4c8174f08cc55bb"
+          }
+        ],
+        "reconciliation": {
+          "kind": "manual",
+          "overlayVersion": "2",
+          "upstreamTreeHash": "5f6fd93eee223b7aeff4b7b1a561cfe35453fc47e3ff681a3c4eb3cc3f24335f",
+          "renderedTreeHash": "eaa1796ac03f3d155614bcb8371510340c5489e9e8955e1db82fbb8bd467956a",
+          "upstreamFiles": [
+            {
+              "path": "agents/openai.yaml",
+              "hash": "1c5b4d1e3d8e52287ef19cc2742fdbbfae1914ac75d33af3e4c8174f08cc55bb"
+            },
+            {
+              "path": "SKILL.md",
+              "hash": "43ad9cf318e5e7d3d1fa360253a37021796dc87a0c2e595ad262661a10f85088"
+            }
+          ],
+          "renderedFiles": [
+            {
+              "path": "agents/openai.yaml",
+              "hash": "1c5b4d1e3d8e52287ef19cc2742fdbbfae1914ac75d33af3e4c8174f08cc55bb"
+            },
+            {
+              "path": "SKILL.md",
+              "hash": "b80f71b15f996c75324f6d11ccab341c42bf72944f0c923a11f5a02de09f8dec"
+            }
+          ],
+          "changes": [
+            "Reviewed local non-provenance tree is the Living Fixture.",
+            "Manual overlay-v2 reconciliation preserves upstream attribution and repository workflow rules."
           ]
         }
       }
@@ -357,14 +865,42 @@
         "kind": "upstream",
         "upstreamPath": "skills/engineering/to-tickets/SKILL.md",
         "originalContentHash": "5c9fba69845c2519b9b35b9af42ae5142c21f8ca15ac2123dc2722002c8058ae",
-        "overlayVersion": "1",
-        "renderedContentHash": "93a4a2839cafb8d9fc349b2e8ed4ff85f46e0605925be17e714c2cfe0120a630",
-        "supportFiles": [],
-        "patch": {
-          "kind": "mechanical",
-          "replacements": [
-            "adapter-specific slash invocations -> neutral skill names",
-            "setup skill fallback -> installed GitHub tracker documentation"
+        "overlayVersion": "2",
+        "renderedContentHash": "aa9e439f73cd0ce7440b3f8f1ce35cfa216038f8ab3c30c3f5bb06daa808940e",
+        "supportFiles": [
+          {
+            "path": "skills/engineering/to-tickets/agents/openai.yaml",
+            "hash": "21bc6215fffcd7614e9f772bb1760e87cc5fc7dcc707e7d282bc9414267a6090"
+          }
+        ],
+        "reconciliation": {
+          "kind": "manual",
+          "overlayVersion": "2",
+          "upstreamTreeHash": "8e88054d35d47ea595ccae198a158a510ca166f7448aa9ff1715b6c0b6cfd720",
+          "renderedTreeHash": "2877c79bdd890af93ad23170ba8f4862ba5eb7d4b061c90f4a69853bd8192812",
+          "upstreamFiles": [
+            {
+              "path": "agents/openai.yaml",
+              "hash": "21bc6215fffcd7614e9f772bb1760e87cc5fc7dcc707e7d282bc9414267a6090"
+            },
+            {
+              "path": "SKILL.md",
+              "hash": "5c9fba69845c2519b9b35b9af42ae5142c21f8ca15ac2123dc2722002c8058ae"
+            }
+          ],
+          "renderedFiles": [
+            {
+              "path": "agents/openai.yaml",
+              "hash": "21bc6215fffcd7614e9f772bb1760e87cc5fc7dcc707e7d282bc9414267a6090"
+            },
+            {
+              "path": "SKILL.md",
+              "hash": "aa9e439f73cd0ce7440b3f8f1ce35cfa216038f8ab3c30c3f5bb06daa808940e"
+            }
+          ],
+          "changes": [
+            "Reviewed local non-provenance tree is the Living Fixture.",
+            "Manual overlay-v2 reconciliation preserves upstream attribution and repository workflow rules."
           ]
         }
       }
@@ -375,15 +911,42 @@
         "kind": "upstream",
         "upstreamPath": "skills/engineering/wayfinder/SKILL.md",
         "originalContentHash": "fee6e1d0c50f0e736b4ef8a599060c959afae904c9a97d82c97f049fcc3aa0f1",
-        "overlayVersion": "1",
-        "renderedContentHash": "6430570d51c292e638f4e635fbf1f8fc8ad19ed51cfacf7eac6fa62a16f4eb75",
-        "supportFiles": [],
-        "patch": {
-          "kind": "mechanical",
-          "replacements": [
-            "adapter-specific slash invocations -> neutral skill names",
-            "setup skill fallback -> installed GitHub tracker documentation",
-            "Wayfinder label taxonomy -> body metadata and native tracker relationships"
+        "overlayVersion": "2",
+        "renderedContentHash": "2a45dafad7bbf620483e1c0b0bc49ce82f6170e78039ce3fba4026f05c416a66",
+        "supportFiles": [
+          {
+            "path": "skills/engineering/wayfinder/agents/openai.yaml",
+            "hash": "88bc81a11a6d52ac67aeaa76b8b619e387020d47c5133a4dd4927fd15c4ad073"
+          }
+        ],
+        "reconciliation": {
+          "kind": "manual",
+          "overlayVersion": "2",
+          "upstreamTreeHash": "d68b1919b563c8b9402ce1bdecac1b08d49c16eefac0f5c2b9c9128335bda7d2",
+          "renderedTreeHash": "5832027d4f2dbf04ea331ca3ce055a89b64a0a4a992cf14326b11dd0bb059894",
+          "upstreamFiles": [
+            {
+              "path": "agents/openai.yaml",
+              "hash": "88bc81a11a6d52ac67aeaa76b8b619e387020d47c5133a4dd4927fd15c4ad073"
+            },
+            {
+              "path": "SKILL.md",
+              "hash": "fee6e1d0c50f0e736b4ef8a599060c959afae904c9a97d82c97f049fcc3aa0f1"
+            }
+          ],
+          "renderedFiles": [
+            {
+              "path": "agents/openai.yaml",
+              "hash": "88bc81a11a6d52ac67aeaa76b8b619e387020d47c5133a4dd4927fd15c4ad073"
+            },
+            {
+              "path": "SKILL.md",
+              "hash": "2a45dafad7bbf620483e1c0b0bc49ce82f6170e78039ce3fba4026f05c416a66"
+            }
+          ],
+          "changes": [
+            "Reviewed local non-provenance tree is the Living Fixture.",
+            "Manual overlay-v2 reconciliation preserves upstream attribution and repository workflow rules."
           ]
         }
       }
