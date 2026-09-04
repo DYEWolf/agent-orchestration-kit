@@ -71,7 +71,7 @@ Every Task must be executable from its contract alone:
 Objective: <one outcome>
 Context: <selected facts and source/evidence pointers needed to act>
 Owned scope: <files/modules>
-Constraints: <interfaces, invariants, and exclusions>
+Constraints: <interfaces, invariants, and exclusions, including surfaces owned by sibling Issues>
 Acceptance criteria:
   - <verifiable result>
 Verification:
@@ -152,7 +152,9 @@ Follow-up: none | correction Task | escalation/re-plan
 
 Compute the candidate identity with
 `node .agents/scripts/candidate-id.mjs <fixed-point>` and record the receipt
-defined in the execution policy. Write the policy's coordinator checkpoint
+defined in the execution policy. The WIP identity is staging-invariant:
+staging the reviewed bytes before the integration commit does not create a new
+candidate or require another review. Write the policy's coordinator checkpoint
 before replacing or compacting a full coordinator context and at every Campaign
 Issue boundary; resume from the checkpoint and canonical artifacts, never from
 a copied transcript.

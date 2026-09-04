@@ -69,18 +69,24 @@ addSection('head', head);
 addSection('committed-comparison', git([
   'diff', '--binary', '--full-index', '--no-ext-diff', base, head, '--',
 ]));
-addSection('staged', git([
-  'diff', '--cached', '--binary', '--full-index', '--no-ext-diff', head, '--',
-]));
-addSection('unstaged', git([
-  'diff', '--binary', '--full-index', '--no-ext-diff', '--',
+
+// Effective working tree versus HEAD for paths that exist in HEAD, regardless of
+// whether a change is staged, unstaged, or split between both. Added paths are
+// excluded here and captured uniformly below, so `git add` of identical bytes
+// never changes the identity.
+addSection('worktree-vs-head', git([
+  'diff', '--binary', '--full-index', '--no-ext-diff', '--diff-filter=a', head, '--',
 ]));
 
+const stagedAdded = git([
+  'diff', '--cached', '--name-only', '--diff-filter=A', '-z', head, '--',
+]).toString('utf8').split('\0').filter(Boolean);
 const untracked = git([
   'ls-files', '--others', '--exclude-standard', '-z',
-]).toString('utf8').split('\0').filter(Boolean).sort();
+]).toString('utf8').split('\0').filter(Boolean);
+const newPaths = [...new Set([...stagedAdded, ...untracked])].sort();
 
-for (const path of untracked) {
+for (const path of newPaths) {
   const absolutePath = resolve(repositoryRoot, path);
   const stat = lstatSync(absolutePath);
   const type = stat.isSymbolicLink() ? 'symlink' : 'file';
@@ -89,8 +95,8 @@ for (const path of untracked) {
     ? Buffer.from(readlinkSync(absolutePath))
     : readFileSync(absolutePath);
 
-  addSection(`untracked-path:${path}`, `${type}:${mode}`);
-  addSection(`untracked-bytes:${path}`, contents);
+  addSection(`new-path:${path}`, `${type}:${mode}`);
+  addSection(`new-bytes:${path}`, contents);
 }
 
 console.log(JSON.stringify({
@@ -98,6 +104,6 @@ console.log(JSON.stringify({
   base,
   head,
   id: `sha256:${hash.digest('hex')}`,
-  capture: 'committed-comparison + staged + unstaged + sorted untracked paths/bytes',
-  untracked,
+  capture: 'committed-comparison + effective worktree vs HEAD (staging-invariant) + sorted new paths/bytes',
+  newPaths,
 }, null, 2));

@@ -21,7 +21,11 @@ Classify four independent axes. Size alone never determines the route.
 
 Use the highest applicable risk. A one-line authentication or release change is
 not low-risk merely because it is small. A broad mechanical rename is not
-architectural merely because it touches many files.
+architectural merely because it touches many files. Treat an interface as
+public only when something outside this repository already consumes it: an
+unpublished or repository-internal contract covered by deterministic
+validation is at most medium risk, and that validation, not a fresh reviewer,
+is its primary evidence.
 
 Before acting, record a compact route decision in the conversation, Run, or
 Issue when one exists:
@@ -63,6 +67,9 @@ Issue independently.
 - Start at most one implementation worker for bounded work.
 - Create a Task DAG only when ownership and verification are genuinely
   separable; parallel Tasks must remain non-overlapping.
+- When the Issue has sibling Issues under the same umbrella, name the
+  surfaces those siblings own as explicit exclusions in every contract before
+  dispatch. Discovering the boundary mid-implementation costs a revert.
 - Default maximum: three active implementation workers inside one Issue, and
   only when their Tasks are genuinely independent.
 - Select model and effort per role from `docs/agents/routing.md`; do not use
@@ -210,8 +217,10 @@ they inspected.
 
 - For a committed candidate, use the full commit ID and its tree ID.
 - For WIP, use the fixed base plus a SHA-256 identity of the complete captured
-  snapshot: committed comparison, staged changes, unstaged changes, and every
-  untracked path and its bytes. Generate the reproducible identity with
+  snapshot: committed comparison, the effective working tree versus `HEAD`, and
+  every new path and its bytes. The identity is staging-invariant: `git add`,
+  `git reset`, or restaging identical bytes does not change it and never
+  triggers a new verification or review round. Generate it with
   `node .agents/scripts/candidate-id.mjs <fixed-point>`.
 - Recompute the candidate identity immediately before integration. Any mismatch
   invalidates the prior verification and review evidence affected by the change.
